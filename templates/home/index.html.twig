@@ -1,0 +1,346 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard | Rebus Game Show{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .hero-banner {
+        background: linear-gradient(135deg, rgba(249, 115, 22, 0.15), rgba(245, 158, 11, 0.05));
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-content h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #fff, #f59e0b);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .hero-content p {
+        color: var(--text-sub);
+        font-size: 1.1rem;
+        max-width: 650px;
+        line-height: 1.5;
+    }
+
+    .stats-strip {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .stat-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        background: rgba(249, 115, 22, 0.1);
+        padding: 0.75rem;
+        border-radius: 12px;
+        line-height: 1;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #fff;
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .shows-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .show-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.25s ease;
+        position: relative;
+    }
+
+    .show-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .show-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        margin-bottom: 0.35rem;
+        color: #fff;
+    }
+
+    .show-subtitle {
+        color: var(--accent);
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .show-meta-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .meta-tag {
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        padding: 0.35rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: var(--text-sub);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .show-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .show-actions .btn-full {
+        grid-column: span 2;
+    }
+
+    .btn-delete-show {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .btn-delete-show:hover {
+        background: rgba(239, 68, 68, 0.25);
+        border-color: #ef4444;
+        transform: scale(1.08);
+    }
+
+    .btn-refresh-show {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #f59e0b;
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .btn-refresh-show:hover {
+        background: rgba(245, 158, 11, 0.25);
+        border-color: #f59e0b;
+        transform: scale(1.08);
+    }
+
+    /* Modal Styling */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-sub);
+    }
+
+    .form-input {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        color: #fff;
+        font-size: 1rem;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--primary);
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="hero-banner">
+    <div class="hero-content">
+        <h1>Fall Party Rebus Arena</h1>
+        <p>Host visual rebus game shows with live timers, non-repeating questions, elimination rounds, and flight brackets for up to 12 teams!</p>
+    </div>
+    <button type="button" class="btn btn-primary btn-lg" onclick="document.getElementById('new-show-modal').showModal()">
+        ✨ Create New Game Show
+    </button>
+</div>
+
+<div class="stats-strip">
+    <div class="stat-card">
+        <div class="stat-icon">🧩</div>
+        <div>
+            <div class="stat-value">{{ stats.total_questions }}</div>
+            <div class="stat-label">Multimodal Puzzles in Bank</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📁</div>
+        <div>
+            <div class="stat-value">{{ stats.total_categories }}</div>
+            <div class="stat-label">Configured Categories</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div>
+            <div class="stat-value">{{ stats.total_favorites }}</div>
+            <div class="stat-label">Starred / Curated Favorites</div>
+        </div>
+    </div>
+</div>
+
+<div class="section-header">
+    <h2 class="section-title"><span>🎬</span> Your Game Shows</h2>
+</div>
+
+<div class="shows-grid">
+    {% for show in shows %}
+        <div class="show-card">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.35rem;">
+                    <div>
+                        <div class="show-title">{{ show.name }}</div>
+                        <div class="show-subtitle">{{ show.subtitle }}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                        <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Refresh &quot;{{ show.name|e('js') }}&quot;? This resets team scores to 0, clears asked questions history, and returns to Round 1.');" style="margin: 0;">
+                            <button type="submit" class="btn-refresh-show" title="Refresh Show (Zero scores & reset questions)" aria-label="Refresh Game Show">
+                                🔄
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ path('app_show_delete', {'id': show.id}) }}" onsubmit="return confirm('Permanently delete &quot;{{ show.name|e('js') }}&quot; and all its rounds/teams?');" style="margin: 0;">
+                            <button type="submit" class="btn-delete-show" title="Delete Game Show" aria-label="Delete Game Show">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="show-meta-strip">
+                    <span class="meta-tag">👥 <strong>{{ show.team_count }}</strong> Teams</span>
+                    <span class="meta-tag">🔄 <strong>{{ show.round_count }}</strong> Rounds</span>
+                    <span class="meta-tag">⏱️ <strong>{{ show.default_timer_seconds }}s</strong> Timer</span>
+                    <span class="meta-tag">🚫 <strong>{{ show.used_q_count }}</strong> Asked (No repeats)</span>
+                </div>
+            </div>
+
+            <div class="show-actions">
+                <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary btn-full">
+                    🚀 Launch Host Arena
+                </a>
+                <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
+                    📺 Projector / TV View
+                </a>
+                <a href="{{ path('app_show_manage', {'id': show.id}) }}" class="btn btn-secondary">
+                    ⚙️ Teams & Rounds
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="show-card" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
+            <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 1.5rem;">No game shows created yet.</p>
+            <button type="button" class="btn btn-primary" onclick="document.getElementById('new-show-modal').showModal()">
+                Create Your First Game Show
+            </button>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Modern Dialog: Create Show Modal -->
+<dialog id="new-show-modal" aria-labelledby="modal-title">
+    <h2 id="modal-title" style="margin-bottom: 1.5rem; font-size: 1.5rem; font-weight: 800;">Create A New Game Show</h2>
+    <form method="POST" action="{{ path('app_show_create') }}">
+        <div class="form-group">
+            <label class="form-label" for="show-name">Game Show Name</label>
+            <input type="text" id="show-name" name="name" class="form-input" placeholder="e.g. Fall Party Rebus Night 2026" required autofocus>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="show-subtitle">Subtitle / Theme</label>
+            <input type="text" id="show-subtitle" name="subtitle" class="form-input" placeholder="e.g. 10 Couples • Acorn & Pumpkin Flights">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="show-timer">Default Question Timer (seconds)</label>
+            <input type="number" id="show-timer" name="default_timer" class="form-input" value="25" min="10" max="120">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('new-show-modal').close()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Show & Setup Rounds</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+

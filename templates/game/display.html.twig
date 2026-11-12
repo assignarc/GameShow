@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ show.name }} | TV Display</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800;900&family=Bungee&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0807;
+            --bg-panel: #16120e;
+            --bg-card: #201a15;
+            --border-color: #382e25;
+            --primary: #f97316;
+            --accent: #f59e0b;
+            --danger: #ef4444;
+            --success: #10b981;
+            --gold: #fbbf24;
+            --silver: #cbd5e1;
+            --bronze: #d97706;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #fff;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header.tv-header {
+            padding: 0.9rem 2rem;
+            background: linear-gradient(180deg, rgba(28, 24, 21, 0.98) 0%, rgba(16, 13, 11, 0.9) 100%);
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .show-title-group {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .show-title {
+            font-family: 'Bungee', cursive, sans-serif;
+            font-size: 2rem;
+            color: var(--primary);
+            letter-spacing: 1.5px;
+            text-shadow: 0 4px 20px rgba(249, 115, 22, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .round-badge {
+            background: rgba(245, 158, 11, 0.18);
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 0.4rem 1.25rem;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+
+        .cat-badge {
+            background: rgba(249, 115, 22, 0.15);
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            color: #ffedd5;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 700;
+            display: none;
+        }
+
+        .timer-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .timer-label {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #94a3b8;
+            letter-spacing: 1px;
+        }
+
+        .timer-box {
+            font-family: 'Bungee', monospace;
+            font-size: 3.2rem;
+            color: var(--accent);
+            line-height: 1;
+            min-width: 90px;
+            text-align: right;
+            transition: color 0.2s;
+        }
+
+        .timer-box.danger {
+            color: var(--danger);
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.12); }
+        }
+
+        /* 2-COLUMN LAYOUT: MAIN PUZZLE STAGE (LEFT) + LIVE SCOREBOARD (RIGHT) */
+        .tv-content {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @media (min-width: 1800px) {
+            .tv-content {
+                grid-template-columns: 1fr 430px;
+            }
+        }
+
+        main.tv-stage {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 2rem;
+            background: radial-gradient(circle at center, #241c15 0%, #0a0807 100%);
+            overflow: hidden;
+        }
+
+        .puzzle-viewport {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .puzzle-img-card {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 95%;
+            max-height: 78vh;
+        }
+
+        .puzzle-img {
+            max-width: 100%;
+            max-height: 76vh;
+            border-radius: 20px;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.92), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            object-fit: contain;
+            background: #120e0b;
+        }
+
+        .answer-overlay {
+            position: absolute;
+            bottom: 25px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            padding: 1.25rem 3.5rem;
+            border-radius: 24px;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            box-shadow: 0 20px 50px rgba(16, 185, 129, 0.65), 0 0 0 2px rgba(255, 255, 255, 0.35);
+            text-align: center;
+            animation: popAnswer 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none;
+            max-width: 92%;
+            word-break: break-word;
+            z-index: 5;
+        }
+
+        @keyframes popAnswer {
+            0% { transform: scale(0.65) translateY(20px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .splash-card {
+            text-align: center;
+            color: var(--accent);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* RIGHT SCOREBOARD SIDEBAR */
+        aside.tv-scoreboard {
+            background: var(--bg-panel);
+            border-left: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.55);
+            z-index: 5;
+        }
+
+        .scoreboard-header {
+            padding: 1.1rem 1.4rem;
+            background: linear-gradient(180deg, #261d17 0%, #1c1510 100%);
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .scoreboard-title {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .matchup-callout {
+            background: rgba(249, 115, 22, 0.15);
+            border-bottom: 1px solid rgba(249, 115, 22, 0.3);
+            padding: 0.6rem 1rem;
+            font-size: 0.88rem;
+            font-weight: 800;
+            color: var(--accent);
+            text-align: center;
+            display: none;
+            flex-shrink: 0;
+        }
+
+        .teams-list {
+            padding: 0.85rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .teams-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .teams-list::-webkit-scrollbar-thumb {
+            background: #3d3228;
+            border-radius: 3px;
+        }
+
+        .team-card-row {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 0.7rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .team-card-row.rank-1 {
+            border-color: rgba(251, 191, 36, 0.55);
+            background: linear-gradient(90deg, rgba(251, 191, 36, 0.15) 0%, rgba(32, 26, 21, 0.95) 100%);
+        }
+
+        .team-card-row.rank-2 {
+            border-color: rgba(203, 213, 225, 0.45);
+            background: linear-gradient(90deg, rgba(203, 213, 225, 0.1) 0%, rgba(32, 26, 21, 0.95) 100%);
+        }
+
+        .team-card-row.rank-3 {
+            border-color: rgba(217, 119, 6, 0.45);
+            background: linear-gradient(90deg, rgba(217, 119, 6, 0.1) 0%, rgba(32, 26, 21, 0.95) 100%);
+        }
+
+        .team-card-row.eliminated {
+            opacity: 0.38;
+            filter: grayscale(0.85);
+            border-color: rgba(255, 255, 255, 0.06);
+            background: #14100d;
+        }
+
+        .team-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .rank-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #94a3b8;
+            width: 26px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .rank-1 .rank-badge { color: var(--gold); font-size: 1.25rem; }
+        .rank-2 .rank-badge { color: var(--silver); font-size: 1.25rem; }
+        .rank-3 .rank-badge { color: var(--bronze); font-size: 1.25rem; }
+
+        .team-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            background: #120e0b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .team-name-group {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .team-name {
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .team-sub {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: 1px;
+        }
+
+        .team-score-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: var(--accent);
+            background: #100d0a;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.3rem 0.7rem;
+            flex-shrink: 0;
+            text-align: right;
+            min-width: 62px;
+        }
+
+        .rank-1 .team-score-badge {
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.45);
+            box-shadow: 0 0 14px rgba(251, 191, 36, 0.25);
+        }
+
+        .eliminated-tag {
+            font-size: 0.65rem;
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            border-radius: 6px;
+            padding: 0.1rem 0.4rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <header class="tv-header">
+        <div class="show-title-group">
+            <div class="show-title">🍁 {{ show.name }}</div>
+            <div class="round-badge" id="tv-round">Round 1</div>
+            <div class="cat-badge" id="tv-cat">Classic Dingbats</div>
+        </div>
+        <div class="timer-container">
+            <span class="timer-label">TIMER</span>
+            <div class="timer-box" id="tv-timer">25</div>
+        </div>
+    </header>
+
+    <div class="tv-content">
+        <!-- LEFT: PUZZLE STAGE -->
+        <main class="tv-stage">
+            <div class="puzzle-viewport">
+                <div class="puzzle-img-card" id="tv-img-card" style="display: none;">
+                    <img src="" alt="Rebus" class="puzzle-img" id="tv-img">
+                    <div class="answer-overlay" id="tv-answer">ANSWER</div>
+                </div>
+
+                <div class="splash-card" id="tv-splash">
+                    <div style="font-size: 5.5rem; margin-bottom: 1.25rem;">🍁</div>
+                    <h1 style="font-size: 3.2rem; font-weight: 900; letter-spacing: 1px;">FALL PARTY REBUS ARENA</h1>
+                    <p style="font-size: 1.6rem; color: #cbd5e1; margin-top: 0.75rem;">Say What You See!</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT: LIVE SCOREBOARD -->
+        <aside class="tv-scoreboard">
+            <div class="scoreboard-header">
+                <span class="scoreboard-title">🏆 Live Scores</span>
+                <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;" id="tv-team-count">10 Teams</span>
+            </div>
+            <div class="matchup-callout" id="tv-matchup">
+                <!-- e.g. Acorn Flight Matchup: Team A vs Team B -->
+            </div>
+            <div class="teams-list" id="tv-teams">
+                <!-- Dynamically populated and sorted by score -->
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const SHOW_ID = {{ show.id }};
+
+        function syncDisplay() {
+            fetch(`/api/shows/${SHOW_ID}/state`)
+                .then(res => res.json())
+                .then(data => {
+                    const show = data.show;
+                    const q = data.current_question;
+                    const round = data.current_round;
+
+                    if (round) {
+                        document.getElementById('tv-round').innerText = round.name;
+                    }
+
+                    const catBadge = document.getElementById('tv-cat');
+                    const imgCard = document.getElementById('tv-img-card');
+                    const img = document.getElementById('tv-img');
+                    const ansBanner = document.getElementById('tv-answer');
+                    const splash = document.getElementById('tv-splash');
+
+                    if (q) {
+                        splash.style.display = 'none';
+                        imgCard.style.display = 'flex';
+                        img.src = q.media_path;
+
+                        if (q.category_name) {
+                            catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}`;
+                            catBadge.style.display = 'inline-block';
+                        } else {
+                            catBadge.style.display = 'none';
+                        }
+
+                        ansBanner.innerText = q.answer;
+                        if (show.answer_revealed == 1) {
+                            ansBanner.style.display = 'block';
+                        } else {
+                            ansBanner.style.display = 'none';
+                        }
+                    } else {
+                        splash.style.display = 'block';
+                        imgCard.style.display = 'none';
+                        ansBanner.style.display = 'none';
+                        catBadge.style.display = 'none';
+                    }
+
+                    // Matchup callout
+                    const matchupBox = document.getElementById('tv-matchup');
+                    if (show.active_matchup_label && show.active_matchup_label.trim() !== '') {
+                        matchupBox.innerText = `⚔️ ${show.active_matchup_label}`;
+                        matchupBox.style.display = 'block';
+                    } else {
+                        matchupBox.style.display = 'none';
+                    }
+
+                    // Timer Sync
+                    if (show.question_started_at && show.answer_revealed == 0) {
+                        const elapsed = Math.floor(Date.now() / 1000) - show.question_started_at;
+                        const rem = Math.max(0, (show.timer_duration || 25) - elapsed);
+                        const box = document.getElementById('tv-timer');
+                        box.innerText = rem;
+                        if (rem <= 5) {
+                            box.classList.add('danger');
+                        } else {
+                            box.classList.remove('danger');
+                        }
+                    } else {
+                        document.getElementById('tv-timer').innerText = show.timer_duration || 25;
+                        document.getElementById('tv-timer').classList.remove('danger');
+                    }
+
+                    // Right Scoreboard Teams
+                    const teamsWrap = document.getElementById('tv-teams');
+                    teamsWrap.innerHTML = '';
+                    document.getElementById('tv-team-count').innerText = `${data.teams.length} Teams`;
+
+                    let rank = 1;
+                    data.teams.forEach(t => {
+                        const isEliminated = (t.is_eliminated == 1);
+                        const row = document.createElement('div');
+                        row.className = 'team-card-row ' + (isEliminated ? 'eliminated' : `rank-${rank}`);
+
+                        let rankDisplay = `#${rank}`;
+                        if (!isEliminated) {
+                            if (rank === 1) rankDisplay = '🥇';
+                            else if (rank === 2) rankDisplay = '🥈';
+                            else if (rank === 3) rankDisplay = '🥉';
+                            rank++;
+                        } else {
+                            rankDisplay = '✕';
+                        }
+
+                        const membersText = t.members ? ` • ${t.members}` : '';
+                        const elimBadge = isEliminated ? `<span class="eliminated-tag">OUT</span>` : '';
+
+                        row.innerHTML = `
+                            <div class="team-left">
+                                <span class="rank-badge">${rankDisplay}</span>
+                                <div class="team-avatar" style="border: 2px solid ${t.avatar_color || '#f97316'};">${t.avatar_emoji || '🍁'}</div>
+                                <div class="team-name-group">
+                                    <div class="team-name">${t.name} ${elimBadge}</div>
+                                    <div class="team-sub">${t.flight_group || 'General'}${membersText}</div>
+                                </div>
+                            </div>
+                            <div class="team-score-badge">${t.score}</div>
+                        `;
+                        teamsWrap.appendChild(row);
+                    });
+                });
+        }
+
+        syncDisplay();
+        setInterval(syncDisplay, 1500);
+    </script>
+</body>
+</html>

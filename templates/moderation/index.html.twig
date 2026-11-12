@@ -1,0 +1,403 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Question Bank (500+) | Rebus Moderation{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .filter-bar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .filter-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .form-select-sm, .form-input-sm {
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.5rem 0.85rem;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    .questions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .q-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.2s ease;
+    }
+
+    .q-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .q-media-container {
+        width: 100%;
+        height: 220px;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .q-media-img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .q-body {
+        padding: 1.25rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .q-cat-tag {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .q-answer {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 0.35rem;
+    }
+
+    .q-hint {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+    }
+
+    .q-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding-top: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .fav-btn {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+    }
+    .fav-btn:hover {
+        transform: scale(1.2);
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">Master Rebus Question Bank</h1>
+        <p style="color: var(--text-muted); margin-top: 0.25rem;">
+            Manage, edit, add, or curate from <strong>{{ total_count }}</strong> verified multimodal rebus puzzles.
+        </p>
+        <div style="display: flex; gap: 0.65rem; margin-top: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.8rem;">📊 Total: {{ stats.total }}</span>
+            <span class="badge" style="background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; color: #60a5fa; font-size: 0.8rem;">🎯 Unrated: <strong>{{ stats.unrated }}</strong></span>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); border: 1px solid var(--success); color: var(--success); font-size: 0.8rem;">👍 Included: <strong id="header-stat-included">{{ stats.included }}</strong></span>
+            <span class="badge" style="background: rgba(239, 68, 68, 0.2); border: 1px solid var(--danger); color: var(--danger); font-size: 0.8rem;">👎 Excluded: <strong id="header-stat-excluded">{{ stats.excluded }}</strong></span>
+            <span class="badge" style="background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #f59e0b; font-size: 0.8rem;">⏭️ Skipped: <strong>{{ stats.skipped }}</strong></span>
+            <a href="{{ path('app_moderation_review') }}" class="btn btn-primary btn-sm" style="margin-left: 0.5rem;">
+                👍 Open 1-by-1 Review Deck →
+            </a>
+            <a href="{{ path('app_moderation_duplicates') }}" class="btn btn-secondary btn-sm" style="border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">
+                🔍 Duplicates
+            </a>
+        </div>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+        <button type="button" class="btn btn-primary" onclick="openNewQuestionModal()">
+            + Add New Puzzle
+        </button>
+        <a href="{{ path('app_moderation_export') }}" class="btn btn-secondary" download>
+            📥 Export JSON
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<form method="GET" action="{{ path('app_moderation_index') }}" class="filter-bar">
+    <div class="filter-group">
+        <select name="status" class="form-select-sm" onchange="this.form.submit()">
+            <option value="all" {% if status == 'all' or not status %}selected{% endif %}>Show: All Statuses ({{ stats.total }})</option>
+            <option value="unrated" {% if status == 'unrated' or status == 'avoid_selected' %}selected{% endif %}>🎯 Only Unrated ({{ stats.unrated }})</option>
+            <option value="skipped" {% if status == 'skipped' %}selected{% endif %}>⏭️ Skipped ({{ stats.skipped }})</option>
+            <option value="included" {% if status == 'included' %}selected{% endif %}>👍 Included (Active in Show) ({{ stats.included }})</option>
+            <option value="excluded" {% if status == 'excluded' %}selected{% endif %}>👎 Excluded / Rejected ({{ stats.excluded }})</option>
+        </select>
+
+        <select name="category_id" class="form-select-sm" onchange="this.form.submit()">
+            <option value="0">All Categories</option>
+            {% for c in categories %}
+                <option value="{{ c.id }}" {% if selected_cat == c.id %}selected{% endif %}>{{ c.icon }} {{ c.name }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="difficulty" class="form-select-sm" onchange="this.form.submit()">
+            <option value="all">All Difficulties</option>
+            <option value="Simple" {% if difficulty == 'Simple' %}selected{% endif %}>Simple</option>
+            <option value="Medium" {% if difficulty == 'Medium' %}selected{% endif %}>Medium</option>
+            <option value="Hard" {% if difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+        </select>
+
+        <label style="font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+            <input type="checkbox" name="fav" value="1" {% if fav_only %}checked{% endif %} onchange="this.form.submit()">
+            ⭐ Favorites Only
+        </label>
+    </div>
+
+    <div class="filter-group">
+        <input type="text" name="q" value="{{ search }}" class="form-input-sm" placeholder="Search answer or clue...">
+        <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+        {% if search or selected_cat or (difficulty and difficulty != 'all') or fav_only or status != 'all' %}
+            <a href="{{ path('app_moderation_index') }}" class="btn btn-danger btn-sm">Reset</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Grid -->
+<div class="questions-grid">
+    {% for q in questions %}
+        <div class="q-card" id="q-card-{{ q.id }}">
+            <div class="q-media-container">
+                <button type="button" class="badge" id="card-status-{{ q.id }}" onclick="toggleActive({{ q.id }})" title="Click to toggle Included/Excluded" style="position: absolute; top: 10px; left: 10px; z-index: 5; cursor: pointer; border: none; background: {{ q.is_active ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)' }}; color: #fff; font-weight: 800;">
+                    {{ q.is_active ? '👍 Included' : '👎 Excluded' }}
+                </button>
+
+                {% if q.media_path %}
+                    <img src="{{ q.media_path }}" alt="{{ q.answer }}" class="q-media-img" loading="lazy">
+                {% else %}
+                    <span style="font-size: 3rem;">🧩</span>
+                {% endif %}
+                <span class="badge" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: #fff;">
+                    {{ q.difficulty }}
+                </span>
+            </div>
+
+            <div class="q-body">
+                <div>
+                    <div class="q-cat-tag" style="color: {{ q.category_color }};">
+                        <span>{{ q.category_icon }}</span> {{ q.category_name }}
+                    </div>
+                    <div class="q-answer">{{ q.answer }}</div>
+                    {% if q.hint %}
+                        <div class="q-hint">💡 {{ q.hint }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="q-footer">
+                    <button type="button" class="btn btn-sm" id="btn-toggle-{{ q.id }}" onclick="toggleActive({{ q.id }})" style="background: {{ q.is_active ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }}; color: {{ q.is_active ? 'var(--success)' : 'var(--danger)' }}; font-weight: 700; border: 1px solid {{ q.is_active ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)' }}; font-size: 0.8rem; padding: 0.25rem 0.55rem;">
+                        {{ q.is_active ? '👍 Included' : '👎 Excluded' }}
+                    </button>
+
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button type="button" class="fav-btn" onclick="toggleFav({{ q.id }})" id="fav-icon-{{ q.id }}">
+                            {{ q.is_favorite ? '⭐' : '☆' }}
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="editQuestion({{ q|json_encode }})">
+                            ✏️ Edit
+                        </button>
+                        <form method="POST" action="{{ path('app_moderation_delete', {'id': q.id}) }}" onsubmit="return confirm('Delete this question permanently?');" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">✕</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <p style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 3rem;">No puzzles match your filter.</p>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+    <div class="pagination">
+        {% for p in 1..total_pages %}
+            {% if p == page %}
+                <span class="btn btn-primary btn-sm">{{ p }}</span>
+            {% elseif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+                <a href="{{ path('app_moderation_index', {'page': p, 'status': status, 'category_id': selected_cat, 'difficulty': difficulty, 'q': search, 'fav': fav_only}) }}" class="btn btn-secondary btn-sm">{{ p }}</a>
+            {% elseif p == 4 or p == total_pages - 3 %}
+                <span style="padding: 0.5rem;">...</span>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Modal: Edit / Add Question -->
+<dialog id="q-modal" aria-labelledby="q-modal-title" style="max-width: 650px;">
+    <h2 id="q-modal-title" style="margin-bottom: 1.5rem; font-size: 1.35rem; font-weight: 800;">Edit Rebus Puzzle</h2>
+    <form method="POST" action="{{ path('app_moderation_save') }}" enctype="multipart/form-data">
+        <input type="hidden" name="id" id="edit-q-id" value="0">
+        <input type="hidden" name="media_path" id="edit-q-media-path" value="">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+                <label class="form-label" for="edit-cat">Category</label>
+                <select name="category_id" id="edit-cat" class="form-select-sm" style="width:100%;" required>
+                    {% for c in categories %}
+                        <option value="{{ c.id }}">{{ c.icon }} {{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label" for="edit-diff">Difficulty</label>
+                <select name="difficulty" id="edit-diff" class="form-select-sm" style="width:100%;">
+                    <option value="Simple">Simple</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="edit-answer">Correct Answer / Phrase</label>
+            <input type="text" name="answer" id="edit-answer" class="form-input-sm" style="width: 100%; font-size: 1.1rem; font-weight: 700;" placeholder="e.g. Head over heels" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="edit-hint">Hint / Clue</label>
+            <input type="text" name="hint" id="edit-hint" class="form-input-sm" style="width: 100%;" placeholder="e.g. Focus on the word position">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="edit-alts">Alternate Accepted Answers</label>
+            <input type="text" name="alternate_answers" id="edit-alts" class="form-input-sm" style="width: 100%;" placeholder="Comma separated">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label" for="edit-file">Upload Image (or leave empty to keep existing)</label>
+            <input type="file" name="media_file" id="edit-file" accept="image/*" class="form-input-sm" style="width: 100%;">
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+            <label style="font-weight: 600; cursor: pointer;">
+                <input type="checkbox" name="is_favorite" id="edit-fav" value="1"> ⭐ Mark as Curated Favorite
+            </label>
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('q-modal').close()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Puzzle</button>
+            </div>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function toggleActive(id) {
+        fetch(`/moderation/question/${id}/vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote: 'toggle' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const isInc = (data.is_active === 1);
+                const badge = document.getElementById(`card-status-${id}`);
+                const btn = document.getElementById(`btn-toggle-${id}`);
+
+                if (badge) {
+                    badge.innerText = isInc ? '👍 Included' : '👎 Excluded';
+                    badge.style.background = isInc ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)';
+                }
+                if (btn) {
+                    btn.innerText = isInc ? '👍 Included' : '👎 Excluded';
+                    btn.style.color = isInc ? 'var(--success)' : 'var(--danger)';
+                    btn.style.background = isInc ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+                    btn.style.borderColor = isInc ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
+                }
+                if (data.counts) {
+                    const incEl = document.getElementById('header-stat-included');
+                    const excEl = document.getElementById('header-stat-excluded');
+                    if (incEl) incEl.innerText = data.counts.included;
+                    if (excEl) excEl.innerText = data.counts.excluded;
+                }
+            }
+        });
+    }
+
+    function toggleFav(id) {
+        fetch(`/moderation/question/${id}/toggle-fav`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById(`fav-icon-${id}`).innerText = data.is_favorite ? '⭐' : '☆';
+                }
+            });
+    }
+
+    function openNewQuestionModal() {
+        document.getElementById('q-modal-title').innerText = 'Add New Rebus Puzzle';
+        document.getElementById('edit-q-id').value = '0';
+        document.getElementById('edit-q-media-path').value = '';
+        document.getElementById('edit-answer').value = '';
+        document.getElementById('edit-hint').value = '';
+        document.getElementById('edit-alts').value = '';
+        document.getElementById('edit-fav').checked = false;
+        document.getElementById('q-modal').showModal();
+    }
+
+    function editQuestion(q) {
+        document.getElementById('q-modal-title').innerText = 'Edit Rebus Puzzle #' + q.id;
+        document.getElementById('edit-q-id').value = q.id;
+        document.getElementById('edit-q-media-path').value = q.media_path;
+        document.getElementById('edit-cat').value = q.category_id;
+        document.getElementById('edit-diff').value = q.difficulty;
+        document.getElementById('edit-answer').value = q.answer;
+        document.getElementById('edit-hint').value = q.hint || '';
+        document.getElementById('edit-alts').value = q.alternate_answers || '';
+        document.getElementById('edit-fav').checked = (q.is_favorite == 1);
+        document.getElementById('q-modal').showModal();
+    }
+</script>
+{% endblock %}
+

@@ -1,0 +1,491 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Duplicate Puzzles Manager | Rebus Game Show{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .duplicates-container {
+        max-width: 1300px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .header-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1.25rem 1.75rem;
+    }
+
+    .header-info h1 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header-info p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        margin-top: 0.35rem;
+    }
+
+    .group-counter-pill {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--accent);
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
+    .duplicate-group {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    .duplicate-group.resolving {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.98);
+        transition: all 0.35s ease;
+    }
+
+    .group-header {
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid var(--border-color);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .group-title-area {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+    }
+
+    .answer-tag {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--primary);
+        letter-spacing: 0.5px;
+    }
+
+    .group-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 1.25rem;
+        padding: 1.5rem;
+    }
+
+    .candidate-card {
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .candidate-card:hover {
+        border-color: var(--border-active);
+        transform: translateY(-2px);
+    }
+
+    .card-top {
+        display: flex;
+        gap: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-media-box {
+        width: 140px;
+        height: 140px;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-media-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .no-image-placeholder {
+        font-size: 2.5rem;
+        opacity: 0.4;
+    }
+
+    .card-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .meta-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+    }
+
+    .id-badge {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.08);
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        text-transform: uppercase;
+    }
+
+    .status-included { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
+    .status-excluded { background: rgba(239, 68, 68, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+    .status-unrated  { background: rgba(245, 158, 11, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+    .status-skipped  { background: rgba(148, 163, 184, 0.2); color: var(--text-muted); border: 1px solid var(--text-muted); }
+
+    .category-pill {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-sub);
+    }
+
+    .prompt-text {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+
+    .explanation-box {
+        background: rgba(255, 255, 255, 0.03);
+        border-left: 3px solid var(--primary);
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: var(--text-sub);
+        margin-top: 0.5rem;
+    }
+
+    .candidate-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .candidate-actions .btn {
+        flex: 1;
+        font-size: 0.85rem;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h2 {
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: var(--text-muted);
+        max-width: 500px;
+        margin: 0 auto 1.5rem auto;
+    }
+
+    .toast-notification {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: var(--bg-card);
+        border: 1px solid var(--primary);
+        color: var(--text-main);
+        padding: 1rem 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .toast-notification.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="duplicates-container">
+    <div class="header-bar">
+        <div class="header-info">
+            <h1>🔍 Duplicate Puzzles Manager</h1>
+            <p>Compare potential duplicates side-by-side. Choose the best version to keep, or mark them as distinct puzzles.</p>
+        </div>
+        <div class="group-counter-pill" id="groupCounter">
+            <span id="counterNum">{{ totalGroups }}</span> Duplicate Group{{ totalGroups == 1 ? '' : 's' }}
+        </div>
+    </div>
+
+    <div id="duplicateGroupsList">
+        {% if duplicateGroups is empty %}
+            <div class="empty-state" id="emptyStateBox">
+                <div class="empty-state-icon">🎉</div>
+                <h2>No Duplicates Found!</h2>
+                <p>All questions in your library have unique answers, or existing similar puzzles have been confirmed as distinct.</p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <a href="{{ path('app_moderation_review') }}" class="btn btn-primary">👍 Back to Review</a>
+                    <a href="{{ path('app_moderation_index') }}" class="btn btn-secondary">📚 Question Bank</a>
+                </div>
+            </div>
+        {% else %}
+            {% for group in duplicateGroups %}
+                {% set questionIds = [] %}
+                {% for q in group.questions %}
+                    {% set questionIds = questionIds|merge([q.id]) %}
+                {% endfor %}
+
+                <div class="duplicate-group" id="group-{{ loop.index }}" data-group-key="{{ group.key }}" data-question-ids="{{ questionIds|json_encode }}">
+                    <div class="group-header">
+                        <div class="group-title-area">
+                            <span class="badge" style="background: rgba(249, 115, 22, 0.2); color: var(--primary); border: 1px solid var(--primary);">Matching Answer</span>
+                            <span class="answer-tag">"{{ group.display_answer }}"</span>
+                            <span class="category-pill">{{ group.count }} versions</span>
+                        </div>
+                        <div class="group-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="dismissDuplicateGroup('group-{{ loop.index }}')">
+                                ✨ Not Duplicate (Keep Both)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cards-grid">
+                        {% for q in group.questions %}
+                            {% set otherIds = [] %}
+                            {% for other in group.questions %}
+                                {% if other.id != q.id %}
+                                    {% set otherIds = otherIds|merge([other.id]) %}
+                                {% endif %}
+                            {% endfor %}
+
+                            <div class="candidate-card" id="card-{{ q.id }}">
+                                <div>
+                                    <div class="card-top">
+                                        <div class="card-media-box">
+                                            {% if q.media_path %}
+                                                <img src="{{ q.media_path }}" alt="Puzzle Card" loading="lazy">
+                                            {% else %}
+                                                <span class="no-image-placeholder">🧩</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-details">
+                                            <div class="meta-badges">
+                                                <span class="id-badge">#{{ q.id }}</span>
+                                                <span class="status-badge status-{{ q.review_status }}">{{ q.review_status }}</span>
+                                                {% if q.category_name %}
+                                                    <span class="category-pill">{{ q.category_icon ?? '🏷️' }} {{ q.category_name }}</span>
+                                                {% endif %}
+                                                {% if q.difficulty %}
+                                                    <span class="category-pill">⚡ {{ q.difficulty }}</span>
+                                                {% endif %}
+                                            </div>
+
+                                            <div class="prompt-text">
+                                                {{ q.prompt_text ? q.prompt_text : q.title }}
+                                            </div>
+
+                                            {% if q.explanation %}
+                                                <div class="explanation-box">
+                                                    💡 {{ q.explanation }}
+                                                </div>
+                                            {% endif %}
+
+                                            {% if q.hint %}
+                                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                    <strong>Hint:</strong> {{ q.hint }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="candidate-actions">
+                                    <button type="button" class="btn btn-primary" onclick="resolveKeep('group-{{ loop.parent.loop.index }}', {{ q.id }}, {{ otherIds|json_encode }}, 'delete')">
+                                        ⭐ Keep This (Delete Others)
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="resolveKeep('group-{{ loop.parent.loop.index }}', {{ q.id }}, {{ otherIds|json_encode }}, 'exclude')">
+                                        🛡️ Keep This (Exclude Others)
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<div id="toastNotification" class="toast-notification">
+    <span id="toastIcon">✅</span>
+    <span id="toastMessage">Success</span>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function showToast(message, icon = '✅') {
+        const toast = document.getElementById('toastNotification');
+        document.getElementById('toastMessage').textContent = message;
+        document.getElementById('toastIcon').textContent = icon;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    function updateRemainingCount(count) {
+        const counterNum = document.getElementById('counterNum');
+        const groupCounter = document.getElementById('groupCounter');
+        if (counterNum) {
+            counterNum.textContent = count;
+            groupCounter.innerHTML = `<span id="counterNum">${count}</span> Duplicate Group${count === 1 ? '' : 's'}`;
+        }
+
+        if (count === 0) {
+            const list = document.getElementById('duplicateGroupsList');
+            list.innerHTML = `
+                <div class="empty-state" id="emptyStateBox">
+                    <div class="empty-state-icon">🎉</div>
+                    <h2>All Duplicates Resolved!</h2>
+                    <p>Every duplicate pair has been reviewed. Your question library is completely cleaned up.</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+                        <a href="{{ path('app_moderation_review') }}" class="btn btn-primary">👍 Back to Review</a>
+                        <a href="{{ path('app_moderation_index') }}" class="btn btn-secondary">📚 Question Bank</a>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    async function dismissDuplicateGroup(groupId) {
+        const groupEl = document.getElementById(groupId);
+        if (!groupEl) return;
+
+        const ids = JSON.parse(groupEl.dataset.questionIds || '[]');
+        if (!ids.length) return;
+
+        try {
+            const res = await fetch("{{ path('app_moderation_duplicates_dismiss') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question_ids: ids })
+            });
+            const data = await res.json();
+            if (data.success) {
+                groupEl.classList.add('resolving');
+                setTimeout(() => {
+                    groupEl.remove();
+                    updateRemainingCount(data.remainingCount);
+                }, 350);
+                showToast('Marked as Not Duplicate! Both puzzles kept.', '✨');
+            } else {
+                alert(data.error || 'Failed to dismiss');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while dismissing duplicate');
+        }
+    }
+
+    async function resolveKeep(groupId, keepId, otherIds, action) {
+        const groupEl = document.getElementById(groupId);
+        if (!groupEl) return;
+
+        const confirmMsg = action === 'delete' 
+            ? `Keep #${keepId} and permanently DELETE the other version(s)?`
+            : `Keep #${keepId} and mark the other version(s) as EXCLUDED?`;
+
+        if (!confirm(confirmMsg)) return;
+
+        try {
+            const res = await fetch("{{ path('app_moderation_duplicates_keep') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keep_id: keepId, other_ids: otherIds, action: action })
+            });
+            const data = await res.json();
+            if (data.success) {
+                groupEl.classList.add('resolving');
+                setTimeout(() => {
+                    groupEl.remove();
+                    updateRemainingCount(data.remainingCount);
+                }, 350);
+                showToast(action === 'delete' ? `Kept #${keepId} and deleted duplicates!` : `Kept #${keepId} and excluded duplicates!`);
+            } else {
+                alert(data.error || 'Failed to resolve duplicate');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Network error while resolving duplicate');
+        }
+    }
+</script>
+{% endblock %}

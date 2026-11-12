@@ -1,0 +1,503 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Manage {{ show.name }} | Rebus Game Show{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .show-header {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tabs-nav {
+        display: flex;
+        gap: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 2rem;
+    }
+
+    .tab-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 0.75rem 1.25rem;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .tab-pane {
+        display: none;
+    }
+    .tab-pane.active {
+        display: block;
+    }
+
+    .teams-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    .team-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .team-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .team-avatar {
+        font-size: 2rem;
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .team-name {
+        font-weight: 800;
+        font-size: 1.1rem;
+    }
+
+    .team-flight {
+        font-size: 0.8rem;
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .team-score-badge {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #fff;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-color);
+        padding: 0.35rem 0.75rem;
+        border-radius: 10px;
+    }
+
+    .rounds-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .round-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.75rem;
+    }
+
+    .round-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
+    .round-allocations-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .round-allocations-table th, .round-allocations-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    .form-label {
+        display: block;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: var(--text-sub);
+        margin-bottom: 0.4rem;
+    }
+    .form-input, .form-select {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.65rem 0.85rem;
+        color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="show-header">
+    <div>
+        <h1 style="font-size: 2rem; font-weight: 800;">{{ show.name }}</h1>
+        <p style="color: var(--accent); font-weight: 600;">{{ show.subtitle }}</p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary">
+            🚀 Enter Host Arena
+        </a>
+        <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
+            📺 TV Presentation View
+        </a>
+        <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Refresh &quot;{{ show.name|e('js') }}&quot;? This resets all team scores to 0, clears asked questions history, and returns to Round 1.');" style="margin: 0;">
+            <button type="submit" class="btn btn-secondary" style="border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; font-weight: 700;" title="Zero team scores, clear question history, and restart from Round 1">
+                🔄 Refresh / Reset Show
+            </button>
+        </form>
+        <form method="POST" action="{{ path('app_show_delete', {'id': show.id}) }}" onsubmit="return confirm('Are you sure you want to permanently delete this game show? All teams, rounds, and show progress will be removed.');" style="margin: 0;">
+            <button type="submit" class="btn btn-secondary" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-weight: 600;" title="Permanently Delete Game Show">
+                🗑️ Delete Show
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('teams')">👥 Teams ({{ teams|length }}/12)</button>
+    <button class="tab-btn" onclick="switchTab('rounds')">🔄 Rounds & Question Categories ({{ rounds|length }})</button>
+</div>
+
+<!-- TAB 1: TEAMS -->
+<div id="tab-teams" class="tab-pane active">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Teams & Couples (Max 12)</h2>
+        {% if teams|length < 12 %}
+            <button class="btn btn-primary btn-sm" onclick="document.getElementById('add-team-modal').showModal()">
+                + Add Couple / Team
+            </button>
+        {% endif %}
+    </div>
+
+    <div class="teams-grid">
+        {% for t in teams %}
+            <div class="team-card">
+                <div class="team-info">
+                    <div class="team-avatar" style="border: 2px solid {{ t.avatar_color }};">{{ t.avatar_emoji }}</div>
+                    <div>
+                        <div class="team-name">{{ t.name }}</div>
+                        <div class="team-flight">{{ t.flight_group }} {% if t.members %}• {{ t.members }}{% endif %}</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div class="team-score-badge">{{ t.score }} pts</div>
+                    <form method="POST" action="{{ path('app_show_team_delete', {'id': show.id, 'teamId': t.id}) }}" onsubmit="return confirm('Remove team?');">
+                        <button type="submit" class="btn btn-danger btn-sm" title="Remove">✕</button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <p style="color: var(--text-muted);">No teams added yet. Add up to 12 couples!</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- TAB 2: ROUNDS -->
+<div id="tab-rounds" class="tab-pane">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+            <h2 style="margin: 0;">Game Rounds & Elimination Rules</h2>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.25rem;">Configured for a 1-hour tournament pacing with balanced question quotas.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <form method="POST" action="{{ path('app_show_apply_one_hour_template', {'id': show.id}) }}" onsubmit="return confirm('Update rounds to the official 1-Hour Championship structure (4 rounds, 38 questions, calibrated for current active questions)?');" style="margin: 0;">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;" title="Apply balanced 4-round 1-hour tournament format">
+                    ⏱️ Apply 1-Hour Format (38 Qs)
+                </button>
+            </form>
+            <button class="btn btn-primary btn-sm" onclick="openNewRoundModal()">
+                + Add New Round
+            </button>
+        </div>
+    </div>
+
+    <div class="rounds-list">
+        {% for r in rounds %}
+            {% set allocs = r.allocations|default([]) %}
+            <div class="round-card">
+                <div class="round-title-row">
+                    <div>
+                        <span class="badge" style="background: rgba(249, 115, 22, 0.2); color: var(--primary);">Round {{ r.round_number }}</span>
+                        <h3 style="font-size: 1.35rem; font-weight: 800; display: inline-block; margin-left: 0.5rem;">{{ r.name }}</h3>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
+                            Type: <strong>{{ r.round_type == 'head_to_head' ? 'Head-to-Head Flight Matchup' : 'All Teams Open Play' }}</strong> • 
+                            Timer: <strong>{{ r.timer_seconds }}s</strong> • 
+                            Points: <strong>+{{ r.points_per_question }}</strong> (Steal: +{{ r.steal_points }}) • 
+                            Advancement: <strong>{{ r.advancement_type == 'top_x' ? 'Top ' ~ r.advance_top_x ~ ' Teams Advance' : 'All Advance' }}</strong>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        {% if not loop.first %}
+                            <form method="POST" action="{{ path('app_show_round_move', {'id': show.id, 'roundId': r.id, 'direction': 'up'}) }}" style="margin: 0;">
+                                <button type="submit" class="btn btn-secondary btn-sm" title="Move Up" style="padding: 0.4rem 0.65rem;">⬆️</button>
+                            </form>
+                        {% endif %}
+                        {% if not loop.last %}
+                            <form method="POST" action="{{ path('app_show_round_move', {'id': show.id, 'roundId': r.id, 'direction': 'down'}) }}" style="margin: 0;">
+                                <button type="submit" class="btn btn-secondary btn-sm" title="Move Down" style="padding: 0.4rem 0.65rem;">⬇️</button>
+                            </form>
+                        {% endif %}
+                        <button type="button" class="btn btn-secondary btn-sm edit-round-btn" data-round="{{ r|json_encode|e('html_attr') }}" style="padding: 0.4rem 0.85rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+                            ✏️ Edit Round
+                        </button>
+                        {% if rounds|length > 1 %}
+                            <form method="POST" action="{{ path('app_show_round_delete', {'id': show.id, 'roundId': r.id}) }}" onsubmit="return confirm('Are you sure you want to delete Round {{ r.round_number }} ({{ r.name|e('js') }})?');" style="margin: 0;">
+                                <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.65rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.35);" title="Delete Round">
+                                    🗑️
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <table class="round-allocations-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Number of Questions</th>
+                            <th>Difficulty Filter</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in allocs %}
+                            {% set catName = 'Unknown' %}
+                            {% for c in categories %}
+                                {% if c.id == a.category_id %}{% set catName = c.name %}{% endif %}
+                            {% endfor %}
+                            <tr>
+                                <td><strong>{{ catName }}</strong></td>
+                                <td>{{ a.count }} questions</td>
+                                <td><span class="badge" style="background: rgba(255,255,255,0.08);">{{ a.difficulty }}</span></td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="3" style="color: var(--text-muted);">Any category from master bank</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal: Add Team -->
+<dialog id="add-team-modal" aria-labelledby="add-team-title">
+    <h2 id="add-team-title" style="margin-bottom: 1.5rem; font-size: 1.35rem; font-weight: 800;">Add Team / Couple</h2>
+    <form method="POST" action="{{ path('app_show_team_add', {'id': show.id}) }}">
+        <div class="form-group">
+            <label class="form-label" for="team-name">Team Name</label>
+            <input type="text" id="team-name" name="name" class="form-input" placeholder="e.g. Cider House Rules" required autofocus>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="team-members">Couple / Member Names</label>
+            <input type="text" id="team-members" name="members" class="form-input" placeholder="e.g. John & Sarah">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="team-flight">Flight / Bracket</label>
+                <select id="team-flight" name="flight_group" class="form-select">
+                    <option value="Acorn Flight">Acorn Flight</option>
+                    <option value="Pumpkin Flight">Pumpkin Flight</option>
+                    <option value="General">General</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="team-emoji">Avatar Emoji</label>
+                <input type="text" id="team-emoji" name="avatar_emoji" class="form-input" value="🍁">
+            </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-team-modal').close()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Team</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal: Add Round -->
+<dialog id="round-modal" aria-labelledby="round-modal-title" style="max-width: 700px;">
+    <h2 id="round-modal-title" style="margin-bottom: 1.5rem; font-size: 1.35rem; font-weight: 800;">Configure Game Round</h2>
+    <form method="POST" action="{{ path('app_show_round_save', {'id': show.id}) }}">
+        <input type="hidden" name="round_id" id="edit-round-id" value="0">
+        
+        <div class="form-group">
+            <label class="form-label" for="round-name">Round Name</label>
+            <input type="text" id="round-name" name="name" class="form-input" placeholder="e.g. Round 2: Flight Battles" required>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="round-type">Round Format</label>
+                <select id="round-type" name="round_type" class="form-select">
+                    <option value="all_play">All Teams Open Play (Buzz-in / Open)</option>
+                    <option value="head_to_head">Head-to-Head Flight Matchups (Paired)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="round-timer">Question Timer (seconds)</label>
+                <input type="number" id="round-timer" name="timer_seconds" class="form-input" value="25" min="10" max="120">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="round-pts">Points per Correct Guess</label>
+                <input type="number" id="round-pts" name="points_per_question" class="form-input" value="10" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="round-steal">Steal Points</label>
+                <input type="number" id="round-steal" name="steal_points" class="form-input" value="5" min="0" max="50">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="adv-type">Advancement / Elimination</label>
+                <select id="adv-type" name="advancement_type" class="form-select">
+                    <option value="all">All Teams Advance (No elimination)</option>
+                    <option value="top_x">Eliminate: Top X Teams Advance</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="adv-top-x">Top X Teams Advancing</label>
+                <input type="number" id="adv-top-x" name="advance_top_x" class="form-input" value="5" min="1" max="12">
+            </div>
+        </div>
+
+        <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1rem; color: var(--accent);">Category Question Allocations</h4>
+        {% for cat in categories %}
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
+                <div>
+                    <input type="hidden" name="cat_ids[]" value="{{ cat.id }}">
+                    <strong>{{ cat.icon }} {{ cat.name }}</strong>
+                </div>
+                <div>
+                    <input type="number" name="cat_counts[]" class="form-input cat-count-input" data-cat-id="{{ cat.id }}" placeholder="Questions count" value="0" min="0" max="50">
+                </div>
+                <div>
+                    <select name="cat_diffs[]" class="form-select cat-diff-select" data-cat-id="{{ cat.id }}">
+                        <option value="Any">Any Difficulty</option>
+                        <option value="Simple">Simple</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+        {% endfor %}
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('round-modal').close()">Cancel</button>
+            <button type="submit" id="round-modal-submit" class="btn btn-primary">Save Round Configuration</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+    function switchTab(name) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+        document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    function openNewRoundModal() {
+        document.getElementById('edit-round-id').value = '0';
+        document.getElementById('round-modal-title').textContent = 'Configure New Game Round';
+        document.getElementById('round-modal-submit').textContent = 'Create Round';
+        document.getElementById('round-name').value = '';
+        document.getElementById('round-type').value = 'all_play';
+        document.getElementById('round-timer').value = 25;
+        document.getElementById('round-pts').value = 10;
+        document.getElementById('round-steal').value = 5;
+        document.getElementById('adv-type').value = 'all';
+        document.getElementById('adv-top-x').value = 5;
+
+        document.querySelectorAll('.cat-count-input').forEach(input => input.value = 0);
+        document.querySelectorAll('.cat-diff-select').forEach(select => select.value = 'Any');
+
+        document.getElementById('round-modal').showModal();
+    }
+
+    function openEditRoundModal(round) {
+        document.getElementById('edit-round-id').value = round.id;
+        document.getElementById('round-modal-title').textContent = 'Edit Round ' + round.round_number + ': ' + round.name;
+        document.getElementById('round-modal-submit').textContent = 'Save Round Changes';
+        document.getElementById('round-name').value = round.name || '';
+        document.getElementById('round-type').value = round.round_type || 'all_play';
+        document.getElementById('round-timer').value = round.timer_seconds || 25;
+        document.getElementById('round-pts').value = round.points_per_question ?? 10;
+        document.getElementById('round-steal').value = round.steal_points ?? 5;
+        document.getElementById('adv-type').value = round.advancement_type || 'all';
+        document.getElementById('adv-top-x').value = round.advance_top_x || 5;
+
+        // Reset all category inputs
+        document.querySelectorAll('.cat-count-input').forEach(input => input.value = 0);
+        document.querySelectorAll('.cat-diff-select').forEach(select => select.value = 'Any');
+
+        // Populate existing category allocations
+        const allocs = Array.isArray(round.allocations) ? round.allocations : [];
+        allocs.forEach(alloc => {
+            const countInput = document.querySelector(`.cat-count-input[data-cat-id="${alloc.category_id}"]`);
+            if (countInput) {
+                countInput.value = alloc.count || 0;
+            }
+            const diffSelect = document.querySelector(`.cat-diff-select[data-cat-id="${alloc.category_id}"]`);
+            if (diffSelect) {
+                diffSelect.value = alloc.difficulty || 'Any';
+            }
+        });
+
+        document.getElementById('round-modal').showModal();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.edit-round-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                try {
+                    const roundData = JSON.parse(this.dataset.round);
+                    openEditRoundModal(roundData);
+                } catch (e) {
+                    console.error('Failed to parse round data', e);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+

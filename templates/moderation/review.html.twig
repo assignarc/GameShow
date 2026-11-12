@@ -1,0 +1,1983 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Question Review & Curation | Rebus Game Show{% endblock %}
+
+{% block stylesheets %}
+<style>
+    /* ZERO-SCROLL SINGLE-VIEWPORT LAYOUT */
+    html, body {
+        height: 100vh;
+        overflow: hidden;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Suppress site footer on the review deck to maximize vertical screen space */
+    footer.site-footer {
+        display: none !important;
+    }
+
+    main.container {
+        flex: 1;
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0.5rem 1.25rem !important;
+        margin: 0 !important;
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 58px);
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .review-viewport {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        height: 100%;
+        min-height: 0;
+    }
+
+    /* TOP SLIM FILTER & STATS BAR */
+    .top-slim-bar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.45rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .stat-pills-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        padding: 0.2rem 0.55rem;
+        border-radius: 14px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-sub);
+    }
+
+    .stat-pill.pill-included {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.4);
+        color: var(--success);
+    }
+
+    .stat-pill.pill-excluded {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: var(--danger);
+    }
+
+    .stat-pill.pill-fav {
+        background: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.4);
+        color: var(--accent);
+    }
+
+    .filter-items-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: nowrap;
+    }
+
+    .form-select-xs, .form-input-xs {
+        background: var(--bg-input);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        padding: 0.3rem 0.55rem;
+        color: #fff;
+        font-size: 0.8rem;
+    }
+
+    /* 2-COLUMN WORKSPACE: NO VERTICAL SCROLLING */
+    .review-workspace {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 0.85rem;
+        min-height: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    @media (max-width: 1024px) {
+        .review-workspace {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    /* LEFT PANE: PUZZLE VISUAL & AI STUDIO */
+    .puzzle-visual-pane {
+        background: var(--bg-card);
+        border: 2px solid var(--border-color);
+        border-radius: 16px;
+        padding: 0.85rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 0;
+        height: 100%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .puzzle-visual-pane.card-included {
+        border-color: rgba(16, 185, 129, 0.55);
+    }
+
+    .puzzle-visual-pane.card-excluded {
+        border-color: rgba(239, 68, 68, 0.55);
+    }
+
+    .visual-top-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .media-box-container {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+    }
+
+    .puzzle-media-image {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        border-radius: 8px;
+        cursor: zoom-in;
+        image-rendering: -webkit-optimize-contrast;
+        transition: transform 0.15s ease;
+    }
+
+    .image-overlay-controls {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        display: flex;
+        gap: 0.35rem;
+        align-items: center;
+        z-index: 5;
+    }
+
+    /* PROMINENT AI ACTION BAR RIGHT UNDER IMAGE */
+    .ai-action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding-top: 0.65rem;
+        margin-top: 0.4rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        flex-shrink: 0;
+    }
+
+    .btn-ai-studio {
+        background: linear-gradient(135deg, #7c3aed, #d946ef) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 0.88rem !important;
+        padding: 0.5rem 1.1rem !important;
+        border-radius: 8px !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .btn-ai-studio:hover {
+        transform: translateY(-1px) scale(1.02) !important;
+        box-shadow: 0 6px 20px rgba(217, 70, 239, 0.5) !important;
+    }
+
+    .btn-upgrade-res {
+        background: linear-gradient(135deg, #0284c7, #06b6d4) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 0.88rem !important;
+        padding: 0.5rem 1.05rem !important;
+        border-radius: 8px !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .btn-upgrade-res:hover {
+        transform: translateY(-1px) scale(1.02) !important;
+        box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5) !important;
+    }
+
+    /* RIGHT PANE: CONTROLS, ANSWERS, VOTING & NAVIGATION */
+    .controls-pane {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 0.85rem 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 0;
+        height: 100%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .status-badge {
+        font-size: 0.82rem;
+        font-weight: 800;
+        padding: 0.35rem 0.85rem;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .status-badge.status-included {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1px solid var(--success);
+        color: var(--success);
+    }
+
+    .status-badge.status-excluded {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid var(--danger);
+        color: var(--danger);
+    }
+
+    .status-badge.status-pending {
+        background: rgba(148, 163, 184, 0.15);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #94a3b8;
+    }
+
+    /* Answer Card (Always visible on review screen) */
+    .answer-card {
+        background: rgba(16, 185, 129, 0.12);
+        border: 2px solid var(--success);
+        border-radius: 12px;
+        padding: 0.75rem 1.25rem;
+        margin: 0.5rem 0;
+        display: block;
+        animation: answerPop 0.2s ease-out;
+    }
+
+    @keyframes answerPop {
+        from { transform: scale(0.97); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .answer-text {
+        font-size: 1.65rem;
+        font-weight: 900;
+        color: var(--success);
+        line-height: 1.2;
+    }
+
+    /* DECISION BAR: 3 BUTTONS (Thumbs Up, Skip, Thumbs Down) */
+    .decision-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.65rem;
+        margin: 0.5rem 0;
+        flex-shrink: 0;
+    }
+
+    .btn-vote {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        padding: 0.75rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.92rem;
+        font-weight: 800;
+        cursor: pointer;
+        border: 2px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-sub);
+        transition: all 0.18s ease;
+        user-select: none;
+    }
+
+    .btn-vote .key-hint {
+        font-size: 0.72rem;
+        font-weight: 600;
+        opacity: 0.75;
+    }
+
+    .btn-vote:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-vote-up:hover {
+        border-color: var(--success);
+        color: #34d399;
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+    .btn-vote-skip:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .btn-vote-down:hover {
+        border-color: var(--danger);
+        color: #f87171;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .btn-vote-up.active {
+        background: linear-gradient(135deg, #059669, #10b981);
+        border-color: #34d399;
+        color: #ffffff;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-vote-down.active {
+        background: linear-gradient(135deg, #b91c1c, #ef4444);
+        border-color: #f87171;
+        color: #ffffff;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Navigation & Hotkey Controls */
+    .nav-controls-row {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.45rem 0.85rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+
+    .progress-bar-wrapper {
+        flex: 1;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        overflow: hidden;
+        margin: 0 0.5rem;
+    }
+
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        width: 0%;
+        transition: width 0.2s ease;
+    }
+
+    .hotkey-bar {
+        display: flex;
+        justify-content: center;
+        gap: 0.85rem;
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        text-align: center;
+        padding-top: 0.35rem;
+        flex-shrink: 0;
+    }
+
+    .kbd {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        padding: 0.1rem 0.3rem;
+        color: #fff;
+        font-family: monospace;
+        font-weight: bold;
+    }
+
+    /* Modal Dialogs */
+    dialog.ai-studio-modal {
+        background: var(--bg-card);
+        border: 2px solid var(--border-color);
+        border-radius: 18px;
+        padding: 1.5rem;
+        max-width: 940px;
+        width: 92%;
+        max-height: 90vh;
+        color: var(--text-main);
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+        margin: auto;
+        overflow-y: auto;
+    }
+
+    dialog.ai-studio-modal::backdrop {
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(8px);
+    }
+
+    .ai-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 1rem;
+    }
+
+    .ai-prompt-box {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.85rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .ai-comparison-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .ai-card {
+        background: rgba(0, 0, 0, 0.35);
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: center;
+    }
+
+    .ai-preview-img {
+        width: 100%;
+        height: 290px;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #000;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+    }
+
+    .ai-loading-box {
+        width: 100%;
+        height: 290px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.85rem;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+        border: 1px dashed var(--border-color);
+    }
+
+    .spinner {
+        width: 38px;
+        height: 38px;
+        border: 4px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #a855f7;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="review-viewport">
+    <!-- SLIM TOP BAR: LIVE STATS & QUICK FILTERS -->
+    <div class="top-slim-bar">
+        <div class="stat-pills-row">
+            <h1 style="font-size: 0.95rem; font-weight: 800; color: #fff; margin: 0; display: inline-flex; align-items: center; gap: 0.35rem;">
+                👍 Question Review & Curation
+            </h1>
+            <span class="stat-pill" title="Total questions">📊 <span id="stat-total">{{ stats.total }}</span></span>
+            <span class="stat-pill" title="Only Unrated (avoids skipped & rejected)" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #60a5fa;">🎯 Unrated: <span id="stat-unrated">{{ stats.unrated }}</span></span>
+            <span class="stat-pill pill-included" title="Included in Game Show">👍 <span id="stat-included">{{ stats.included }}</span></span>
+            <span class="stat-pill pill-excluded" title="Rejected / Excluded">👎 <span id="stat-excluded">{{ stats.excluded }}</span></span>
+            <span class="stat-pill" title="Skipped for later" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b;">⏭️ Skipped: <span id="stat-skipped">{{ stats.skipped }}</span></span>
+            <span class="stat-pill pill-fav" title="Starred Favorites">⭐ <span id="stat-fav">{{ stats.favorites }}</span></span>
+        </div>
+
+        <!-- Compact Filters -->
+        <form method="GET" action="{{ path('app_moderation_review') }}" class="filter-items-group" id="review-filter-form">
+            <select name="status" class="form-select-xs" onchange="this.form.submit()" id="status-filter-select">
+                <option value="unrated" {% if status == 'unrated' or status == 'avoid_selected' or not status %}selected{% endif %}>🎯 Only Unrated ({{ stats.unrated }})</option>
+                <option value="skipped" {% if status == 'skipped' %}selected{% endif %}>⏭️ Skipped ({{ stats.skipped }})</option>
+                <option value="included" {% if status == 'included' %}selected{% endif %}>👍 Selected (Included) ({{ stats.included }})</option>
+                <option value="excluded" {% if status == 'excluded' %}selected{% endif %}>👎 Rejected (Excluded) ({{ stats.excluded }})</option>
+                <option value="all" {% if status == 'all' %}selected{% endif %}>📚 All Questions ({{ stats.total }})</option>
+            </select>
+
+            <select name="category_id" class="form-select-xs" onchange="this.form.submit()">
+                <option value="0">All Categories</option>
+                {% for c in categories %}
+                    <option value="{{ c.id }}" {% if selected_cat == c.id %}selected{% endif %}>{{ c.icon }} {{ c.name }}</option>
+                {% endfor %}
+            </select>
+
+            <select name="difficulty" class="form-select-xs" onchange="this.form.submit()">
+                <option value="all">All Difficulties</option>
+                <option value="Simple" {% if difficulty == 'Simple' %}selected{% endif %}>Simple</option>
+                <option value="Medium" {% if difficulty == 'Medium' %}selected{% endif %}>Medium</option>
+                <option value="Hard" {% if difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+            </select>
+
+            <input type="text" name="q" value="{{ search }}" class="form-input-xs" placeholder="Search..." style="width: 110px;">
+            <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.5rem; font-size: 0.78rem;">Go</button>
+            <a href="{{ path('app_moderation_duplicates') }}" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.78rem; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;" title="Manage Duplicates">🔍 Duplicates</a>
+
+            <label style="font-size: 0.78rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; color: var(--text-sub);" title="Automatically advance to next question after voting">
+                <input type="checkbox" id="auto-advance-toggle" checked>
+                ⚡ Auto
+            </label>
+
+            {% if (status and status != 'unrated' and status != 'avoid_selected') or selected_cat != 0 or (difficulty and difficulty != 'all') or search %}
+                <a href="{{ path('app_moderation_review') }}" class="btn btn-danger btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Reset</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- 2-COLUMN SINGLE-SCREEN WORKSPACE -->
+    <div class="review-workspace" id="review-workspace">
+        
+        <!-- LEFT COLUMN: PUZZLE VISUAL & AI STUDIO BUTTON -->
+        <div class="puzzle-visual-pane" id="puzzle-visual-pane">
+            <!-- Meta Bar -->
+            <div class="visual-top-meta">
+                <div style="display: flex; gap: 0.4rem; align-items: center;">
+                    <span class="badge" id="card-cat-badge" style="background: var(--primary); color: #000; font-weight: 800;">Category</span>
+                    <span class="badge" id="card-diff-badge" style="background: rgba(255,255,255,0.1); color: #fff;">Medium</span>
+                    <span id="skipped-badge" class="badge" style="display: none; background: rgba(245, 158, 11, 0.2); border: 1px solid var(--accent); color: var(--accent); font-weight: 800;">
+                        ⏭️ Postponed
+                    </span>
+                    <span id="excluded-queue-badge" class="badge" style="display: none; background: rgba(239, 68, 68, 0.2); border: 1px solid var(--danger); color: var(--danger); font-weight: 800;">
+                        👎 Excluded (End of Queue)
+                    </span>
+                </div>
+
+                <div style="display: flex; gap: 0.4rem; align-items: center;">
+                    <span id="card-status-badge" class="status-badge status-included">👍 Included</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="card-fav-btn" onclick="toggleCurrentFav()" style="padding: 0.25rem 0.55rem; font-size: 0.8rem;">
+                        ⭐ Star
+                    </button>
+                </div>
+            </div>
+
+            <!-- Puzzle Image Container (Fills available height) -->
+            <div class="media-box-container">
+                <img src="" alt="Rebus Puzzle Image" class="puzzle-media-image" id="card-img" onclick="openEnlargedImageModal()" title="Click to view full size (Hotkey: Z)">
+                <div class="image-overlay-controls">
+                    <span id="img-dim-badge" class="badge" style="background: rgba(0,0,0,0.7); color: #e2e8f0; font-size: 0.72rem; border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(4px);"></span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEnlargedImageModal()" title="View full size (Hotkey: Z)" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);">
+                        🔍 Zoom
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI Action Bar (Prominently Placed Directly Under Image) -->
+            <div class="ai-action-bar">
+                <div style="display: flex; gap: 0.45rem; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn-ai-studio" onclick="openAiStudioModal()" id="btn-open-ai-studio" title="Generate bespoke Rebus puzzle graphics using AI">
+                        <span>✨</span> AI Rebus Image Studio
+                    </button>
+                    <button type="button" class="btn-upgrade-res" onclick="openUpgradeResolutionModal()" id="btn-upgrade-res" title="Upgrade image resolution via scaling or regeneration">
+                        <span>⚡</span> Upgrade Resolution
+                    </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.4rem;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="restoreOriginalImage()" id="btn-restore-img" style="display: none; padding: 0.35rem 0.65rem; font-size: 0.78rem;">
+                        ↩️ Restore Original
+                    </button>
+                    <span id="ai-active-badge" class="badge" style="display: none; background: rgba(147, 51, 234, 0.25); border: 1px solid #a855f7; color: #c084fc;">
+                        ✨ AI Rebus
+                    </span>
+                    <span id="upscaled-active-badge" class="badge" style="display: none; background: rgba(14, 165, 233, 0.25); border: 1px solid #38bdf8; color: #38bdf8;">
+                        ⚡ HD Scaled
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CONTROLS, ANSWER, VOTING & NAVIGATION -->
+        <div class="controls-pane" id="controls-pane">
+            <!-- Top: Question Prompt & Clues -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                    <div id="card-prompt" style="font-size: 1.15rem; font-weight: 800; color: #fff;">
+                        Say what you see!
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;" id="card-id-tag">#0</span>
+                </div>
+                <div id="card-hint" style="color: var(--text-muted); font-size: 0.9rem; font-style: italic; min-height: 1.2rem;"></div>
+            </div>
+
+            <!-- Middle: Answer Box & Reveal Controls -->
+            <div>
+                <!-- Answer Reveal Card -->
+                <div class="answer-card" id="card-answer-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                        <div>
+                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--success); text-transform: uppercase;">Correct Solution:</div>
+                            <div class="answer-text" id="card-answer-text">ANSWER</div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditAnswerModal()" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" title="Edit solution and clues">
+                            ✏️ Edit
+                        </button>
+                    </div>
+                    <div id="card-alts-text" style="font-size: 0.82rem; color: var(--text-sub); margin-top: 0.25rem;"></div>
+                </div>
+
+                <!-- Answer Edit & Toggle Controls -->
+                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button type="button" class="btn btn-primary" onclick="openEditAnswerModal()" style="flex: 2; padding: 0.65rem 1rem; font-size: 0.95rem; font-weight: 700;" title="Edit question, answer, and clues">
+                        ✏️ Edit Solution &amp; Clues
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="reveal-btn" onclick="toggleAnswer()" style="flex: 1; padding: 0.65rem 0.75rem; font-size: 0.82rem;" title="Toggle answer visibility (Spacebar)">
+                        🙈 Hide <span style="font-size: 0.72rem; opacity: 0.75;">(Space)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- DECISION VOTING BAR (Thumbs Up, Skip, Thumbs Down) -->
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem;">Game Show Decision:</div>
+                <div class="decision-bar">
+                    <button type="button" class="btn-vote btn-vote-up" id="btn-thumbs-up" onclick="voteCurrent(1)">
+                        <span>👍 Include</span>
+                        <span class="key-hint">[U] or [↑]</span>
+                    </button>
+
+                    <button type="button" class="btn-vote btn-vote-skip" id="btn-skip-question" onclick="skipCurrent()">
+                        <span>⏭️ Skip</span>
+                        <span class="key-hint">[S] Postpone</span>
+                    </button>
+
+                    <button type="button" class="btn-vote btn-vote-down" id="btn-thumbs-down" onclick="voteCurrent(0)">
+                        <span>👎 Exclude</span>
+                        <span class="key-hint">[D] or [↓]</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom: Navigation & Progress -->
+            <div>
+                <div class="nav-controls-row">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-prev" onclick="prevSlide()" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">
+                        ← Prev
+                    </button>
+
+                    <div style="display: flex; align-items: center; flex: 1; justify-content: center;">
+                        <span style="font-size: 0.85rem; font-weight: 800; color: #fff; white-space: nowrap;">
+                            <span id="current-idx-display">1</span> / <span id="total-count-display">{{ questions|length }}</span>
+                        </span>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar-fill" id="progress-bar"></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.35rem; align-items: center;">
+                        <input type="number" id="jump-input" class="form-input-xs" min="1" max="{{ questions|length }}" style="width: 50px; text-align: center; padding: 0.25rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="jumpToSlide()" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Go</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-next" onclick="nextSlide()" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;">
+                            Next →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hotkey cheat sheet -->
+                <div class="hotkey-bar">
+                    <span><span class="kbd">↑</span>/U Include</span>
+                    <span><span class="kbd">S</span> Skip</span>
+                    <span><span class="kbd">↓</span>/D Exclude</span>
+                    <span><span class="kbd">Z</span> Zoom</span>
+                    <span><span class="kbd">Space</span> Reveal</span>
+                    <span><span class="kbd">E</span> Edit</span>
+                    <span><span class="kbd">←</span>/→ Nav</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT ANSWER MODAL DIALOG -->
+<dialog id="edit-answer-modal" class="ai-studio-modal" style="max-width: 550px;">
+    <div class="ai-modal-header">
+        <div>
+            <h2 style="font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+                <span>✏️</span> Edit Question & Answer
+            </h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;" id="edit-ans-subtitle">
+                Update the correct solution, accepted alternates, and clues.
+            </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeEditAnswerModal()">✕</button>
+    </div>
+
+    <form onsubmit="saveAnswerForm(event)" style="display: flex; flex-direction: column; gap: 0.85rem;">
+        <div>
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 0.25rem;">
+                Correct Answer: <span style="color: var(--danger);">*</span>
+            </label>
+            <input type="text" id="edit-ans-input" class="form-input-xs" style="width: 100%; font-size: 1rem; font-weight: 800; padding: 0.45rem;" required>
+        </div>
+
+        <div>
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 0.25rem;">
+                Alternate Accepted Answers (comma-separated):
+            </label>
+            <input type="text" id="edit-ans-alts" class="form-input-xs" style="width: 100%; padding: 0.4rem;" placeholder="e.g. Scrambled egg, Eggs scrambled">
+        </div>
+
+        <div>
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 0.25rem;">
+                Host Hint:
+            </label>
+            <input type="text" id="edit-ans-hint" class="form-input-xs" style="width: 100%; padding: 0.4rem;" placeholder="e.g. Give this puzzle a whirl.">
+        </div>
+
+        <div>
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-sub); display: block; margin-bottom: 0.25rem;">
+                Explanation / Rebus Clue Breakdown:
+            </label>
+            <textarea id="edit-ans-explanation" rows="2" class="form-input-xs" style="width: 100%; resize: vertical; padding: 0.4rem;" placeholder="e.g. The letters E-G-G-S are scrambled in a frying pan."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.35rem;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeEditAnswerModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-save-answer">💾 Save & Update</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- AI IMAGE STUDIO MODAL (EXACT REBUS PUZZLE GENERATION) -->
+<dialog id="ai-studio-modal" class="ai-studio-modal">
+    <div class="ai-modal-header">
+        <div>
+            <h2 style="font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+                <span style="color: #c084fc;">✨</span> AI Rebus Image Studio
+            </h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;" id="ai-modal-subtitle">
+                Generate an authentic rebus puzzle riddle, compare side-by-side, and select your favorite.
+            </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeAiStudioModal()" style="font-size: 1rem; line-height: 1;">✕</button>
+    </div>
+
+    <!-- Rebus Concept Banner -->
+    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.6rem 0.85rem; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.25rem;">🎯</span>
+        <div>
+            <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent); text-transform: uppercase;">Bespoke Rebus Puzzle Concept</div>
+            <div style="font-size: 0.85rem; color: #fff; font-weight: 600;" id="ai-rebus-concept-text">Analyzing puzzle...</div>
+        </div>
+    </div>
+
+    <!-- Prompt & Style Controls -->
+    <div class="ai-prompt-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <label style="font-size: 0.82rem; font-weight: 700; color: var(--text-sub);">AI Generation Prompt (Rebus Clue):</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.25rem; align-items: center;">
+                    <label style="font-size: 0.78rem; color: var(--text-muted);">Style:</label>
+                    <select id="ai-style-select" class="form-select-xs" onchange="updateDefaultPromptForStyle()">
+                        <option value="rebus">📺 Catchphrase TV Game Show (Default)</option>
+                        <option value="vector_rebus">🧩 Vector Rebus Card (Crisp SVG)</option>
+                        <option value="cartoon">🎨 Retro Cartoon Visual Pun</option>
+                        <option value="3d">🌟 3D Neon Game Show Stage</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 0.25rem; align-items: center;">
+                    <label style="font-size: 0.78rem; color: var(--text-muted);">Resolution / Size:</label>
+                    <select id="ai-res-select" class="form-select-xs" title="Select output resolution for crisp puzzle illustrations">
+                        <option value="1280x800" selected>💻 HD Widescreen (1280x800)</option>
+                        <option value="1920x1080">📺 Full HD 1080p (1920x1080)</option>
+                        <option value="1440x900">🌟 Ultra Wide (1440x900)</option>
+                        <option value="1024x1024">🔲 High-Res Square (1024x1024)</option>
+                        <option value="1024x768">📐 Standard (1024x768)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <textarea id="ai-prompt-input" rows="3" class="form-input-xs" style="width: 100%; resize: vertical; font-size: 0.82rem;"></textarea>
+
+        <!-- Quick Rebus Formula Presets -->
+        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Quick Formula:</span>
+            <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" onclick="applyPromptFormula('scramble')">🍳 Scrambled</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" onclick="applyPromptFormula('stacked')">↕️ Over/Under</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" onclick="applyPromptFormula('inside')">📦 Inside</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" onclick="applyPromptFormula('phonetic')">👁️ Phonetic</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" onclick="applyPromptFormula('color')">🎨 Color Idiom</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.72rem; padding: 0.2rem 0.45rem;" onclick="applyPromptFormula('split')">✂️ Split Word</button>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.2rem;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-trigger-generate" onclick="triggerAiGenerate()">
+                🚀 Generate Rebus Image
+            </button>
+        </div>
+    </div>
+
+    <!-- Side-by-side Image Comparison Grid -->
+    <div class="ai-comparison-grid">
+        <!-- Existing Image Card -->
+        <div class="ai-card" id="card-existing-view">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.9rem; color: #fff;">Existing Image</strong>
+                <span class="badge" style="background: rgba(255,255,255,0.1); color: var(--text-sub);">Current</span>
+            </div>
+
+            <img id="ai-existing-img" class="ai-preview-img" src="" alt="Existing Image">
+
+            <button type="button" class="btn btn-secondary btn-sm" onclick="selectExistingImage()" style="width: 100%;">
+                Keep Existing Image
+            </button>
+        </div>
+
+        <!-- AI Generated Image Card -->
+        <div class="ai-card" id="card-ai-view">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.9rem; color: #34d399;">✨ AI Generated Rebus</strong>
+                <span class="badge" id="ai-format-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">AI Result</span>
+            </div>
+
+            <div style="width: 100%; position: relative;">
+                <img id="ai-generated-img" class="ai-preview-img" src="" alt="AI Generated Image" style="display: none;">
+                
+                <div id="ai-loading-state" class="ai-loading-box">
+                    <div class="spinner"></div>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);" id="ai-loading-text">
+                        Creating rebus visual puzzle...
+                    </span>
+                </div>
+            </div>
+
+            <!-- Actions on Generated Image -->
+            <div style="display: flex; gap: 0.4rem; width: 100%;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-ai-regen" onclick="regenerateAiImage()" style="flex: 1;" disabled>
+                    🔄 Regenerate
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-ai-select" onclick="selectAiImage()" style="flex: 1.4;" disabled>
+                    ✅ Select AI Rebus
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- ENLARGED FULL-SCREEN IMAGE MODAL -->
+<dialog id="enlarged-image-modal" class="ai-studio-modal" style="max-width: 95vw; width: 1150px; max-height: 94vh; padding: 0.85rem 1.25rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin: 0;" id="enlarged-title">Enlarged Rebus View</h3>
+            <span class="badge" id="enlarged-dim-badge" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700;">HD</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeEnlargedImageModal()">✕ Close (Esc)</button>
+    </div>
+    <div style="width: 100%; height: 75vh; display: flex; align-items: center; justify-content: center; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+        <img id="enlarged-img-src" src="" alt="Enlarged Rebus Puzzle" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+    </div>
+</dialog>
+
+<!-- UPGRADE RESOLUTION MODAL (SIDE-BY-SIDE WITH REJECT & KEEP OPTION) -->
+<dialog id="upgrade-resolution-modal" class="ai-studio-modal" style="max-width: 840px; width: 95vw;">
+    <div class="ai-modal-header">
+        <div>
+            <h2 style="font-size: 1.25rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+                <span style="color: #38bdf8;">⚡</span> Upgrade Image Resolution
+            </h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;" id="upgrade-modal-subtitle">
+                Enhance image quality by scaling the existing graphic or generating an authentic HD rebus.
+            </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeUpgradeResolutionModal()">✕</button>
+    </div>
+
+    <!-- Upgrade Controls Bar -->
+    <div style="background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 10px; padding: 0.65rem 0.95rem; margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem;">
+        <div>
+            <div style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">Current Image File Size</div>
+            <div style="font-size: 0.92rem; font-weight: 800; color: #fff;" id="upgrade-cur-dim-text">Loading...</div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-modal-upscale" onclick="runUpscalePreview()" title="Super-sample and sharpen current image file to 1280-1920px (under 0.2s)" style="background: linear-gradient(135deg, #0284c7, #06b6d4); font-weight: 700; padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                🔬 4× Super-Res Scale
+            </button>
+
+            <div style="display: flex; gap: 0.3rem; align-items: center;">
+                <select id="upgrade-regen-style" class="form-select-xs" style="padding: 0.25rem 0.45rem;">
+                    <option value="vector_rebus|1280x800" selected>🧩 Instant Vector Rebus (0.1s)</option>
+                    <option value="rebus|1280x800">🎨 AI Diffusion HD (1280×800)</option>
+                    <option value="rebus|1920x1080">📺 AI Diffusion Full HD (1920×1080)</option>
+                    <option value="rebus|1440x900">🌟 AI Diffusion Ultra (1440×900)</option>
+                </select>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-modal-regen" onclick="runRegenPreview()" style="background: linear-gradient(135deg, #7c3aed, #d946ef); font-weight: 700; padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                    🎨 Regenerate HD
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side-by-side comparison: Existing vs Upgraded Preview -->
+    <div class="ai-comparison-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.85rem;">
+        
+        <!-- Existing Image Card -->
+        <div class="ai-card" id="upgrade-existing-card">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.88rem; color: #fff;">Existing Image</strong>
+                <span class="badge" id="upgrade-existing-badge" style="background: rgba(255,255,255,0.1); color: var(--text-sub);">Current</span>
+            </div>
+            <img id="upgrade-existing-img" class="ai-preview-img" src="" alt="Existing Image" style="height: 240px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="rejectUpgradeAndKeepExisting()" style="width: 100%;">
+                ❌ Keep Existing (Reject)
+            </button>
+        </div>
+
+        <!-- Upgraded Preview Card -->
+        <div class="ai-card" id="upgrade-result-card">
+            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 0.88rem; color: #38bdf8;" id="upgrade-result-heading">⚡ Upgraded Preview</strong>
+                <span class="badge" id="upgrade-result-badge" style="background: rgba(14, 165, 233, 0.2); color: #38bdf8;">Preview</span>
+            </div>
+
+            <div style="width: 100%; position: relative;">
+                <!-- 1. Idle Ready State (No spinning loader, ready for click) -->
+                <div id="upgrade-idle-state" class="ai-loading-box" style="height: 240px; background: rgba(15, 23, 42, 0.4); border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center; padding: 1.5rem;">
+                    <div style="font-size: 2.2rem;">⚡</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff;">Ready to Enhance</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); max-width: 280px; line-height: 1.4;">
+                        Choose <strong>"4× Super-Res Scale"</strong> or <strong>"Regenerate HD"</strong> above to preview upgraded quality.
+                    </div>
+                </div>
+
+                <!-- 2. Active Loading State (With Spinner) -->
+                <div id="upgrade-loading-state" class="ai-loading-box" style="height: 240px; display: none;">
+                    <div class="spinner"></div>
+                    <span style="font-size: 0.82rem; color: var(--text-muted);" id="upgrade-loading-text">
+                        Processing...
+                    </span>
+                </div>
+
+                <!-- 3. Upgraded Image Element -->
+                <img id="upgrade-result-img" class="ai-preview-img" src="" alt="Upgraded Image" style="height: 240px; display: none;">
+            </div>
+
+            <div style="display: flex; gap: 0.4rem; width: 100%;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="rejectUpgradeAndKeepExisting()" style="flex: 1;">
+                    ❌ Reject
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-apply-upgrade" onclick="applyUpgradedResult()" style="flex: 1.5; background: var(--success); border-color: var(--success); font-weight: 800;" disabled>
+                    ✅ Accept & Use Upgraded
+                </button>
+            </div>
+        </div>
+
+    </div>
+</dialog>
+{% endblock %}
+
+{% block javascripts %}
+<script src="/js/sounds.js"></script>
+<script>
+    const PUZZLES = {{ questions|json_encode|raw }};
+    const CURRENT_FILTER_STATUS = "{{ status|e('js') }}";
+    let curIndex = 0;
+    let answerRevealed = false;
+
+    // AI Generation State
+    let currentAiImageUrl = null;
+    let isGeneratingAi = false;
+    let aiModal = null;
+    let editAnsModal = null;
+    let enlargedModal = null;
+    let upgradeModal = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        aiModal = document.getElementById('ai-studio-modal');
+        editAnsModal = document.getElementById('edit-answer-modal');
+        enlargedModal = document.getElementById('enlarged-image-modal');
+        upgradeModal = document.getElementById('upgrade-resolution-modal');
+    });
+
+    // Auto-advance preference
+    const autoAdvanceToggle = document.getElementById('auto-advance-toggle');
+    if (localStorage.getItem('review_auto_advance') !== null) {
+        autoAdvanceToggle.checked = (localStorage.getItem('review_auto_advance') === 'true');
+    }
+    autoAdvanceToggle.addEventListener('change', () => {
+        localStorage.setItem('review_auto_advance', autoAdvanceToggle.checked);
+    });
+
+    function renderSlide() {
+        if (!PUZZLES.length) {
+            let emptyContent = '';
+            if (CURRENT_FILTER_STATUS === 'unrated' || CURRENT_FILTER_STATUS === 'avoid_selected' || CURRENT_FILTER_STATUS === 'unreviewed' || !CURRENT_FILTER_STATUS) {
+                const incCount = document.getElementById('stat-included') ? document.getElementById('stat-included').innerText : '{{ stats.included }}';
+                const skipCount = document.getElementById('stat-skipped') ? document.getElementById('stat-skipped').innerText : '{{ stats.skipped }}';
+                emptyContent = `
+                    <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">🎉</div>
+                    <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">All Unrated Questions Reviewed!</h2>
+                    <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 520px; margin: 0 auto 1.5rem auto;">
+                        No unrated questions remain in this review queue. All matching questions have been reviewed, included, excluded, or skipped.
+                    </p>
+                    <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="{{ path('app_moderation_review', { status: 'included' }) }}" class="btn btn-primary" style="padding: 0.6rem 1.25rem;">
+                            👍 View Selected Questions (${incCount})
+                        </a>
+                        <a href="{{ path('app_moderation_review', { status: 'skipped' }) }}" class="btn btn-secondary" style="padding: 0.6rem 1.25rem;">
+                            ⏭️ View Skipped Questions (${skipCount})
+                        </a>
+                        <a href="{{ path('app_moderation_review', { status: 'all' }) }}" class="btn btn-secondary" style="padding: 0.6rem 1.25rem;">
+                            📚 View All Questions
+                        </a>
+                    </div>
+                `;
+            } else {
+                emptyContent = `
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                    <h3 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.5rem;">No questions match this filter</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Try changing the status, category, or search filter.</p>
+                    <div style="display: flex; gap: 0.75rem; justify-content: center;">
+                        <a href="{{ path('app_moderation_review') }}" class="btn btn-primary">Reset to Review Queue</a>
+                        <a href="{{ path('app_moderation_review', { status: 'all' }) }}" class="btn btn-secondary">All Questions</a>
+                    </div>
+                `;
+            }
+
+            document.getElementById('review-workspace').innerHTML = `
+                <div style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); padding: 2rem;">
+                    ${emptyContent}
+                </div>
+            `;
+            if (document.getElementById('btn-prev')) document.getElementById('btn-prev').disabled = true;
+            if (document.getElementById('btn-next')) document.getElementById('btn-next').disabled = true;
+            if (document.getElementById('current-idx-display')) document.getElementById('current-idx-display').innerText = '0';
+            if (document.getElementById('total-count-display')) document.getElementById('total-count-display').innerText = '0';
+            return;
+        }
+
+        if (curIndex < 0) curIndex = 0;
+        if (curIndex >= PUZZLES.length) curIndex = PUZZLES.length - 1;
+
+        const p = PUZZLES[curIndex];
+        const visualPane = document.getElementById('puzzle-visual-pane');
+
+        // Meta tags
+        const catBadge = document.getElementById('card-cat-badge');
+        catBadge.innerText = (p.category_icon || '🧩') + ' ' + (p.category_name || 'Category');
+        catBadge.style.background = p.category_color || 'var(--primary)';
+
+        document.getElementById('card-diff-badge').innerText = p.difficulty || 'Medium';
+        document.getElementById('card-id-tag').innerText = '#' + p.id;
+
+        // Badges: skipped or excluded returning from back of queue
+        const skippedBadge = document.getElementById('skipped-badge');
+        if (skippedBadge) {
+            skippedBadge.style.display = p._was_skipped ? 'inline-block' : 'none';
+        }
+        const excludedBadge = document.getElementById('excluded-queue-badge');
+        if (excludedBadge) {
+            excludedBadge.style.display = (p._was_excluded || p.review_status === 'excluded') ? 'inline-block' : 'none';
+        }
+
+        // Media & hints
+        const img = document.getElementById('card-img');
+        img.src = p.media_path || '';
+        img.alt = p.title || p.answer;
+        img.onload = () => {
+            const dimBadge = document.getElementById('img-dim-badge');
+            if (dimBadge && img.naturalWidth && img.naturalHeight) {
+                const isSmall = (img.naturalWidth < 600 || img.naturalHeight < 400);
+                dimBadge.innerHTML = isSmall 
+                    ? `⚠️ Small: ${img.naturalWidth}×${img.naturalHeight}`
+                    : `📐 ${img.naturalWidth}×${img.naturalHeight}`;
+                dimBadge.style.color = isSmall ? 'var(--accent)' : '#e2e8f0';
+                dimBadge.style.borderColor = isSmall ? 'var(--accent)' : 'rgba(255,255,255,0.15)';
+            }
+        };
+
+        // AI / Upscaled indicators & Restore button
+        const isAiImage = (p.media_path && p.media_path.startsWith('/uploads/ai/'));
+        const isUpscaled = (p.media_path && p.media_path.startsWith('/uploads/upscaled/'));
+        const hasOriginal = (p.original_media_path && p.original_media_path !== p.media_path);
+        
+        const aiBadge = document.getElementById('ai-active-badge');
+        const upscaledBadge = document.getElementById('upscaled-active-badge');
+        const restoreBtn = document.getElementById('btn-restore-img');
+        if (aiBadge) aiBadge.style.display = isAiImage ? 'inline-block' : 'none';
+        if (upscaledBadge) upscaledBadge.style.display = isUpscaled ? 'inline-block' : 'none';
+        if (restoreBtn) restoreBtn.style.display = hasOriginal ? 'inline-block' : 'none';
+
+        document.getElementById('card-prompt').innerText = p.prompt_text || 'Say what you see!';
+        document.getElementById('card-hint').innerText = p.hint ? ('💡 Hint: ' + p.hint) : '';
+
+        // Answer
+        document.getElementById('card-answer-text').innerText = p.answer;
+        const alts = document.getElementById('card-alts-text');
+        alts.innerText = p.alternate_answers ? ('Also accepted: ' + p.alternate_answers) : '';
+
+        // Decision status: thumbs up / thumbs down / pending
+        const statusBadge = document.getElementById('card-status-badge');
+        const btnUp = document.getElementById('btn-thumbs-up');
+        const btnDown = document.getElementById('btn-thumbs-down');
+
+        if (p.review_status === 'included') {
+            statusBadge.innerText = '👍 Included';
+            statusBadge.className = 'status-badge status-included';
+            statusBadge.style.background = '';
+            statusBadge.style.color = '';
+            statusBadge.style.border = '';
+            if (visualPane) {
+                visualPane.classList.add('card-included');
+                visualPane.classList.remove('card-excluded');
+            }
+            btnUp.classList.add('active');
+            btnDown.classList.remove('active');
+        } else if (p.review_status === 'excluded') {
+            statusBadge.innerText = '👎 Excluded';
+            statusBadge.className = 'status-badge status-excluded';
+            statusBadge.style.background = '';
+            statusBadge.style.color = '';
+            statusBadge.style.border = '';
+            if (visualPane) {
+                visualPane.classList.add('card-excluded');
+                visualPane.classList.remove('card-included');
+            }
+            btnDown.classList.add('active');
+            btnUp.classList.remove('active');
+        } else if (p.review_status === 'skipped') {
+            statusBadge.innerText = '⏭️ Skipped';
+            statusBadge.className = 'status-badge';
+            statusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
+            statusBadge.style.color = '#f59e0b';
+            statusBadge.style.border = '1px solid #f59e0b';
+            if (visualPane) {
+                visualPane.classList.remove('card-included');
+                visualPane.classList.remove('card-excluded');
+            }
+            btnUp.classList.remove('active');
+            btnDown.classList.remove('active');
+        } else {
+            // Unrated Question
+            statusBadge.innerText = '⏳ Unrated';
+            statusBadge.className = 'status-badge status-pending';
+            statusBadge.style.background = '';
+            statusBadge.style.color = '';
+            statusBadge.style.border = '';
+            if (visualPane) {
+                visualPane.classList.remove('card-included');
+                visualPane.classList.remove('card-excluded');
+            }
+            btnUp.classList.remove('active');
+            btnDown.classList.remove('active');
+        }
+
+        // Favorite button
+        const favBtn = document.getElementById('card-fav-btn');
+        if (parseInt(p.is_favorite) === 1) {
+            favBtn.innerText = '⭐ Starred';
+            favBtn.classList.add('btn-primary');
+            favBtn.classList.remove('btn-secondary');
+        } else {
+            favBtn.innerText = '☆ Star';
+            favBtn.classList.add('btn-secondary');
+            favBtn.classList.remove('btn-primary');
+        }
+
+        // Nav and Progress
+        document.getElementById('current-idx-display').innerText = (curIndex + 1);
+        document.getElementById('total-count-display').innerText = PUZZLES.length;
+        document.getElementById('jump-input').value = (curIndex + 1);
+        document.getElementById('jump-input').max = PUZZLES.length;
+
+        const progressPercent = ((curIndex + 1) / PUZZLES.length) * 100;
+        document.getElementById('progress-bar').style.width = progressPercent + '%';
+
+        document.getElementById('btn-prev').disabled = (curIndex === 0);
+        document.getElementById('btn-next').disabled = (curIndex === PUZZLES.length - 1);
+
+        // Answer is ALWAYS visible on review screen
+        answerRevealed = true;
+        document.getElementById('card-answer-box').style.display = 'block';
+        const revealBtn = document.getElementById('reveal-btn');
+        if (revealBtn) {
+            revealBtn.innerHTML = '🙈 Hide <span style="font-size:0.72rem; opacity:0.75;">(Space)</span>';
+        }
+    }
+
+    function toggleAnswer() {
+        if (!PUZZLES.length) return;
+        answerRevealed = !answerRevealed;
+        const ans = document.getElementById('card-answer-box');
+        const btn = document.getElementById('reveal-btn');
+        if (answerRevealed) {
+            ans.style.display = 'block';
+            if (btn) btn.innerHTML = '🙈 Hide <span style="font-size:0.72rem; opacity:0.75;">(Space)</span>';
+            if (window.soundFX && window.soundFX.playDingCorrect) {
+                window.soundFX.playDingCorrect();
+            }
+        } else {
+            ans.style.display = 'none';
+            if (btn) btn.innerHTML = '💡 Show <span style="font-size:0.72rem; opacity:0.75;">(Space)</span>';
+        }
+    }
+
+    function updateHeaderCounts(counts) {
+        if (!counts) return;
+        if (document.getElementById('stat-total')) document.getElementById('stat-total').innerText = counts.total;
+        if (document.getElementById('stat-unrated')) document.getElementById('stat-unrated').innerText = counts.unrated ?? counts.to_review;
+        if (document.getElementById('stat-to-review')) document.getElementById('stat-to-review').innerText = counts.unrated ?? counts.to_review;
+        if (document.getElementById('stat-included')) document.getElementById('stat-included').innerText = counts.included;
+        if (document.getElementById('stat-excluded')) document.getElementById('stat-excluded').innerText = counts.excluded;
+        if (document.getElementById('stat-skipped')) document.getElementById('stat-skipped').innerText = counts.skipped ?? 0;
+        if (document.getElementById('stat-fav') && counts.favorites !== undefined) {
+            document.getElementById('stat-fav').innerText = counts.favorites;
+        }
+    }
+
+    function voteCurrent(decision) {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const targetActive = parseInt(decision);
+        const actionType = (targetActive === 1) ? 'up' : 'down';
+
+        fetch(`/moderation/question/${p.id}/review-vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_active: targetActive, vote: actionType })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                p.is_active = data.is_active;
+                p.review_status = data.review_status;
+
+                if (data.counts) {
+                    updateHeaderCounts(data.counts);
+                }
+
+                if (targetActive === 1) {
+                    // Thumbs Up / Included
+                    if (window.soundFX && window.soundFX.playDingCorrect) {
+                        window.soundFX.playDingCorrect();
+                    }
+
+                    // In Only Unrated mode, once included, it is removed from this queue!
+                    if (CURRENT_FILTER_STATUS === 'unrated' || CURRENT_FILTER_STATUS === 'avoid_selected' || CURRENT_FILTER_STATUS === 'unreviewed' || !CURRENT_FILTER_STATUS) {
+                        PUZZLES.splice(curIndex, 1);
+                        if (curIndex >= PUZZLES.length) {
+                            curIndex = Math.max(0, PUZZLES.length - 1);
+                        }
+                        renderSlide();
+                        return;
+                    }
+                } else {
+                    // Thumbs Down / Excluded / Rejected
+                    if (window.soundFX && window.soundFX.playTick) {
+                        window.soundFX.playTick();
+                    }
+
+                    // In Only Unrated mode, rejected questions are strictly avoided and removed from this queue!
+                    if (CURRENT_FILTER_STATUS === 'unrated' || CURRENT_FILTER_STATUS === 'avoid_selected' || CURRENT_FILTER_STATUS === 'unreviewed' || !CURRENT_FILTER_STATUS) {
+                        PUZZLES.splice(curIndex, 1);
+                        if (curIndex >= PUZZLES.length) {
+                            curIndex = Math.max(0, PUZZLES.length - 1);
+                        }
+                        renderSlide();
+                        return;
+                    }
+
+                    p._was_excluded = true;
+                    p.review_status = 'excluded';
+                }
+
+                // In other modes (e.g. All Questions), render updated slide and auto-advance
+                renderSlide();
+
+                if (autoAdvanceToggle.checked && curIndex < PUZZLES.length - 1) {
+                    setTimeout(() => {
+                        nextSlide();
+                    }, 220);
+                }
+            }
+        });
+    }
+
+    /* SKIP FEATURE: Move current question out of unrated queue, persist as skipped */
+    function skipCurrent() {
+        if (!PUZZLES.length) return;
+        const skipped = PUZZLES.splice(curIndex, 1)[0];
+        skipped._was_skipped = true;
+        skipped.review_status = 'skipped';
+
+        if (window.soundFX && window.soundFX.playWarningTick) {
+            window.soundFX.playWarningTick();
+        }
+
+        // Persist skip status in database
+        fetch(`/moderation/question/${skipped.id}/review-vote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vote: 'skip', status: 'skipped' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.counts) {
+                updateHeaderCounts(data.counts);
+            }
+        }).catch(() => {});
+
+        // In Only Unrated mode: strictly avoid skipped questions and remove from this queue!
+        if (CURRENT_FILTER_STATUS === 'unrated' || CURRENT_FILTER_STATUS === 'avoid_selected' || CURRENT_FILTER_STATUS === 'unreviewed' || !CURRENT_FILTER_STATUS) {
+            if (curIndex >= PUZZLES.length) {
+                curIndex = Math.max(0, PUZZLES.length - 1);
+            }
+            renderSlide();
+            return;
+        } else {
+            // In All Questions mode, move to back of queue
+            PUZZLES.push(skipped);
+            if (curIndex >= PUZZLES.length) {
+                curIndex = Math.max(0, PUZZLES.length - 1);
+            }
+            renderSlide();
+        }
+    }
+
+    function toggleCurrentFav() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        fetch(`/moderation/question/${p.id}/toggle-fav`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    p.is_favorite = data.is_favorite;
+                    const favEl = document.getElementById('stat-fav');
+                    if (favEl) {
+                        let cur = parseInt(favEl.innerText) || 0;
+                        favEl.innerText = p.is_favorite == 1 ? cur + 1 : Math.max(0, cur - 1);
+                    }
+                    renderSlide();
+                }
+            });
+    }
+
+    function nextSlide() {
+        if (curIndex < PUZZLES.length - 1) {
+            curIndex++;
+            renderSlide();
+        }
+    }
+
+    function prevSlide() {
+        if (curIndex > 0) {
+            curIndex--;
+            renderSlide();
+        }
+    }
+
+    function jumpToSlide() {
+        const val = parseInt(document.getElementById('jump-input').value);
+        if (!isNaN(val) && val >= 1 && val <= PUZZLES.length) {
+            curIndex = val - 1;
+            renderSlide();
+        }
+    }
+
+    /* -------------------------------------------------------------------------
+       EDIT ANSWER & CLUES
+       ------------------------------------------------------------------------- */
+    function openEditAnswerModal() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        document.getElementById('edit-ans-subtitle').innerText = `Question #${p.id} • Category: ${p.category_name || ''}`;
+        document.getElementById('edit-ans-input').value = p.answer || '';
+        document.getElementById('edit-ans-alts').value = p.alternate_answers || '';
+        document.getElementById('edit-ans-hint').value = p.hint || '';
+        document.getElementById('edit-ans-explanation').value = p.explanation || '';
+        editAnsModal.showModal();
+    }
+
+    function closeEditAnswerModal() {
+        if (editAnsModal) editAnsModal.close();
+    }
+
+    function saveAnswerForm(e) {
+        e.preventDefault();
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const newAns = document.getElementById('edit-ans-input').value.trim();
+        const newAlts = document.getElementById('edit-ans-alts').value.trim();
+        const newHint = document.getElementById('edit-ans-hint').value.trim();
+        const newExpl = document.getElementById('edit-ans-explanation').value.trim();
+
+        if (!newAns) return alert('Answer cannot be empty');
+
+        fetch(`/moderation/question/${p.id}/update-answer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                answer: newAns,
+                alternate_answers: newAlts,
+                hint: newHint,
+                explanation: newExpl
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                p.answer = data.answer;
+                p.alternate_answers = data.alternate_answers;
+                p.hint = data.hint;
+                p.explanation = data.explanation;
+                closeEditAnswerModal();
+                renderSlide();
+                if (window.soundFX && window.soundFX.playDingCorrect) {
+                    window.soundFX.playDingCorrect();
+                }
+            } else {
+                alert(data.error || 'Failed to update answer');
+            }
+        })
+        .catch(err => alert('Network error while saving answer'));
+    }
+
+    /* -------------------------------------------------------------------------
+       AI IMAGE STUDIO (BESPOKE REBUS PUZZLE GENERATION)
+       ------------------------------------------------------------------------- */
+    function openAiStudioModal() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+
+        document.getElementById('ai-modal-subtitle').innerText = `Question #${p.id} • Answer: "${p.answer}"`;
+        document.getElementById('ai-existing-img').src = p.media_path;
+
+        document.getElementById('ai-generated-img').style.display = 'none';
+        document.getElementById('ai-loading-state').style.display = 'flex';
+        document.getElementById('btn-ai-regen').disabled = true;
+        document.getElementById('btn-ai-select').disabled = true;
+        currentAiImageUrl = null;
+
+        aiModal.showModal();
+
+        fetch(`/moderation/question/${p.id}/ai-prompt`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('ai-prompt-input').value = data.default_prompt;
+                    document.getElementById('ai-rebus-concept-text').innerText = data.concept || `Visual rebus puzzle clue for "${p.answer}"`;
+                    triggerAiGenerate();
+                }
+            })
+            .catch(() => {
+                document.getElementById('ai-prompt-input').value = `TV Game Show Catchphrase Rebus Puzzle Card: Say What You See visual riddle for '${p.answer}'. Cartoon puzzle art on dark game show background.`;
+                document.getElementById('ai-rebus-concept-text').innerText = `Rebus visual riddle for "${p.answer}"`;
+                triggerAiGenerate();
+            });
+    }
+
+    function closeAiStudioModal() {
+        if (aiModal) aiModal.close();
+    }
+
+    function applyPromptFormula(formula) {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const ans = p.answer.toUpperCase();
+        let prompt = '';
+
+        if (formula === 'scramble') {
+            prompt = `TV Game Show Catchphrase Rebus Card: The alphabet letters ${ans.split('').join(', ')} are scrambled, tilted, and jumbled inside a frying pan on a clean stage board. Say What You See visual word riddle, no realistic food, only cartoon letter tiles.`;
+        } else if (formula === 'stacked') {
+            const parts = ans.split(' ');
+            const top = parts[0] || 'TOP';
+            const bot = parts.slice(1).join(' ') || 'BOTTOM';
+            prompt = `Dingbat Rebus Puzzle Card: The bold capital word '${top}' floating directly above a bright divider line, with the word '${bot}' beneath it on a dark game show board. Say What You See spatial wordplay riddle.`;
+        } else if (formula === 'inside') {
+            prompt = `Dingbat Rebus Card: The word '${ans}' placed directly inside the letters of a word or frame. Spatial typography game show riddle on dark background.`;
+        } else if (formula === 'phonetic') {
+            prompt = `TV Game Show Catchphrase Rebus Card: A phonetic rebus equation with 2 or 3 distinct cartoon icons lined up side by side representing '${p.answer}'. Sound-it-out visual riddle.`;
+        } else if (formula === 'color') {
+            prompt = `Dingbat Rebus Wordplay Card: The word '${ans}' in huge bold 3D block letters glowing in neon radioactive slime green on a dark game show board. Say What You See visual idiom puzzle.`;
+        } else if (formula === 'split') {
+            prompt = `Dingbat Rebus Puzzle Card: The word '${ans}' cleanly split in half with a jagged lightning crack separating the two halves. Spatial wordplay puzzle on dark background.`;
+        }
+
+        document.getElementById('ai-prompt-input').value = prompt;
+        document.getElementById('ai-style-select').value = 'rebus';
+        triggerAiGenerate();
+    }
+
+    function updateDefaultPromptForStyle() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const style = document.getElementById('ai-style-select').value;
+        const ans = p.answer;
+
+        let prompt = '';
+        if (style === 'cartoon') {
+            prompt = `Catchphrase TV game show visual rebus riddle for '${ans}'. 1980s retro cartoon illustration, colorful comic line art, dark stage background, say what you see puzzle card.`;
+        } else if (style === '3d') {
+            prompt = `3D neon game show stage rebus puzzle for '${ans}'. Dramatic studio lighting, glowing neon letters and icons on glossy dark floor, visual riddle.`;
+        } else if (style === 'vector_rebus') {
+            prompt = `Crisp vector dingbat rebus puzzle card for '${ans}'. Bold typography, clean spatial wordplay, high contrast on dark slate background.`;
+        } else {
+            prompt = `TV Game Show Catchphrase Rebus Puzzle Card: Say What You See visual riddle for '${ans}'. Cartoon puzzle art on dark game show background.`;
+        }
+
+        document.getElementById('ai-prompt-input').value = prompt;
+    }
+
+    function triggerAiGenerate(seed = null) {
+        if (!PUZZLES.length || isGeneratingAi) return;
+        const p = PUZZLES[curIndex];
+        const prompt = document.getElementById('ai-prompt-input').value;
+        const style = document.getElementById('ai-style-select').value;
+        const resolution = document.getElementById('ai-res-select') ? document.getElementById('ai-res-select').value : '1280x800';
+
+        isGeneratingAi = true;
+        document.getElementById('btn-trigger-generate').disabled = true;
+        document.getElementById('btn-ai-regen').disabled = true;
+        document.getElementById('btn-ai-select').disabled = true;
+
+        document.getElementById('ai-generated-img').style.display = 'none';
+        document.getElementById('ai-loading-state').style.display = 'flex';
+        document.getElementById('ai-loading-text').innerText = `Creating high-resolution (${resolution}) rebus puzzle...`;
+
+        fetch(`/moderation/question/${p.id}/ai-generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt, style: style, resolution: resolution, seed: seed })
+        })
+        .then(res => res.json())
+        .then(data => {
+            isGeneratingAi = false;
+            document.getElementById('btn-trigger-generate').disabled = false;
+
+            if (data.success && data.image_url) {
+                currentAiImageUrl = data.image_url;
+                const genImg = document.getElementById('ai-generated-img');
+                genImg.src = data.image_url;
+                genImg.onload = () => {
+                    document.getElementById('ai-loading-state').style.display = 'none';
+                    genImg.style.display = 'block';
+                    document.getElementById('btn-ai-regen').disabled = false;
+                    document.getElementById('btn-ai-select').disabled = false;
+                    const dimLabel = data.dimensions ? `${data.dimensions} ` : '';
+                    const formatLabel = data.format ? data.format.toUpperCase() : 'HD';
+                    document.getElementById('ai-format-badge').innerText = `✨ ${dimLabel}${formatLabel}`;
+                };
+            } else {
+                document.getElementById('ai-loading-text').innerText = 'Generation failed. Click Regenerate to retry.';
+                document.getElementById('btn-ai-regen').disabled = false;
+            }
+        })
+        .catch(err => {
+            isGeneratingAi = false;
+            document.getElementById('btn-trigger-generate').disabled = false;
+            document.getElementById('btn-ai-regen').disabled = false;
+            document.getElementById('ai-loading-text').innerText = 'Network error. Click Regenerate to retry.';
+        });
+    }
+
+    function regenerateAiImage() {
+        const randomSeed = Math.floor(Math.random() * 900000) + 100000;
+        triggerAiGenerate(randomSeed);
+    }
+
+    function selectAiImage() {
+        if (!currentAiImageUrl || !PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+
+        fetch(`/moderation/question/${p.id}/ai-apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'apply_ai', image_url: currentAiImageUrl })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                p.media_path = data.media_path;
+                if (data.original_media_path) {
+                    p.original_media_path = data.original_media_path;
+                }
+                renderSlide();
+                closeAiStudioModal();
+                if (window.soundFX && window.soundFX.playDingCorrect) {
+                    window.soundFX.playDingCorrect();
+                }
+            }
+        });
+    }
+
+    function selectExistingImage() {
+        closeAiStudioModal();
+    }
+
+    function restoreOriginalImage() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+
+        fetch(`/moderation/question/${p.id}/ai-apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'restore_original' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                p.media_path = data.media_path;
+                renderSlide();
+                if (window.soundFX && window.soundFX.playDingCorrect) {
+                    window.soundFX.playDingCorrect();
+                }
+            }
+        });
+    }
+
+    /* -------------------------------------------------------------------------
+       ENLARGED FULL-SIZE IMAGE VIEWER
+       ------------------------------------------------------------------------- */
+    function openEnlargedImageModal() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const modal = document.getElementById('enlarged-image-modal');
+        const img = document.getElementById('enlarged-img-src');
+        const title = document.getElementById('enlarged-title');
+        const dimBadge = document.getElementById('enlarged-dim-badge');
+
+        img.src = p.media_path || '';
+        title.innerText = '#' + p.id + ' • ' + (p.prompt_text || p.title || 'Rebus Puzzle');
+        img.onload = () => {
+            if (dimBadge && img.naturalWidth && img.naturalHeight) {
+                dimBadge.innerText = img.naturalWidth + ' × ' + img.naturalHeight + ' px';
+            }
+        };
+        if (modal) modal.showModal();
+    }
+
+    function closeEnlargedImageModal() {
+        const modal = document.getElementById('enlarged-image-modal');
+        if (modal) modal.close();
+    }
+
+    /* -------------------------------------------------------------------------
+       UPGRADE IMAGE RESOLUTION (SCALING & REGENERATION WITH REJECT OPTION)
+       ------------------------------------------------------------------------- */
+    let currentUpgradedImageUrl = null;
+
+    function openUpgradeResolutionModal() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const modal = document.getElementById('upgrade-resolution-modal');
+        const dimText = document.getElementById('upgrade-cur-dim-text');
+        const existingImg = document.getElementById('upgrade-existing-img');
+        const existingBadge = document.getElementById('upgrade-existing-badge');
+        const img = document.getElementById('card-img');
+
+        currentUpgradedImageUrl = null;
+        existingImg.src = p.media_path || '';
+        
+        if (img && img.naturalWidth && img.naturalHeight) {
+            const isSmall = (img.naturalWidth < 600 || img.naturalHeight < 400);
+            dimText.innerText = `${img.naturalWidth} × ${img.naturalHeight} px ${isSmall ? '(Low-Res File)' : '(High-Res)'}`;
+            existingBadge.innerText = `${img.naturalWidth} × ${img.naturalHeight}`;
+        } else {
+            dimText.innerText = 'Current image file';
+            existingBadge.innerText = 'Current';
+        }
+
+        // Reset preview card
+        const idleState = document.getElementById('upgrade-idle-state');
+        const loadingState = document.getElementById('upgrade-loading-state');
+        const resImg = document.getElementById('upgrade-result-img');
+        if (resImg) {
+            resImg.style.display = 'none';
+            resImg.src = '';
+        }
+        if (loadingState) loadingState.style.display = 'none';
+        if (idleState) idleState.style.display = 'flex';
+        document.getElementById('upgrade-result-heading').innerText = '⚡ Upgraded Preview';
+        document.getElementById('upgrade-result-badge').innerText = 'Preview';
+        document.getElementById('btn-apply-upgrade').disabled = true;
+
+        if (modal) modal.showModal();
+    }
+
+    function closeUpgradeResolutionModal() {
+        const modal = document.getElementById('upgrade-resolution-modal');
+        if (modal) modal.close();
+    }
+
+    function rejectUpgradeAndKeepExisting() {
+        currentUpgradedImageUrl = null;
+        closeUpgradeResolutionModal();
+        if (window.soundFX && window.soundFX.playTick) {
+            window.soundFX.playTick();
+        }
+    }
+
+    function runUpscalePreview() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const idleState = document.getElementById('upgrade-idle-state');
+        const loadingState = document.getElementById('upgrade-loading-state');
+        const loadingText = document.getElementById('upgrade-loading-text');
+        const resImg = document.getElementById('upgrade-result-img');
+        const btnUpscale = document.getElementById('btn-modal-upscale');
+        const btnRegen = document.getElementById('btn-modal-regen');
+        const btnApply = document.getElementById('btn-apply-upgrade');
+
+        resImg.style.display = 'none';
+        if (idleState) idleState.style.display = 'none';
+        loadingState.style.display = 'flex';
+        loadingText.innerText = '🔬 Physically scaling graphic with bicubic super-sampling & edge sharpening...';
+        btnUpscale.disabled = true;
+        btnRegen.disabled = true;
+        btnApply.disabled = true;
+
+        fetch(`/moderation/question/${p.id}/upscale-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target_width: 1280 })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btnUpscale.disabled = false;
+            btnRegen.disabled = false;
+
+            if (data.success && data.image_url) {
+                currentUpgradedImageUrl = data.image_url;
+                let loaded = false;
+                resImg.onload = () => {
+                    if (loaded) return;
+                    loaded = true;
+                    loadingState.style.display = 'none';
+                    if (idleState) idleState.style.display = 'none';
+                    resImg.style.display = 'block';
+                    btnApply.disabled = false;
+                    document.getElementById('upgrade-result-heading').innerText = `🔬 Scaled (${data.dimensions})`;
+                    document.getElementById('upgrade-result-badge').innerText = `${data.scale_factor || 'HD'}`;
+                };
+                resImg.onerror = () => {
+                    loadingText.innerText = 'Failed to load upscaled image preview.';
+                    btnUpscale.disabled = false;
+                    btnRegen.disabled = false;
+                };
+                resImg.src = data.image_url;
+                if (resImg.complete && resImg.naturalWidth > 0) {
+                    resImg.onload();
+                }
+            } else {
+                loadingText.innerText = 'Upscaling error: ' + (data.error || 'Failed to upscale image file.');
+            }
+        })
+        .catch(() => {
+            btnUpscale.disabled = false;
+            btnRegen.disabled = false;
+            loadingText.innerText = 'Network error while attempting upscale.';
+        });
+    }
+
+    function runRegenPreview() {
+        if (!PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+        const styleSelect = document.getElementById('upgrade-regen-style');
+        const styleSelectVal = styleSelect ? styleSelect.value : 'vector_rebus|1280x800';
+        const parts = styleSelectVal.split('|');
+        const style = parts[0] || 'vector_rebus';
+        const resolution = parts[1] || '1280x800';
+
+        const idleState = document.getElementById('upgrade-idle-state');
+        const loadingState = document.getElementById('upgrade-loading-state');
+        const loadingText = document.getElementById('upgrade-loading-text');
+        const resImg = document.getElementById('upgrade-result-img');
+        const btnUpscale = document.getElementById('btn-modal-upscale');
+        const btnRegen = document.getElementById('btn-modal-regen');
+        const btnApply = document.getElementById('btn-apply-upgrade');
+
+        resImg.style.display = 'none';
+        if (idleState) idleState.style.display = 'none';
+        loadingState.style.display = 'flex';
+        loadingText.innerText = (style === 'vector_rebus')
+            ? '🧩 Generating instant crisp vector rebus card...'
+            : `🎨 Generating bespoke high-resolution (${resolution}) rebus puzzle...`;
+        btnUpscale.disabled = true;
+        btnRegen.disabled = true;
+        btnApply.disabled = true;
+
+        fetch(`/moderation/question/${p.id}/ai-generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ resolution: resolution, style: style, seed: Math.floor(Math.random() * 900000) + 100000 })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btnUpscale.disabled = false;
+            btnRegen.disabled = false;
+
+            if (data.success && data.image_url) {
+                currentUpgradedImageUrl = data.image_url;
+                let loaded = false;
+                resImg.onload = () => {
+                    if (loaded) return;
+                    loaded = true;
+                    loadingState.style.display = 'none';
+                    if (idleState) idleState.style.display = 'none';
+                    resImg.style.display = 'block';
+                    btnApply.disabled = false;
+                    document.getElementById('upgrade-result-heading').innerText = `🎨 Regenerated (${data.dimensions || resolution})`;
+                    document.getElementById('upgrade-result-badge').innerText = `${data.format ? data.format.toUpperCase() : 'HD'}`;
+                };
+                resImg.onerror = () => {
+                    loadingText.innerText = 'Failed to load regenerated image preview.';
+                    btnUpscale.disabled = false;
+                    btnRegen.disabled = false;
+                };
+                resImg.src = data.image_url;
+                if (resImg.complete && resImg.naturalWidth > 0) {
+                    resImg.onload();
+                }
+            } else {
+                loadingText.innerText = 'Regeneration error: ' + (data.error || 'Failed to generate image.');
+            }
+        })
+        .catch(() => {
+            btnUpscale.disabled = false;
+            btnRegen.disabled = false;
+            loadingText.innerText = 'Network error while generating image.';
+        });
+    }
+
+    function applyUpgradedResult() {
+        if (!currentUpgradedImageUrl || !PUZZLES.length) return;
+        const p = PUZZLES[curIndex];
+
+        fetch(`/moderation/question/${p.id}/ai-apply`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'apply_ai', image_url: currentUpgradedImageUrl })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                p.media_path = data.media_path;
+                if (data.original_media_path) {
+                    p.original_media_path = data.original_media_path;
+                }
+                closeUpgradeResolutionModal();
+                renderSlide();
+                if (window.soundFX && window.soundFX.playDingCorrect) {
+                    window.soundFX.playDingCorrect();
+                }
+            }
+        });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+        if (aiModal && aiModal.open) return;
+        if (editAnsModal && editAnsModal.open) return;
+        if (upgradeModal && upgradeModal.open) {
+            if (e.key === 'Escape') rejectUpgradeAndKeepExisting();
+            return;
+        }
+
+        if (e.key === 'z' || e.key === 'Z') {
+            e.preventDefault();
+            if (enlargedModal && enlargedModal.open) {
+                closeEnlargedImageModal();
+            } else {
+                openEnlargedImageModal();
+            }
+            return;
+        }
+
+        if (enlargedModal && enlargedModal.open) {
+            if (e.key === 'Escape') closeEnlargedImageModal();
+            return;
+        }
+
+        if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft' || e.key === 'p' || e.key === 'P') {
+            prevSlide();
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            toggleAnswer();
+        } else if (e.key === 'ArrowUp' || e.key === 'u' || e.key === 'U' || e.key === '1') {
+            e.preventDefault();
+            voteCurrent(1);
+        } else if (e.key === 'ArrowDown' || e.key === 'd' || e.key === 'D' || e.key === '0') {
+            e.preventDefault();
+            voteCurrent(0);
+        } else if (e.key === 's' || e.key === 'S' || e.key === 'k' || e.key === 'K') {
+            e.preventDefault();
+            skipCurrent();
+        } else if (e.key === 'e' || e.key === 'E') {
+            e.preventDefault();
+            openEditAnswerModal();
+        } else if (e.key === 'f' || e.key === 'F') {
+            e.preventDefault();
+            toggleCurrentFav();
+        }
+    });
+
+    renderSlide();
+</script>
+{% endblock %}

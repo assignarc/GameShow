@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Fall Party Rebus Game Show{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bungee&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f0d0b;
+            --bg-card: #1c1815;
+            --bg-card-hover: #26211c;
+            --bg-input: #14110e;
+            --border-color: #382e25;
+            --border-active: #f59e0b;
+            --primary: #f97316;
+            --primary-hover: #ea580c;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-sub: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header.navbar {
+            background: rgba(28, 24, 21, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            padding: 0.85rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .brand-logo {
+            font-size: 1.75rem;
+            line-height: 1;
+        }
+
+        .brand-text {
+            font-family: 'Bungee', cursive, sans-serif;
+            font-size: 1.35rem;
+            color: var(--primary);
+            letter-spacing: 1px;
+            text-shadow: 0 2px 10px rgba(249, 115, 22, 0.3);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            color: var(--text-sub);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 0.65rem 1.25rem;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #000;
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(249, 115, 22, 0.45);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--text-muted);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #000;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+
+        .btn-lg {
+            padding: 0.9rem 1.8rem;
+            font-size: 1.15rem;
+            border-radius: 12px;
+        }
+
+        main.container {
+            flex: 1;
+            max-width: 1350px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Modern Web Guidance: Native <dialog> modal support */
+        dialog:modal {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+            margin: auto;
+            overscroll-behavior: contain;
+        }
+
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            overflow: hidden;
+            overscroll-behavior: contain;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-flash {
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .alert-success { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: var(--success); }
+        .alert-error { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: var(--danger); }
+
+        footer.site-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+    </style>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body>
+    <header class="navbar">
+        <a href="{{ path('app_home') }}" class="brand">
+            <span class="brand-logo">🍁</span>
+            <span class="brand-text">REBUS GAMESHOW</span>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="{{ path('app_home') }}" class="nav-link {% if app.request.attributes.get('_route') == 'app_home' %}active{% endif %}">🏠 Game Shows</a></li>
+            <li><a href="{{ path('app_moderation_review') }}" class="nav-link {% if app.request.attributes.get('_route') in ['app_moderation_review', 'app_review_direct'] %}active{% endif %}">👍 Question Review</a></li>
+            <li><a href="{{ path('app_moderation_duplicates') }}" class="nav-link {% if app.request.attributes.get('_route') == 'app_moderation_duplicates' %}active{% endif %}">🔍 Duplicates</a></li>
+            <li><a href="{{ path('app_moderation_index') }}" class="nav-link {% if app.request.attributes.get('_route') == 'app_moderation_index' %}active{% endif %}">📚 Question Bank (500+)</a></li>
+            <li><a href="{{ path('app_moderation_export') }}" class="btn btn-secondary btn-sm" download>📥 Export JSON</a></li>
+        </ul>
+    </header>
+
+    <main class="container">
+        {% for message in app.flashes('success') %}
+            <div class="alert-flash alert-success">✅ {{ message }}</div>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <div class="alert-flash alert-error">⚠️ {{ message }}</div>
+        {% endfor %}
+
+        {% block body %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        Fall Party Rebus Game Show • Config-driven multimodal puzzle engine • Powered by Symfony 8.1 & SQLite
+    </footer>
+
+    {% block javascripts %}{% endblock %}
+</body>
+</html>
