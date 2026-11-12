@@ -20,7 +20,7 @@ class GameShowController extends AbstractController
     }
 
     #[Route('/', name: 'app_home', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $pdo = $this->gameDatabase->getPdo();
         $shows = $pdo->query('SELECT s.*, 
@@ -28,6 +28,10 @@ class GameShowController extends AbstractController
             (SELECT COUNT(*) FROM show_rounds r WHERE r.show_id = s.id) as round_count,
             (SELECT COUNT(*) FROM show_used_questions uq WHERE uq.show_id = s.id) as used_q_count
             FROM game_shows s ORDER BY s.id DESC')->fetchAll();
+
+        foreach ($shows as &$s) {
+            $s['mobile_host_url'] = $this->getHostLanUrl($request, "/shows/{$s['id']}/play");
+        }
 
         $stats = [
             'total_questions' => (int) $pdo->query('SELECT COUNT(*) FROM questions')->fetchColumn(),
@@ -38,6 +42,7 @@ class GameShowController extends AbstractController
         return $this->render('home/index.html.twig', [
             'shows' => $shows,
             'stats' => $stats,
+            'lan_ip' => $this->getLanIp(),
         ]);
     }
 
@@ -59,6 +64,7 @@ class GameShowController extends AbstractController
         $stmt->execute([$name, $subtitle, $timer]);
         $showId = (int) $pdo->lastInsertId();
 
+        $this->gameDatabase->getShowRules($showId);
         $this->configureOneHourTournament($showId);
 
         return $this->redirectToRoute('app_show_manage', ['id' => $showId]);
@@ -85,11 +91,11 @@ class GameShowController extends AbstractController
         $this->addFlash('success', 'Game show details updated successfully.');
 
         $referer = (string) $request->headers->get('referer', '');
-        if (str_contains($referer, '/manage')) {
-            return $this->redirectToRoute('app_show_manage', ['id' => $id]);
+        if ($referer !== '' && !str_contains($referer, '/manage')) {
+            return $this->redirect($referer);
         }
 
-        return $this->redirectToRoute('app_home');
+        return $this->redirectToRoute('app_show_manage', ['id' => $id]);
     }
 
     #[Route('/shows/{id}/reset', name: 'app_show_reset', methods: ['POST'])]
@@ -104,7 +110,7 @@ class GameShowController extends AbstractController
             $pdo->prepare('UPDATE show_teams SET score = 0, round_score = 0, is_eliminated = 0, eliminated_in_round = NULL WHERE show_id = ?')->execute([$id]);
             $pdo->prepare('UPDATE show_rounds SET status = "pending" WHERE show_id = ?')->execute([$id]);
             $firstRound = (int) $pdo->query("SELECT id FROM show_rounds WHERE show_id = {$id} ORDER BY round_number ASC LIMIT 1")->fetchColumn();
-            $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+            $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0, active_rule_index = -1 WHERE id = ?')
                 ->execute([$firstRound ?: null, $id]);
             $pdo->commit();
         } catch (\Throwable $e) {
@@ -156,7 +162,7 @@ class GameShowController extends AbstractController
     }
 
     #[Route('/shows/{id}/manage', name: 'app_show_manage', methods: ['GET'])]
-    public function manageShow(int $id): Response
+    public function manageShow(int $id, Request $request): Response
     {
         $pdo = $this->gameDatabase->getPdo();
         $show = $this->getShowOrFail($id);
@@ -175,12 +181,17 @@ class GameShowController extends AbstractController
 
         $usedCount = (int) $pdo->prepare('SELECT COUNT(*) FROM show_used_questions WHERE show_id = ?')->execute([$id]) ? $pdo->query("SELECT COUNT(*) FROM show_used_questions WHERE show_id = {$id}")->fetchColumn() : 0;
 
+        $mobileHostUrl = $this->getHostLanUrl($request, "/shows/{$id}/play");
+
         return $this->render('game/manage.html.twig', [
             'show' => $show,
             'teams' => $teamsList,
             'rounds' => $roundsList,
             'categories' => $categories,
+            'rules' => $this->gameDatabase->getShowRules($id),
             'used_count' => $usedCount,
+            'mobile_host_url' => $mobileHostUrl,
+            'lan_ip' => $this->getLanIp(),
         ]);
     }
 
@@ -202,6 +213,25 @@ class GameShowController extends AbstractController
 
         $stmt = $pdo->prepare('INSERT INTO show_teams (show_id, name, members, flight_group, avatar_emoji, avatar_color, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([$id, $name, $members, $flight, $emoji, $color, $count + 1]);
+
+        return $this->redirectToRoute('app_show_manage', ['id' => $id]);
+    }
+
+    #[Route('/shows/{id}/teams/{teamId}/update', name: 'app_show_team_update', methods: ['POST'])]
+    public function updateTeam(int $id, int $teamId, Request $request): RedirectResponse
+    {
+        $pdo = $this->gameDatabase->getPdo();
+        $name = trim((string) $request->request->get('name', ''));
+        $members = trim((string) $request->request->get('members', ''));
+        $flight = (string) $request->request->get('flight_group', 'Acorn Flight');
+        $emoji = (string) $request->request->get('avatar_emoji', '🍁');
+        $color = (string) $request->request->get('avatar_color', '#f97316');
+
+        if ($name !== '') {
+            $stmt = $pdo->prepare('UPDATE show_teams SET name = ?, members = ?, flight_group = ?, avatar_emoji = ?, avatar_color = ? WHERE id = ? AND show_id = ?');
+            $stmt->execute([$name, $members, $flight, $emoji, $color, $teamId, $id]);
+            $this->addFlash('success', 'Team updated successfully.');
+        }
 
         return $this->redirectToRoute('app_show_manage', ['id' => $id]);
     }
@@ -349,27 +379,33 @@ class GameShowController extends AbstractController
     }
 
     #[Route('/shows/{id}/play', name: 'app_show_play', methods: ['GET'])]
-    public function playArena(int $id): Response
+    public function playArena(int $id, Request $request): Response
     {
         $show = $this->getShowOrFail($id);
+        $mobileHostUrl = $this->getHostLanUrl($request, "/shows/{$id}/play");
         return $this->render('game/arena.html.twig', [
             'show' => $show,
             'is_host_control' => true,
+            'mobile_host_url' => $mobileHostUrl,
+            'lan_ip' => $this->getLanIp(),
         ]);
     }
 
     #[Route('/shows/{id}/display', name: 'app_show_display', methods: ['GET'])]
-    public function projectorDisplay(int $id): Response
+    public function projectorDisplay(int $id, Request $request): Response
     {
         $show = $this->getShowOrFail($id);
+        $mobileHostUrl = $this->getHostLanUrl($request, "/shows/{$id}/play");
         return $this->render('game/display.html.twig', [
             'show' => $show,
             'is_projector' => true,
+            'mobile_host_url' => $mobileHostUrl,
+            'lan_ip' => $this->getLanIp(),
         ]);
     }
 
     #[Route('/api/shows/{id}/state', name: 'app_api_show_state', methods: ['GET'])]
-    public function getShowState(int $id): JsonResponse
+    public function getShowState(int $id, Request $request): JsonResponse
     {
         $pdo = $this->gameDatabase->getPdo();
         $show = $this->getShowOrFail($id);
@@ -405,13 +441,18 @@ class GameShowController extends AbstractController
 
         $usedCount = (int) $pdo->query("SELECT COUNT(*) FROM show_used_questions WHERE show_id = {$id}")->fetchColumn();
 
+        $mobileHostUrl = $this->getHostLanUrl($request, "/shows/{$id}/play");
+
         return $this->json([
             'show' => $show,
             'teams' => $teamList,
             'rounds' => $roundList,
+            'rules' => $this->gameDatabase->getShowRules($id),
             'current_round' => $currentRound,
             'current_question' => $currentQuestion,
             'used_questions_count' => $usedCount,
+            'mobile_host_url' => $mobileHostUrl,
+            'lan_ip' => $this->getLanIp(),
             'server_time' => time(),
         ]);
     }
@@ -425,6 +466,58 @@ class GameShowController extends AbstractController
         $action = $payload['action'] ?? '';
 
         switch ($action) {
+            case 'prev_question':
+                $uqStmt = $pdo->prepare('SELECT id, question_id, round_id FROM show_used_questions WHERE show_id = ? ORDER BY id ASC');
+                $uqStmt->execute([$id]);
+                $used = $uqStmt->fetchAll();
+                if (empty($used)) {
+                    return $this->json(['error' => 'No previous questions available'], Response::HTTP_BAD_REQUEST);
+                }
+
+                $currQId = (int) ($show['current_question_id'] ?? 0);
+                $currIdx = -1;
+                foreach ($used as $idx => $u) {
+                    if ((int) $u['question_id'] === $currQId) {
+                        $currIdx = $idx;
+                        break;
+                    }
+                }
+
+                if ($currIdx > 0) {
+                    $targetItem = $used[$currIdx - 1];
+                } elseif ($currIdx === -1 && count($used) > 0) {
+                    $targetItem = end($used);
+                } else {
+                    return $this->json(['error' => 'Already at earliest question'], Response::HTTP_BAD_REQUEST);
+                }
+
+                $pdo->prepare('UPDATE game_shows SET current_question_id = ?, current_round_id = ?, answer_revealed = 1, question_started_at = NULL WHERE id = ?')
+                    ->execute([$targetItem['question_id'], $targetItem['round_id'], $id]);
+
+                return $this->json(['success' => true, 'question_id' => $targetItem['question_id']]);
+
+            case 'next_question':
+                $uqStmt = $pdo->prepare('SELECT id, question_id, round_id FROM show_used_questions WHERE show_id = ? ORDER BY id ASC');
+                $uqStmt->execute([$id]);
+                $used = $uqStmt->fetchAll();
+
+                $currQId = (int) ($show['current_question_id'] ?? 0);
+                $currIdx = -1;
+                foreach ($used as $idx => $u) {
+                    if ((int) $u['question_id'] === $currQId) {
+                        $currIdx = $idx;
+                        break;
+                    }
+                }
+
+                if ($currIdx >= 0 && $currIdx < count($used) - 1) {
+                    $targetItem = $used[$currIdx + 1];
+                    $pdo->prepare('UPDATE game_shows SET current_question_id = ?, current_round_id = ?, answer_revealed = 1, question_started_at = NULL WHERE id = ?')
+                        ->execute([$targetItem['question_id'], $targetItem['round_id'], $id]);
+                    return $this->json(['success' => true, 'question_id' => $targetItem['question_id']]);
+                }
+                // Fallthrough to start_question when at the end of history
+
             case 'start_question':
                 // pick next non-repeated question according to current round configuration
                 $roundId = (int) ($payload['round_id'] ?? $show['current_round_id']);
@@ -547,6 +640,20 @@ class GameShowController extends AbstractController
                 }
                 return $this->json(['success' => true]);
 
+            case 'update_team':
+                $teamId = (int) ($payload['team_id'] ?? 0);
+                $name = trim((string) ($payload['name'] ?? ''));
+                $members = trim((string) ($payload['members'] ?? ''));
+                $flight = (string) ($payload['flight_group'] ?? 'Acorn Flight');
+                $emoji = (string) ($payload['avatar_emoji'] ?? '🍁');
+                $color = (string) ($payload['avatar_color'] ?? '#f97316');
+
+                if ($teamId > 0 && $name !== '') {
+                    $stmt = $pdo->prepare('UPDATE show_teams SET name = ?, members = ?, flight_group = ?, avatar_emoji = ?, avatar_color = ? WHERE id = ? AND show_id = ?');
+                    $stmt->execute([$name, $members, $flight, $emoji, $color, $teamId, $id]);
+                }
+                return $this->json(['success' => true]);
+
             case 'advance_round':
                 $nextRoundId = (int) ($payload['next_round_id'] ?? 0);
                 $applyEliminations = (bool) ($payload['apply_eliminations'] ?? false);
@@ -587,6 +694,33 @@ class GameShowController extends AbstractController
                 $pdo->prepare('UPDATE game_shows SET active_matchup_label = ?, active_team_a_id = ?, active_team_b_id = ? WHERE id = ?')->execute([$label, $teamA, $teamB, $id]);
                 return $this->json(['success' => true]);
 
+            case 'start_rules':
+            case 'show_rules':
+                $ruleIdx = (int) ($payload['rule_index'] ?? 0);
+                $pdo->prepare('UPDATE game_shows SET active_rule_index = ? WHERE id = ?')->execute([$ruleIdx, $id]);
+                return $this->json(['success' => true, 'active_rule_index' => $ruleIdx]);
+
+            case 'next_rule':
+                $rules = $this->gameDatabase->getShowRules($id);
+                $currIdx = (int) ($show['active_rule_index'] ?? -1);
+                $nextIdx = $currIdx + 1;
+                if ($nextIdx >= count($rules)) {
+                    $nextIdx = -1; // End of rules
+                }
+                $pdo->prepare('UPDATE game_shows SET active_rule_index = ? WHERE id = ?')->execute([$nextIdx, $id]);
+                return $this->json(['success' => true, 'active_rule_index' => $nextIdx]);
+
+            case 'prev_rule':
+                $currIdx = (int) ($show['active_rule_index'] ?? 0);
+                $prevIdx = max(0, $currIdx - 1);
+                $pdo->prepare('UPDATE game_shows SET active_rule_index = ? WHERE id = ?')->execute([$prevIdx, $id]);
+                return $this->json(['success' => true, 'active_rule_index' => $prevIdx]);
+
+            case 'close_rules':
+            case 'finish_rules':
+                $pdo->prepare('UPDATE game_shows SET active_rule_index = -1 WHERE id = ?')->execute([$id]);
+                return $this->json(['success' => true, 'active_rule_index' => -1]);
+
             case 'reset_show':
                 $pdo->beginTransaction();
                 try {
@@ -594,7 +728,7 @@ class GameShowController extends AbstractController
                     $pdo->prepare('UPDATE show_teams SET score = 0, round_score = 0, is_eliminated = 0, eliminated_in_round = NULL WHERE show_id = ?')->execute([$id]);
                     $pdo->prepare('UPDATE show_rounds SET status = "pending" WHERE show_id = ?')->execute([$id]);
                     $firstRound = (int) $pdo->query("SELECT id FROM show_rounds WHERE show_id = {$id} ORDER BY round_number ASC LIMIT 1")->fetchColumn();
-                    $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+                    $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0, active_rule_index = -1 WHERE id = ?')
                         ->execute([$firstRound ?: null, $id]);
                     $pdo->commit();
                 } catch (\Throwable $e) {
@@ -707,6 +841,38 @@ class GameShowController extends AbstractController
             throw $this->createNotFoundException('Game show not found.');
         }
         return $show;
+    }
+
+    public function getLanIp(): string
+    {
+        // 1. Try macOS primary Wi-Fi / Ethernet interface
+        $macIp = trim((string) @shell_exec('ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null'));
+        if ($macIp && filter_var($macIp, FILTER_VALIDATE_IP)) {
+            return $macIp;
+        }
+
+        // 2. Try ifconfig output
+        $output = (string) @shell_exec('ifconfig 2>/dev/null');
+        if (preg_match('/inet (192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)/', $output, $matches)) {
+            return $matches[1];
+        }
+
+        // 3. Try hostname resolution
+        $host = gethostname();
+        $ip = gethostbyname($host);
+        if ($ip && !str_starts_with($ip, '127.')) {
+            return $ip;
+        }
+
+        return '127.0.0.1';
+    }
+
+    public function getHostLanUrl(Request $request, string $path): string
+    {
+        $lanIp = $this->getLanIp();
+        $port = $request->getPort() ?: 8000;
+        // Use http scheme by default for LAN mobile connections so iOS Safari does not prompt on self-signed certs
+        return "http://{$lanIp}:{$port}" . $path;
     }
 }
 

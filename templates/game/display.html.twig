@@ -167,11 +167,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            width: 100%;
+            height: 100%;
             max-width: 95%;
             max-height: 78vh;
         }
 
         .puzzle-img {
+            width: 100%;
+            height: auto;
             max-width: 100%;
             max-height: 76vh;
             border-radius: 20px;
@@ -182,26 +186,35 @@
 
         .answer-overlay {
             position: absolute;
-            bottom: 25px;
-            background: linear-gradient(135deg, #10b981, #059669);
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: #ffffff;
-            padding: 1.25rem 3.5rem;
+            padding: 1.15rem 3.5rem;
             border-radius: 24px;
-            font-size: 2.8rem;
+            font-size: clamp(2.2rem, 3.6vw, 3.5rem);
             font-weight: 900;
             letter-spacing: 1.5px;
-            box-shadow: 0 20px 50px rgba(16, 185, 129, 0.65), 0 0 0 2px rgba(255, 255, 255, 0.35);
+            text-transform: uppercase;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 45px rgba(16, 185, 129, 0.65), 0 0 0 3px rgba(255, 255, 255, 0.35);
             text-align: center;
-            animation: popAnswer 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: none;
-            max-width: 92%;
-            word-break: break-word;
-            z-index: 5;
+            width: max-content;
+            max-width: 90%;
+            min-width: min(420px, 90%);
+            box-sizing: border-box;
+            white-space: normal;
+            word-break: normal;
+            overflow-wrap: break-word;
+            animation: popAnswer 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50;
+            line-height: 1.25;
         }
 
         @keyframes popAnswer {
-            0% { transform: scale(0.65) translateY(20px); opacity: 0; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
+            0% { transform: translateX(-50%) scale(0.65) translateY(20px); opacity: 0; }
+            100% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
         }
 
         .splash-card {
@@ -401,6 +414,136 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
+        /* TV RULES PRESENTATION CARD */
+        .tv-rules-card {
+            background: linear-gradient(145deg, rgba(32, 26, 21, 0.96) 0%, rgba(18, 14, 11, 0.99) 100%);
+            border: 2px solid rgba(245, 158, 11, 0.45);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 50px rgba(245, 158, 11, 0.18);
+            border-radius: 28px;
+            padding: 3rem 3.5rem;
+            max-width: 900px;
+            width: 92%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            animation: zoomInRule 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes zoomInRule {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .tv-rules-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 2rem;
+            padding-bottom: 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tv-rules-badge {
+            font-size: 0.95rem;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            color: var(--primary);
+            text-transform: uppercase;
+        }
+
+        .tv-rules-step {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            font-weight: 800;
+            background: rgba(245, 158, 11, 0.2);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: var(--accent);
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            letter-spacing: 1px;
+        }
+
+        .tv-rules-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            margin: 0.5rem 0 1.5rem 0;
+        }
+
+        .tv-rules-icon-glow {
+            font-size: 4.8rem;
+            width: 105px;
+            height: 105px;
+            border-radius: 28px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, rgba(249, 115, 22, 0.08) 70%);
+            border: 2px solid rgba(245, 158, 11, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.3);
+            animation: pulseIcon 2.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseIcon {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(245, 158, 11, 0.25); }
+            50% { transform: scale(1.06); box-shadow: 0 0 45px rgba(245, 158, 11, 0.45); }
+        }
+
+        .tv-rules-title {
+            font-size: clamp(2.2rem, 3.2vw, 3.2rem);
+            font-weight: 900;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.25rem;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .tv-rules-desc {
+            font-size: clamp(1.25rem, 1.7vw, 1.65rem);
+            line-height: 1.6;
+            color: #cbd5e1;
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        .tv-rules-footer {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .tv-rules-dots {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .rule-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .rule-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 14px var(--accent);
+            transform: scale(1.35);
+        }
+
+        .rule-dot.completed {
+            background: var(--success);
+        }
     </style>
 </head>
 <body>
@@ -420,15 +563,37 @@
         <!-- LEFT: PUZZLE STAGE -->
         <main class="tv-stage">
             <div class="puzzle-viewport">
-                <div class="puzzle-img-card" id="tv-img-card" style="display: none;">
-                    <img src="" alt="Rebus" class="puzzle-img" id="tv-img">
-                    <div class="answer-overlay" id="tv-answer">ANSWER</div>
+                <!-- TV RULES BRIEFING CARD -->
+                <div class="tv-rules-card" id="tv-rules-card" style="display: none;">
+                    <div class="tv-rules-header">
+                        <span class="tv-rules-badge">📜 OFFICIAL TOURNAMENT RULES</span>
+                        <span class="tv-rules-step" id="tv-rule-step">RULE 1 OF 6</span>
+                    </div>
+                    <div class="tv-rules-body">
+                        <div class="tv-rules-icon-glow" id="tv-rule-icon">💡</div>
+                        <h2 class="tv-rules-title" id="tv-rule-title">Say What You See</h2>
+                        <p class="tv-rules-desc" id="tv-rule-desc">Call out the famous phrase, movie, object, or idiom hidden in the picture puzzle.</p>
+                    </div>
+                    <div class="tv-rules-footer">
+                        <div class="tv-rules-dots" id="tv-rules-dots">
+                            <!-- Progress dots rendered dynamically -->
+                        </div>
+                    </div>
                 </div>
 
+                <div class="puzzle-img-card" id="tv-img-card" style="display: none;">
+                    <img src="" alt="Rebus" class="puzzle-img" id="tv-img">
+                </div>
+
+                <div class="answer-overlay" id="tv-answer">ANSWER</div>
+
                 <div class="splash-card" id="tv-splash">
-                    <div style="font-size: 5.5rem; margin-bottom: 1.25rem;">🍁</div>
-                    <h1 style="font-size: 3.2rem; font-weight: 900; letter-spacing: 1px;">FALL PARTY REBUS ARENA</h1>
-                    <p style="font-size: 1.6rem; color: #cbd5e1; margin-top: 0.75rem;">Say What You See!</p>
+                    <div style="font-size: 5rem; margin-bottom: 0.85rem;">🍁</div>
+                    <h1 style="font-size: 3.2rem; font-weight: 900; letter-spacing: 1.5px;">FALL PARTY REBUS ARENA</h1>
+                    <p style="font-size: 1.5rem; color: #cbd5e1; margin-top: 0.4rem; margin-bottom: 1.5rem;">Say What You See!</p>
+                    <div style="display: inline-flex; align-items: center; gap: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1.5px solid rgba(245, 158, 11, 0.4); padding: 0.85rem 2rem; border-radius: 30px; font-weight: 800; font-size: 1.15rem; color: var(--accent);">
+                        🎮 Game Show Ready • Next Puzzle Starting Soon!
+                    </div>
                 </div>
             </div>
         </main>
@@ -468,30 +633,57 @@
                     const img = document.getElementById('tv-img');
                     const ansBanner = document.getElementById('tv-answer');
                     const splash = document.getElementById('tv-splash');
+                    const rulesCard = document.getElementById('tv-rules-card');
+                    const rulesList = Array.isArray(data.rules) ? data.rules : [];
+                    const activeRuleIdx = (show.active_rule_index !== undefined && show.active_rule_index !== null) ? parseInt(show.active_rule_index) : -1;
 
-                    if (q) {
+                    if (activeRuleIdx >= 0 && rulesList.length > 0 && activeRuleIdx < rulesList.length) {
+                        const activeRule = rulesList[activeRuleIdx];
                         splash.style.display = 'none';
-                        imgCard.style.display = 'flex';
-                        img.src = q.media_path;
-
-                        if (q.category_name) {
-                            catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}`;
-                            catBadge.style.display = 'inline-block';
-                        } else {
-                            catBadge.style.display = 'none';
-                        }
-
-                        ansBanner.innerText = q.answer;
-                        if (show.answer_revealed == 1) {
-                            ansBanner.style.display = 'block';
-                        } else {
-                            ansBanner.style.display = 'none';
-                        }
-                    } else {
-                        splash.style.display = 'block';
                         imgCard.style.display = 'none';
                         ansBanner.style.display = 'none';
                         catBadge.style.display = 'none';
+                        rulesCard.style.display = 'flex';
+
+                        document.getElementById('tv-rule-step').innerText = `RULE ${activeRuleIdx + 1} OF ${rulesList.length}`;
+                        document.getElementById('tv-rule-icon').innerText = activeRule.icon || '📜';
+                        document.getElementById('tv-rule-title').innerText = activeRule.title;
+                        document.getElementById('tv-rule-desc').innerText = activeRule.description;
+
+                        const dotsWrap = document.getElementById('tv-rules-dots');
+                        dotsWrap.innerHTML = '';
+                        rulesList.forEach((_, idx) => {
+                            const dot = document.createElement('div');
+                            dot.className = 'rule-dot' + (idx === activeRuleIdx ? ' active' : (idx < activeRuleIdx ? ' completed' : ''));
+                            dotsWrap.appendChild(dot);
+                        });
+                    } else {
+                        rulesCard.style.display = 'none';
+
+                        if (q) {
+                            splash.style.display = 'none';
+                            imgCard.style.display = 'flex';
+                            img.src = q.media_path;
+
+                            if (q.category_name) {
+                                catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}`;
+                                catBadge.style.display = 'inline-block';
+                            } else {
+                                catBadge.style.display = 'none';
+                            }
+
+                            ansBanner.innerText = q.answer;
+                            if (show.answer_revealed == 1) {
+                                ansBanner.style.display = 'block';
+                            } else {
+                                ansBanner.style.display = 'none';
+                            }
+                        } else {
+                            splash.style.display = 'block';
+                            imgCard.style.display = 'none';
+                            ansBanner.style.display = 'none';
+                            catBadge.style.display = 'none';
+                        }
                     }
 
                     // Matchup callout

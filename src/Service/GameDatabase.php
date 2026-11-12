@@ -44,7 +44,7 @@ class GameDatabase
 
     public function initSchema(): void
     {
-        $pdo = $this->pdo;
+        $pdo = $this->pdo ?? $this->getPdo();
 
         $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS categories (
@@ -148,6 +148,14 @@ CREATE TABLE IF NOT EXISTS show_used_questions (
     asked_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(show_id, question_id)
 );
+
+CREATE TABLE IF NOT EXISTS common_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sort_order INTEGER NOT NULL DEFAULT 1,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    icon TEXT NOT NULL DEFAULT '📜'
+);
 SQL);
 
         try {
@@ -162,6 +170,20 @@ SQL);
         } catch (\Throwable) {
             // Column already exists
         }
+
+        try {
+            $pdo->exec('ALTER TABLE game_shows ADD COLUMN rules TEXT DEFAULT NULL');
+        } catch (\Throwable) {
+            // Column already exists
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE game_shows ADD COLUMN active_rule_index INTEGER NOT NULL DEFAULT -1');
+        } catch (\Throwable) {
+            // Column already exists
+        }
+
+        $this->seedDefaultCommonRules();
     }
 
     public function getQuestionCount(): int
@@ -169,17 +191,9 @@ SQL);
         return (int) $this->getPdo()->query('SELECT COUNT(*) FROM questions')->fetchColumn();
     }
 
-    public function seedFromMasterJson(bool $forceReset = false): int
+    public function seedFromMasterJson(): int
     {
         $pdo = $this->getPdo();
-        if ($forceReset) {
-            $pdo->exec('DELETE FROM show_used_questions;');
-            $pdo->exec('DELETE FROM show_rounds;');
-            $pdo->exec('DELETE FROM show_teams;');
-            $pdo->exec('DELETE FROM game_shows;');
-            $pdo->exec('DELETE FROM questions;');
-            $pdo->exec('DELETE FROM categories;');
-        }
 
         $seedFile = $this->projectDir . '/data/master_questions.json';
         if (!file_exists($seedFile)) {
@@ -409,6 +423,123 @@ SQL);
             'categories' => $categories,
             'questions' => $questions,
         ];
+    }
+
+    public function syncMasterJson(): void
+    {
+        $seedFile = $this->projectDir . '/data/master_questions.json';
+        $data = $this->exportDatabaseToJson();
+        file_put_contents(
+            $seedFile,
+            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        );
+    }
+
+    public function seedDefaultCommonRules(): void
+    {
+        $pdo = $this->getPdo();
+        $count = (int) $pdo->query('SELECT COUNT(*) FROM common_rules')->fetchColumn();
+        if ($count > 0) {
+            return;
+        }
+
+        $defaultRules = [
+            ['sort_order' => 1, 'title' => 'Host Has Final Authority', 'description' => "The Host's ruling on pronunciations, buzzers, and close calls is final, binding, and cannot be appealed to any higher court.", 'icon' => '⚖️'],
+            ['sort_order' => 2, 'title' => "Host's Wife is Always Right", 'description' => "If the Host and his Wife disagree on an answer, buzzer, or score, Rule #1 is immediately suspended and the Wife's verdict is 100% indisputable.", 'icon' => '👑'],
+            ['sort_order' => 3, 'title' => 'In Case of Any Dispute...', 'description' => 'Please refer back to Rule #1. If you are still unsatisfied, proceed directly to Rule #2.', 'icon' => '🔁'],
+            ['sort_order' => 4, 'title' => 'Phones Strictly Prohibited (Creative Cheating Allowed)', 'description' => 'Use of smartphones, Google, or AI is strictly forbidden. However, eavesdropping on other teams, lip-reading, or brazenly stealing their guesses is completely allowed!', 'icon' => '📵'],
+            ['sort_order' => 5, 'title' => 'Bribing the Host', 'description' => 'Bribing the host with drinks, wine, appetizers, or desserts is strictly against tournament guidelines... but highly encouraged and evaluated on a case-by-case basis.', 'icon' => '🍷'],
+        ];
+
+        $stmt = $pdo->prepare('INSERT INTO common_rules (sort_order, title, description, icon) VALUES (?, ?, ?, ?)');
+        foreach ($defaultRules as $r) {
+            $stmt->execute([$r['sort_order'], $r['title'], $r['description'], $r['icon']]);
+        }
+    }
+
+    public function getCommonRules(): array
+    {
+        $pdo = $this->getPdo();
+        $this->seedDefaultCommonRules();
+        return $pdo->query('SELECT * FROM common_rules ORDER BY sort_order ASC, id ASC')->fetchAll();
+    }
+
+    public function saveCommonRule(?int $id, string $title, string $description, string $icon, ?int $sortOrder = null): int
+    {
+        $pdo = $this->getPdo();
+        if ($id && $id > 0) {
+            $stmt = $pdo->prepare('UPDATE common_rules SET title = ?, description = ?, icon = ? WHERE id = ?');
+            $stmt->execute([$title, $description, $icon, $id]);
+            return $id;
+        }
+
+        if ($sortOrder === null) {
+            $maxOrder = (int) $pdo->query('SELECT MAX(sort_order) FROM common_rules')->fetchColumn();
+            $sortOrder = $maxOrder + 1;
+        }
+
+        $stmt = $pdo->prepare('INSERT INTO common_rules (sort_order, title, description, icon) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$sortOrder, $title, $description, $icon]);
+        return (int) $pdo->lastInsertId();
+    }
+
+    public function deleteCommonRule(int $id): void
+    {
+        $pdo = $this->getPdo();
+        $pdo->prepare('DELETE FROM common_rules WHERE id = ?')->execute([$id]);
+    }
+
+    public function getShowRules(int $showId): array
+    {
+        $pdo = $this->getPdo();
+        $stmt = $pdo->prepare('SELECT rules FROM game_shows WHERE id = ?');
+        $stmt->execute([$showId]);
+        $raw = (string) $stmt->fetchColumn();
+
+        if ($raw !== '' && $raw !== 'null') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded) && !empty($decoded)) {
+                return $decoded;
+            }
+        }
+
+        // Inherit from master common rules
+        return $this->resetShowRulesToCommon($showId);
+    }
+
+    public function resetShowRulesToCommon(int $showId): array
+    {
+        $common = $this->getCommonRules();
+        $rules = [];
+        foreach ($common as $idx => $r) {
+            $rules[] = [
+                'id' => $idx + 1,
+                'title' => (string) $r['title'],
+                'description' => (string) $r['description'],
+                'icon' => (string) ($r['icon'] ?: '📜'),
+            ];
+        }
+
+        $this->saveShowRules($showId, $rules);
+        return $rules;
+    }
+
+    public function saveShowRules(int $showId, array $rules): void
+    {
+        $pdo = $this->getPdo();
+        $cleaned = [];
+        foreach (array_values($rules) as $idx => $r) {
+            $cleaned[] = [
+                'id' => $idx + 1,
+                'title' => trim((string) ($r['title'] ?? 'Rule ' . ($idx + 1))),
+                'description' => trim((string) ($r['description'] ?? '')),
+                'icon' => trim((string) ($r['icon'] ?? '📜')) ?: '📜',
+            ];
+        }
+
+        $json = json_encode($cleaned, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $stmt = $pdo->prepare('UPDATE game_shows SET rules = ? WHERE id = ?');
+        $stmt->execute([$json, $showId]);
     }
 }
 

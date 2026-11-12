@@ -277,6 +277,9 @@
                         <div class="show-subtitle">{{ show.subtitle }}</div>
                     </div>
                     <div style="display: flex; gap: 0.4rem; align-items: center;">
+                        <button type="button" class="btn-refresh-show" onclick="openEditShowModal({{ show|json_encode }})" title="Edit Game Show Name & Settings" aria-label="Edit Game Show" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.1);">
+                            ✏️
+                        </button>
                         <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Refresh &quot;{{ show.name|e('js') }}&quot;? This resets team scores to 0, clears asked questions history, and returns to Round 1.');" style="margin: 0;">
                             <button type="submit" class="btn-refresh-show" title="Refresh Show (Zero scores & reset questions)" aria-label="Refresh Game Show">
                                 🔄
@@ -299,11 +302,14 @@
             </div>
 
             <div class="show-actions">
-                <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary btn-full">
-                    🚀 Launch Host Arena
+                <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary">
+                    🚀 Launch Arena
                 </a>
+                <button type="button" class="btn btn-secondary" onclick="openHomeHostQrModal({{ show.id }}, '{{ show.name|e('js') }}', '{{ show.mobile_host_url|e('js') }}')" title="Show Host Remote QR Code for iPhone" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
+                    📱 iPhone QR
+                </button>
                 <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
-                    📺 Projector / TV View
+                    📺 TV View
                 </a>
                 <a href="{{ path('app_show_manage', {'id': show.id}) }}" class="btn btn-secondary">
                     ⚙️ Teams & Rounds
@@ -342,5 +348,92 @@
         </div>
     </form>
 </dialog>
+
+<!-- Modern Dialog: Edit Show Modal -->
+<dialog id="edit-show-modal" aria-labelledby="edit-modal-title" style="max-width: 550px;">
+    <h2 id="edit-modal-title" style="margin-bottom: 1.5rem; font-size: 1.5rem; font-weight: 800;">Edit Game Show Details</h2>
+    <form id="edit-show-form" method="POST" action="">
+        <div class="form-group">
+            <label class="form-label" for="edit-show-name">Game Show Name</label>
+            <input type="text" id="edit-show-name" name="name" class="form-input" required autofocus>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="edit-show-subtitle">Subtitle / Theme</label>
+            <input type="text" id="edit-show-subtitle" name="subtitle" class="form-input" placeholder="e.g. 10 Couples • Acorn & Pumpkin Flights">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="edit-show-timer">Default Question Timer (seconds)</label>
+            <input type="number" id="edit-show-timer" name="default_timer_seconds" class="form-input" value="25" min="5" max="300" required>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-show-modal').close()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal: Host Arena Mobile QR Code for Home Dashboard -->
+<dialog id="home-host-qr-modal" aria-labelledby="home-host-qr-title" style="max-width: 480px; text-align: center; border-color: rgba(56, 189, 248, 0.4);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 id="home-host-qr-title" style="margin: 0; font-size: 1.35rem; font-weight: 800; color: #38bdf8;">📱 Host on iPhone / Mobile</h2>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('home-host-qr-modal').close()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">✕</button>
+    </div>
+    <div id="home-qr-showname" style="font-weight: 700; color: #f1f5f9; font-size: 1.05rem; margin-bottom: 0.5rem;"></div>
+    <p style="color: var(--text-sub); font-size: 0.92rem; margin-bottom: 1.25rem;">
+        Scan this QR code with your iPhone Camera to wirelessly control this game show (advance questions, reveal answers, start timer, and score teams).
+    </p>
+
+    <div style="background: #ffffff; padding: 1.25rem; border-radius: 16px; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 1.25rem;">
+        <div id="home-qrcode"></div>
+    </div>
+
+    <div style="margin-bottom: 1rem; word-break: break-all;">
+        <a id="home-qr-link" href="#" target="_blank" style="color: #38bdf8; font-weight: 600; font-size: 0.9rem; text-decoration: underline;">
+            URL
+        </a>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1.5rem; line-height: 1.5;">
+        📶 <strong>Local Wi-Fi:</strong> Phone must be connected to the same Wi-Fi network as this computer (Host IP: <code style="color: #fff; background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">{{ lan_ip }}</code>).
+    </p>
+
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('home-host-qr-modal').close()" style="width: 100%;">Close</button>
+</dialog>
+{% endblock %}
+
+{% block javascripts %}
+<script src="/js/qrcode.min.js"></script>
+<script>
+    let homeQrInstance = null;
+
+    function openEditShowModal(show) {
+        const form = document.getElementById('edit-show-form');
+        form.action = `/shows/${show.id}/update`;
+        document.getElementById('edit-show-name').value = show.name || '';
+        document.getElementById('edit-show-subtitle').value = show.subtitle || '';
+        document.getElementById('edit-show-timer').value = show.default_timer_seconds || 25;
+        document.getElementById('edit-show-modal').showModal();
+    }
+
+    function openHomeHostQrModal(showId, showName, hostUrl) {
+        document.getElementById('home-qr-showname').innerText = showName;
+        const link = document.getElementById('home-qr-link');
+        link.href = hostUrl;
+        link.innerText = hostUrl;
+
+        const qrContainer = document.getElementById('home-qrcode');
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+            text: hostUrl,
+            width: 200,
+            height: 200,
+            colorDark: '#0b0f19',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+
+        document.getElementById('home-host-qr-modal').showModal();
+    }
+</script>
 {% endblock %}
 

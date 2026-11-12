@@ -21,6 +21,15 @@ class GameShowTest extends WebTestCase
         return $id;
     }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+        if (static::$booted) {
+            $db = static::getContainer()->get(GameDatabase::class);
+            $db->syncMasterJson();
+        }
+    }
+
     public function testHomePageLoads(): void
     {
         $client = static::createClient();
@@ -81,47 +90,64 @@ class GameShowTest extends WebTestCase
     public function testStartQuestionAndRevealCycle(): void
     {
         $client = static::createClient();
-        $showId = $this->getFirstShowId();
-
-        // 1. Start question
-        $client->request('POST', '/api/shows/' . $showId . '/action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'action' => 'start_question'
-        ]));
-        $this->assertResponseIsSuccessful();
-        $startData = json_decode((string) $client->getResponse()->getContent(), true);
-        $this->assertTrue($startData['success']);
-        $this->assertNotNull($startData['question_id']);
-
-        // 2. Reveal answer
-        $client->request('POST', '/api/shows/' . $showId . '/action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'action' => 'reveal_answer'
-        ]));
-        $this->assertResponseIsSuccessful();
-
-        // 3. Award points to first team
         $db = static::getContainer()->get(GameDatabase::class);
         $pdo = $db->getPdo();
-        $teamId = (int) $pdo->query("SELECT id FROM show_teams WHERE show_id = {$showId} ORDER BY id ASC LIMIT 1")->fetchColumn();
 
-        $client->request('POST', '/api/shows/' . $showId . '/action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
-            'action' => 'award_points',
-            'team_id' => $teamId,
-            'points' => 10
-        ]));
-        $this->assertResponseIsSuccessful();
+        $pdo->prepare('INSERT INTO game_shows (name, description, status) VALUES (?, ?, ?)')
+            ->execute(['Test Question Cycle Show', 'Cycle test', 'active']);
+        $showId = (int) $pdo->lastInsertId();
 
-        // Verify updated score
-        $client->request('GET', '/api/shows/' . $showId . '/state');
-        $state = json_decode((string) $client->getResponse()->getContent(), true);
-        $team1 = null;
-        foreach ($state['teams'] as $t) {
-            if ($t['id'] === $teamId) {
-                $team1 = $t;
-                break;
+        $pdo->prepare('INSERT INTO show_teams (show_id, name, score, avatar_color) VALUES (?, ?, ?, ?)')
+            ->execute([$showId, 'Team Test', 0, '#f97316']);
+        $teamId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, status) VALUES (?, ?, ?, ?, ?)')
+            ->execute([$showId, 1, 'Round 1', 'all_play', 'active']);
+        $roundId = (int) $pdo->lastInsertId();
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$roundId, $showId]);
+
+        try {
+            // 1. Start question
+            $client->request('POST', '/api/shows/' . $showId . '/action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'start_question'
+            ]));
+            $this->assertResponseIsSuccessful();
+            $startData = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($startData['success']);
+            $this->assertNotNull($startData['question_id']);
+
+            // 2. Reveal answer
+            $client->request('POST', '/api/shows/' . $showId . '/action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'reveal_answer'
+            ]));
+            $this->assertResponseIsSuccessful();
+
+            // 3. Award points to first team
+            $client->request('POST', '/api/shows/' . $showId . '/action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'award_points',
+                'team_id' => $teamId,
+                'points' => 10
+            ]));
+            $this->assertResponseIsSuccessful();
+
+            // Verify updated score
+            $client->request('GET', '/api/shows/' . $showId . '/state');
+            $state = json_decode((string) $client->getResponse()->getContent(), true);
+            $team1 = null;
+            foreach ($state['teams'] as $t) {
+                if ($t['id'] === $teamId) {
+                    $team1 = $t;
+                    break;
+                }
             }
+            $this->assertNotNull($team1);
+            $this->assertSame(10, $team1['score']);
+        } finally {
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
         }
-        $this->assertNotNull($team1);
-        $this->assertGreaterThanOrEqual(10, $team1['score']);
     }
 
     public function testReviewDeckLoadsAndFilters(): void
@@ -313,6 +339,7 @@ class GameShowTest extends WebTestCase
             $this->assertSame($originalPath, $restoredDbPath);
         } finally {
             $pdo->prepare('DELETE FROM questions WHERE id = ?')->execute([$qId]);
+            $db->syncMasterJson();
         }
     }
 
@@ -345,6 +372,7 @@ class GameShowTest extends WebTestCase
             $this->assertSame($updatedAnswer, $dbAns);
         } finally {
             $pdo->prepare('DELETE FROM questions WHERE id = ?')->execute([$qId]);
+            $db->syncMasterJson();
         }
     }
 
@@ -713,6 +741,378 @@ class GameShowTest extends WebTestCase
         } finally {
             $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+        }
+    }
+
+    public function testUpdateGameShowDetails(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $pdo->prepare('INSERT INTO game_shows (name, subtitle, default_timer_seconds, status) VALUES (?, ?, ?, ?)')
+            ->execute(['Original Show Name', 'Original Subtitle', 25, 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        try {
+            $client->request('POST', '/shows/' . $showId . '/update', [
+                'name' => 'Updated Championship Name 2026',
+                'subtitle' => 'Grand Finale Deluxe',
+                'default_timer_seconds' => 35,
+            ]);
+
+            $this->assertResponseRedirects('/shows/' . $showId . '/manage');
+            $client->followRedirect();
+            $this->assertResponseIsSuccessful();
+
+            $show = $pdo->query("SELECT * FROM game_shows WHERE id = {$showId}")->fetch();
+            $this->assertSame('Updated Championship Name 2026', $show['name']);
+            $this->assertSame('Grand Finale Deluxe', $show['subtitle']);
+            $this->assertSame(35, (int) $show['default_timer_seconds']);
+        } finally {
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+        }
+    }
+
+    public function testBatchDeleteQuestions(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories LIMIT 1')->fetchColumn();
+        $stmt = $pdo->prepare('INSERT INTO questions (category_id, answer, difficulty, review_status, is_active) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$catId, 'BATCH TEST 1', 'Simple', 'unrated', 1]);
+        $id1 = (int) $pdo->lastInsertId();
+        $stmt->execute([$catId, 'BATCH TEST 2', 'Medium', 'unrated', 1]);
+        $id2 = (int) $pdo->lastInsertId();
+
+        try {
+            $client->request('POST', '/moderation/questions/delete-batch', [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
+            ], json_encode(['ids' => [$id1, $id2]]));
+
+            $this->assertResponseIsSuccessful();
+            $data = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($data['success']);
+            $this->assertSame(2, $data['deleted_count']);
+
+            $count = (int) $pdo->query("SELECT COUNT(*) FROM questions WHERE id IN ({$id1}, {$id2})")->fetchColumn();
+            $this->assertSame(0, $count);
+        } finally {
+            $pdo->prepare("DELETE FROM questions WHERE id IN ({$id1}, {$id2})")->execute();
+            $db->syncMasterJson();
+        }
+    }
+
+    public function testBatchActionIncludeAndExclude(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories LIMIT 1')->fetchColumn();
+        $stmt = $pdo->prepare('INSERT INTO questions (category_id, answer, difficulty, review_status, is_active) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$catId, 'ACTION TEST 1', 'Simple', 'unrated', 1]);
+        $id1 = (int) $pdo->lastInsertId();
+
+        try {
+            // Test batch exclude
+            $client->request('POST', '/moderation/questions/batch-action', [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
+            ], json_encode(['ids' => [$id1], 'action' => 'exclude']));
+
+            $this->assertResponseIsSuccessful();
+            $q = $pdo->query("SELECT review_status, is_active FROM questions WHERE id = {$id1}")->fetch();
+            $this->assertSame('excluded', $q['review_status']);
+            $this->assertSame(0, (int) $q['is_active']);
+
+            // Test batch include
+            $client->request('POST', '/moderation/questions/batch-action', [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
+            ], json_encode(['ids' => [$id1], 'action' => 'include']));
+
+            $this->assertResponseIsSuccessful();
+            $q = $pdo->query("SELECT review_status, is_active FROM questions WHERE id = {$id1}")->fetch();
+            $this->assertSame('included', $q['review_status']);
+            $this->assertSame(1, (int) $q['is_active']);
+        } finally {
+            $pdo->prepare("DELETE FROM questions WHERE id = {$id1}")->execute();
+            $db->syncMasterJson();
+        }
+    }
+
+    public function testMasterCommonRulesManagement(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        // 1. Check Master Common Rules page loads with seeded default rules
+        $client->request('GET', '/rules');
+        $this->assertResponseIsSuccessful();
+        $content = (string) $client->getResponse()->getContent();
+        $this->assertStringContainsString('Master Common Rules', $content);
+        $this->assertStringContainsString('Host Has Final Authority', $content);
+
+        // 2. Add a new common rule
+        $client->request('POST', '/rules/save', [
+            'rule_id' => 0,
+            'title' => 'Test Master Rule 999',
+            'description' => 'Test rule explanation for master common template',
+            'icon' => '🎯',
+            'sort_order' => 99,
+        ]);
+        $this->assertResponseRedirects('/rules');
+        $client->followRedirect();
+
+        $savedRule = $pdo->query("SELECT * FROM common_rules WHERE title = 'Test Master Rule 999'")->fetch();
+        $this->assertNotEmpty($savedRule);
+        $this->assertSame('🎯', $savedRule['icon']);
+
+        // 3. Delete the added rule
+        $ruleId = (int) $savedRule['id'];
+        $client->request('POST', "/rules/{$ruleId}/delete");
+        $this->assertResponseRedirects('/rules');
+
+        $deletedCheck = $pdo->query("SELECT COUNT(*) FROM common_rules WHERE id = {$ruleId}")->fetchColumn();
+        $this->assertSame(0, (int) $deletedCheck);
+    }
+
+    public function testShowRulesInheritanceAndCustomization(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        // Create a new show
+        $client->request('POST', '/shows/new', [
+            'name' => 'Rules Inheritance Test Show',
+            'subtitle' => 'Testing Rules',
+            'default_timer' => 25,
+        ]);
+        $this->assertResponseRedirects();
+        $show = $pdo->query("SELECT * FROM game_shows WHERE name = 'Rules Inheritance Test Show'")->fetch();
+        $this->assertNotEmpty($show);
+        $showId = (int) $show['id'];
+
+        try {
+            // Check that the show has inherited the master common rules
+            $initialRules = $db->getShowRules($showId);
+            $this->assertNotEmpty($initialRules);
+            $this->assertGreaterThanOrEqual(5, count($initialRules));
+            $this->assertSame('Host Has Final Authority', $initialRules[0]['title']);
+
+            // Manage page should display the rules tab
+            $client->request('GET', "/shows/{$showId}/manage");
+            $this->assertResponseIsSuccessful();
+            $manageContent = (string) $client->getResponse()->getContent();
+            $this->assertStringContainsString('Show Tournament Rules', $manageContent);
+            $this->assertStringContainsString('Host Has Final Authority', $manageContent);
+
+            // Add a custom rule specifically for this show
+            $client->request('POST', "/shows/{$showId}/rules/save", [
+                'rule_id' => 0,
+                'title' => 'Special Custom Show Rule',
+                'description' => 'Only for this special gameshow edition',
+                'icon' => '⚡',
+            ]);
+            $this->assertResponseRedirects("/shows/{$showId}/manage#tab-rules");
+
+            $customizedRules = $db->getShowRules($showId);
+            $this->assertCount(count($initialRules) + 1, $customizedRules);
+            $lastRule = end($customizedRules);
+            $this->assertSame('Special Custom Show Rule', $lastRule['title']);
+
+            // Verify master common_rules table is UNTOUCHED
+            $commonCheck = $pdo->query("SELECT COUNT(*) FROM common_rules WHERE title = 'Special Custom Show Rule'")->fetchColumn();
+            $this->assertSame(0, (int) $commonCheck);
+
+            // Reorder rule up
+            $lastRuleId = (int) $lastRule['id'];
+            $client->request('POST', "/shows/{$showId}/rules/move", [
+                'rule_id' => $lastRuleId,
+                'direction' => 'up',
+            ]);
+            $this->assertResponseRedirects("/shows/{$showId}/manage#tab-rules");
+
+            $reorderedRules = $db->getShowRules($showId);
+            $secondToLast = $reorderedRules[count($reorderedRules) - 2];
+            $this->assertSame('Special Custom Show Rule', $secondToLast['title']);
+
+            // Reset back to Common Rules
+            $client->request('POST', "/shows/{$showId}/rules/reset-common");
+            $this->assertResponseRedirects("/shows/{$showId}/manage#tab-rules");
+
+            $resetRules = $db->getShowRules($showId);
+            $this->assertCount(count($initialRules), $resetRules);
+            $titles = array_column($resetRules, 'title');
+            $this->assertNotContains('Special Custom Show Rule', $titles);
+        } finally {
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+        }
+    }
+
+    public function testRulesPresentationApiActions(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        // Create temporary show
+        $pdo->prepare('INSERT INTO game_shows (name, description, status, active_rule_index) VALUES (?, ?, ?, ?)')
+            ->execute(['Rules API Presentation Test Show', 'Testing API', 'setup', -1]);
+        $showId = (int) $pdo->lastInsertId();
+
+        try {
+            // 1. Initial state should have active_rule_index = -1
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $this->assertResponseIsSuccessful();
+            $data = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(-1, (int) $data['show']['active_rule_index']);
+            $this->assertNotEmpty($data['rules']);
+            $this->assertNotEmpty($data['mobile_host_url']);
+            $this->assertNotEmpty($data['lan_ip']);
+            $this->assertStringContainsString('/shows/' . $showId . '/play', $data['mobile_host_url']);
+
+            // 2. Start rules presentation mode
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'start_rules',
+                'rule_index' => 0,
+            ]));
+            $this->assertResponseIsSuccessful();
+            $startRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($startRes['success']);
+            $this->assertSame(0, $startRes['active_rule_index']);
+
+            // Verify in state
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $data = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(0, (int) $data['show']['active_rule_index']);
+
+            // 3. Next rule
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'next_rule',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $nextRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(1, $nextRes['active_rule_index']);
+
+            // 4. Previous rule
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'prev_rule',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $prevRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(0, $prevRes['active_rule_index']);
+
+            // 5. Finish / Close rules
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'finish_rules',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $finishRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(-1, $finishRes['active_rule_index']);
+
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $data = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(-1, (int) $data['show']['active_rule_index']);
+        } finally {
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+        }
+    }
+
+    public function testQuestionNavigationHistory(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $client->request('POST', '/shows/new', [
+            'name' => 'Question Navigation Test Show',
+            'subtitle' => 'Testing Navigation',
+            'default_timer' => 25,
+        ]);
+        $this->assertResponseRedirects();
+        $client->followRedirect();
+
+        $show = $pdo->query("SELECT * FROM game_shows WHERE name = 'Question Navigation Test Show' ORDER BY id DESC LIMIT 1")->fetch();
+        $this->assertNotEmpty($show);
+        $showId = (int) $show['id'];
+
+        try {
+            // Start question 1
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'start_question',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $q1 = json_decode((string) $client->getResponse()->getContent(), true);
+            $q1Id = $q1['question_id'];
+
+            // Start question 2
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'start_question',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $q2 = json_decode((string) $client->getResponse()->getContent(), true);
+            $q2Id = $q2['question_id'];
+            $this->assertNotSame($q1Id, $q2Id);
+
+            // Navigate back to previous question
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'prev_question',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $prevRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame($q1Id, $prevRes['question_id']);
+
+            // Navigate forward with next_question
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'next_question',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $nextRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame($q2Id, $nextRes['question_id']);
+        } finally {
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+        }
+    }
+
+    public function testHomeQrModalAndTvDisplaySanity(): void
+    {
+        $client = static::createClient();
+        $crawler = $client->request('GET', '/');
+        $this->assertResponseIsSuccessful();
+        $homeContent = (string) $client->getResponse()->getContent();
+        $this->assertStringContainsString('home-host-qr-modal', $homeContent);
+        $this->assertStringContainsString('iPhone QR', $homeContent);
+
+        // Fetch first show
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+        $show = $pdo->query('SELECT id FROM game_shows ORDER BY id LIMIT 1')->fetch();
+        if ($show) {
+            $showId = (int) $show['id'];
+
+            // TV screen must NOT have host QR code or remote keys
+            $client->request('GET', "/shows/{$showId}/display");
+            $this->assertResponseIsSuccessful();
+            $tvContent = (string) $client->getResponse()->getContent();
+            $this->assertStringNotContainsString('Host Wireless Remote', $tvContent);
+            $this->assertStringNotContainsString('tv-host-qrcode', $tvContent);
+            $this->assertStringNotContainsString('qrcode.min.js', $tvContent);
+
+            // Arena must have collapsible top menu and prev/next controls
+            $client->request('GET', "/shows/{$showId}/play");
+            $this->assertResponseIsSuccessful();
+            $arenaContent = (string) $client->getResponse()->getContent();
+            $this->assertStringContainsString('arena-dropdown-menu', $arenaContent);
+            $this->assertStringContainsString('dock-btn-prev', $arenaContent);
         }
     }
 }

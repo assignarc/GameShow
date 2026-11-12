@@ -245,6 +245,8 @@ class DuplicateDetector
             $delStmt = $pdo->prepare("DELETE FROM duplicate_dismissals WHERE question_id_a IN ($placeholders) OR question_id_b IN ($placeholders)");
             $delStmt->execute(array_merge($otherIds, $otherIds));
         }
+
+        $this->gameDatabase->syncMasterJson();
     }
 
     /**

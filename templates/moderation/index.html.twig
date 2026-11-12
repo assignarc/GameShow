@@ -128,6 +128,67 @@
         gap: 0.5rem;
         margin-top: 2rem;
     }
+
+    .q-card.selected {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.45), 0 10px 25px rgba(0,0,0,0.5);
+        background: rgba(239, 68, 68, 0.05);
+    }
+
+    .q-checkbox-container {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .q-checkbox-container:hover {
+        background: rgba(0, 0, 0, 0.85);
+        border-color: #fff;
+        transform: scale(1.08);
+    }
+    .q-select-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #ef4444;
+    }
+
+    #bulk-action-bar {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(120px);
+        z-index: 999;
+        background: rgba(24, 25, 38, 0.95);
+        backdrop-filter: blur(12px);
+        border: 2px solid #ef4444;
+        box-shadow: 0 14px 45px rgba(0, 0, 0, 0.85);
+        border-radius: 16px;
+        padding: 0.85rem 1.75rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    #bulk-action-bar.visible {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
 </style>
 {% endblock %}
 
@@ -202,12 +263,31 @@
     </div>
 </form>
 
+<!-- Selection Toolbar -->
+<div class="selection-toolbar" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this.checked)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #ef4444;">
+            <span>Select All on Page (<span id="page-count">{{ questions|length }}</span>)</span>
+        </label>
+        <span id="selection-summary-text" style="color: var(--text-muted); font-size: 0.9rem;">
+            0 selected
+        </span>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Select multiple items to batch delete or change status</span>
+    </div>
+</div>
+
 <!-- Grid -->
 <div class="questions-grid">
     {% for q in questions %}
         <div class="q-card" id="q-card-{{ q.id }}">
             <div class="q-media-container">
-                <button type="button" class="badge" id="card-status-{{ q.id }}" onclick="toggleActive({{ q.id }})" title="Click to toggle Included/Excluded" style="position: absolute; top: 10px; left: 10px; z-index: 5; cursor: pointer; border: none; background: {{ q.is_active ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)' }}; color: #fff; font-weight: 800;">
+                <label class="q-checkbox-container" title="Select for bulk action">
+                    <input type="checkbox" class="q-select-checkbox" value="{{ q.id }}" onchange="onQuestionCheckChange(this)">
+                </label>
+                <button type="button" class="badge" id="card-status-{{ q.id }}" onclick="toggleActive({{ q.id }})" title="Click to toggle Included/Excluded" style="position: absolute; top: 10px; left: 50px; z-index: 5; cursor: pointer; border: none; background: {{ q.is_active ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)' }}; color: #fff; font-weight: 800;">
                     {{ q.is_active ? '👍 Included' : '👎 Excluded' }}
                 </button>
 
@@ -328,10 +408,181 @@
         </div>
     </form>
 </dialog>
+
+<!-- Floating Bulk Action Bar -->
+<div id="bulk-action-bar">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.25rem;">☑️</span>
+        <span style="font-weight: 800; font-size: 1.05rem;"><span id="bulk-count">0</span> Selected</span>
+    </div>
+    <div style="height: 24px; width: 1px; background: rgba(255, 255, 255, 0.15);"></div>
+    <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap;">
+        <button type="button" class="btn btn-danger btn-sm" onclick="executeBatchDelete()" style="font-weight: 700; display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1rem;">
+            <span>🗑️</span> Delete Selected
+        </button>
+        <button type="button" class="btn btn-sm" onclick="executeBatchStatus('include')" style="background: rgba(16,185,129,0.2); border: 1px solid var(--success); color: var(--success); font-weight: 700; padding: 0.45rem 0.85rem;">
+            👍 Include
+        </button>
+        <button type="button" class="btn btn-sm" onclick="executeBatchStatus('exclude')" style="background: rgba(239,68,68,0.2); border: 1px solid var(--danger); color: var(--danger); font-weight: 700; padding: 0.45rem 0.85rem;">
+            👎 Exclude
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="clearSelection()" style="padding: 0.45rem 0.75rem;">
+            ✕ Clear
+        </button>
+    </div>
+</div>
 {% endblock %}
 
 {% block javascripts %}
 <script>
+    function getSelectedCheckboxes() {
+        return Array.from(document.querySelectorAll('.q-select-checkbox:checked'));
+    }
+
+    function getSelectedIds() {
+        return getSelectedCheckboxes().map(cb => parseInt(cb.value, 10)).filter(id => id > 0);
+    }
+
+    function updateSelectionUI() {
+        const selected = getSelectedCheckboxes();
+        const count = selected.length;
+        const total = document.querySelectorAll('.q-select-checkbox').length;
+
+        const bar = document.getElementById('bulk-action-bar');
+        const countEl = document.getElementById('bulk-count');
+        const summaryText = document.getElementById('selection-summary-text');
+        const selectAllCb = document.getElementById('select-all-checkbox');
+
+        if (countEl) countEl.textContent = count;
+        if (summaryText) summaryText.textContent = count === 1 ? '1 selected' : `${count} selected`;
+
+        if (bar) {
+            if (count > 0) {
+                bar.classList.add('visible');
+            } else {
+                bar.classList.remove('visible');
+            }
+        }
+
+        if (selectAllCb) {
+            selectAllCb.checked = (total > 0 && count === total);
+            selectAllCb.indeterminate = (count > 0 && count < total);
+        }
+    }
+
+    function onQuestionCheckChange(cb) {
+        const card = document.getElementById(`q-card-${cb.value}`);
+        if (card) {
+            if (cb.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        }
+        updateSelectionUI();
+    }
+
+    function toggleSelectAll(checked) {
+        document.querySelectorAll('.q-select-checkbox').forEach(cb => {
+            cb.checked = checked;
+            const card = document.getElementById(`q-card-${cb.value}`);
+            if (card) {
+                if (checked) card.classList.add('selected');
+                else card.classList.remove('selected');
+            }
+        });
+        updateSelectionUI();
+    }
+
+    function clearSelection() {
+        toggleSelectAll(false);
+    }
+
+    async function executeBatchDelete() {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+
+        if (!confirm(`Are you sure you want to permanently delete ${ids.length} selected puzzle(s)? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const resp = await fetch('{{ path("app_moderation_delete_batch") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ ids: ids })
+            });
+
+            const data = await resp.json();
+            if (data.success) {
+                ids.forEach(id => {
+                    const card = document.getElementById(`q-card-${id}`);
+                    if (card) {
+                        card.style.transition = 'all 0.3s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.85)';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                });
+                clearSelection();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 400);
+            } else {
+                alert(data.message || 'Error deleting questions.');
+            }
+        } catch (e) {
+            console.error('Batch delete error', e);
+            alert('Failed to delete questions.');
+        }
+    }
+
+    async function executeBatchStatus(action) {
+        const ids = getSelectedIds();
+        if (ids.length === 0) return;
+
+        try {
+            const resp = await fetch('{{ path("app_moderation_batch_action") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ ids: ids, action: action })
+            });
+
+            const data = await resp.json();
+            if (data.success) {
+                const isInc = (action === 'include');
+                ids.forEach(id => {
+                    const badge = document.getElementById(`card-status-${id}`);
+                    const btn = document.getElementById(`btn-toggle-${id}`);
+                    if (badge) {
+                        badge.innerText = isInc ? '👍 Included' : '👎 Excluded';
+                        badge.style.background = isInc ? 'rgba(16,185,129,0.9)' : 'rgba(239,68,68,0.9)';
+                    }
+                    if (btn) {
+                        btn.innerText = isInc ? '👍 Included' : '👎 Excluded';
+                        btn.style.color = isInc ? 'var(--success)' : 'var(--danger)';
+                        btn.style.background = isInc ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)';
+                        btn.style.borderColor = isInc ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)';
+                    }
+                });
+                clearSelection();
+                setTimeout(() => {
+                    window.location.reload();
+                }, 400);
+            } else {
+                alert(data.message || 'Error updating question status.');
+            }
+        } catch (e) {
+            console.error('Batch status error', e);
+            alert('Failed to update question status.');
+        }
+    }
     function toggleActive(id) {
         fetch(`/moderation/question/${id}/vote`, {
             method: 'POST',

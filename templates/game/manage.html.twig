@@ -101,6 +101,44 @@
         border-radius: 10px;
     }
 
+    .icon-picker-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        gap: 0.45rem;
+        padding: 0.6rem;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+
+    .icon-tile {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        padding: 0.35rem;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+
+    .icon-tile:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: scale(1.15);
+    }
+
+    .icon-tile.selected {
+        border-color: var(--accent);
+        background: rgba(245, 158, 11, 0.25);
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+        transform: scale(1.1);
+    }
+
     .rounds-list {
         display: flex;
         flex-direction: column;
@@ -150,13 +188,76 @@
         color: var(--text-sub);
         margin-bottom: 0.4rem;
     }
-    .form-input, .form-select {
+    .form-input, .form-select, .form-textarea {
         width: 100%;
         background: var(--bg-input);
         border: 1px solid var(--border-color);
         border-radius: 8px;
         padding: 0.65rem 0.85rem;
         color: #fff;
+        font-family: inherit;
+    }
+
+    .rules-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .rule-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem 1.75rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .rule-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .rule-left {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.25rem;
+    }
+
+    .rule-icon-box {
+        font-size: 2.2rem;
+        width: 60px;
+        height: 60px;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .rule-title {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 0.35rem;
+    }
+
+    .rule-desc {
+        color: var(--text-sub);
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+
+    .rule-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-shrink: 0;
     }
 </style>
 {% endblock %}
@@ -171,6 +272,9 @@
         <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary">
             🚀 Enter Host Arena
         </a>
+        <button type="button" class="btn btn-secondary" onclick="openHostQrModal()" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;" title="Scan with iPhone to open Host Arena on mobile">
+            📱 Host on iPhone (QR)
+        </button>
         <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
             📺 TV Presentation View
         </a>
@@ -190,6 +294,7 @@
 <div class="tabs-nav">
     <button class="tab-btn active" onclick="switchTab('teams')">👥 Teams ({{ teams|length }}/12)</button>
     <button class="tab-btn" onclick="switchTab('rounds')">🔄 Rounds & Question Categories ({{ rounds|length }})</button>
+    <button class="tab-btn" onclick="switchTab('rules')">📜 Rules & Briefing ({{ rules|length }})</button>
 </div>
 
 <!-- TAB 1: TEAMS -->
@@ -315,6 +420,80 @@
     </div>
 </div>
 
+<!-- TAB 3: RULES & BRIEFING -->
+<div id="tab-rules" class="tab-pane">
+    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h3 style="margin: 0; font-size: 1.15rem; color: #f59e0b;">📜 Show Tournament Rules</h3>
+            <p style="margin: 0.25rem 0 0; color: var(--text-sub); font-size: 0.9rem;">
+                These rules are presented 1-by-1 on the TV display during the pre-show briefing.
+                Inherited from the Master Common Rules template, customizable per gameshow.
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <form method="POST" action="{{ path('app_show_rules_reset_common', {'id': show.id}) }}" onsubmit="return confirm('Reset rules for this show back to the Master Common Rules template? Any show-specific rule edits will be replaced.');" style="margin: 0;">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">
+                    🔄 Reset to Common Rules
+                </button>
+            </form>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAddShowRuleModal()">
+                + Add Custom Rule
+            </button>
+        </div>
+    </div>
+
+    <div class="rules-grid">
+        {% for rule in rules %}
+            <div class="rule-card">
+                <div class="rule-left">
+                    <div class="rule-icon-box">{{ rule.icon|default('📜') }}</div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.75rem; font-weight: 800; background: rgba(255, 255, 255, 0.1); padding: 0.2rem 0.5rem; border-radius: 6px; text-transform: uppercase; color: var(--accent);">
+                                Rule {{ loop.index }}
+                            </span>
+                            <div class="rule-title" style="margin: 0;">{{ rule.title }}</div>
+                        </div>
+                        <div class="rule-desc">{{ rule.description }}</div>
+                    </div>
+                </div>
+                <div class="rule-actions">
+                    {% if not loop.first %}
+                        <form method="POST" action="{{ path('app_show_rules_move', {'id': show.id}) }}" style="margin: 0;">
+                            <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Move Up">⬆</button>
+                        </form>
+                    {% endif %}
+                    {% if not loop.last %}
+                        <form method="POST" action="{{ path('app_show_rules_move', {'id': show.id}) }}" style="margin: 0;">
+                            <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" class="btn btn-secondary btn-sm" title="Move Down">⬇</button>
+                        </form>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary btn-sm edit-show-rule-btn" data-rule="{{ rule|json_encode }}" title="Edit Rule">
+                        ✏️ Edit
+                    </button>
+                    <form method="POST" action="{{ path('app_show_rules_delete', {'id': show.id}) }}" onsubmit="return confirm('Delete this rule from this show?');" style="margin: 0;">
+                        <input type="hidden" name="rule_id" value="{{ rule.id }}">
+                        <button type="submit" class="btn btn-danger btn-sm" title="Delete Rule">🗑️</button>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 3rem; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border-color);">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📜</div>
+                <h3>No Rules Set for this Show</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Inherit the standard rules or create your own custom briefing points.</p>
+                <form method="POST" action="{{ path('app_show_rules_reset_common', {'id': show.id}) }}">
+                    <button type="submit" class="btn btn-primary">🔄 Inherit Master Common Rules</button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
 <!-- Modal: Add Team -->
 <dialog id="add-team-modal" aria-labelledby="add-team-title">
     <h2 id="add-team-title" style="margin-bottom: 1.5rem; font-size: 1.35rem; font-weight: 800;">Add Team / Couple</h2>
@@ -425,15 +604,110 @@
         </div>
     </form>
 </dialog>
+
+<!-- Modal: Add/Edit Show Rule -->
+<dialog id="show-rule-modal" aria-labelledby="show-rule-modal-title" style="max-width: 600px;">
+    <h2 id="show-rule-modal-title" style="margin-bottom: 1.5rem; font-size: 1.35rem; font-weight: 800;">Rule Briefing Card</h2>
+    <form method="POST" action="{{ path('app_show_rules_save', {'id': show.id}) }}">
+        <input type="hidden" name="rule_id" id="edit-show-rule-id" value="0">
+        
+        <div class="form-row" style="grid-template-columns: 80px 1fr;">
+            <div class="form-group">
+                <label class="form-label" for="show-rule-icon">Icon</label>
+                <input type="text" id="show-rule-icon" name="icon" class="form-input" style="font-size: 1.5rem; text-align: center;" value="📜" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="show-rule-title">Rule Title</label>
+                <input type="text" id="show-rule-title" name="title" class="form-input" placeholder="e.g. 15-Second Buzzer Limit" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="show-rule-desc">Rule Explanation (Displayed large on TV)</label>
+            <textarea id="show-rule-desc" name="description" class="form-textarea" rows="4" placeholder="Clear, concise instruction for contestants and audience..." required></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('show-rule-modal').close()">Cancel</button>
+            <button type="submit" id="show-rule-modal-submit" class="btn btn-primary">Save Rule</button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Modal: Host Arena Mobile QR Code -->
+<dialog id="host-qr-modal" aria-labelledby="host-qr-title" style="max-width: 480px; text-align: center; border-color: rgba(56, 189, 248, 0.4);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 id="host-qr-title" style="margin: 0; font-size: 1.35rem; font-weight: 800; color: #38bdf8;">📱 Host on iPhone / Mobile</h2>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('host-qr-modal').close()" style="border-radius: 50%; width: 32px; height: 32px; padding: 0;">✕</button>
+    </div>
+    <p style="color: var(--text-sub); font-size: 0.92rem; margin-bottom: 1.25rem;">
+        Scan this QR code with your iPhone Camera to wirelessly control the entire game show (questions, reveals, timer, and live scoring).
+    </p>
+
+    <div style="background: #ffffff; padding: 1.25rem; border-radius: 18px; display: inline-flex; justify-content: center; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.6); margin-bottom: 1.25rem;">
+        <div id="manage-qrcode"></div>
+    </div>
+
+    <div style="background: rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; word-break: break-all; color: var(--accent);">
+        <a href="{{ mobile_host_url }}" target="_blank" style="color: inherit; text-decoration: none;">{{ mobile_host_url }}</a>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 1.5rem; line-height: 1.5;">
+        📶 <strong>Local Wi-Fi:</strong> Phone must be on the same Wi-Fi network as this machine (Host IP: <code style="color: #fff; background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">{{ lan_ip }}</code>).
+    </p>
+
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('host-qr-modal').close()" style="width: 100%;">Close</button>
+</dialog>
 {% endblock %}
 
 {% block javascripts %}
+<script src="/js/qrcode.min.js"></script>
 <script>
+    let qrGenerated = false;
+    function openHostQrModal() {
+        const modal = document.getElementById('host-qr-modal');
+        modal.showModal();
+        if (!qrGenerated) {
+            new QRCode(document.getElementById('manage-qrcode'), {
+                text: '{{ mobile_host_url|e('js') }}',
+                width: 200,
+                height: 200,
+                colorDark: '#0a0807',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            qrGenerated = true;
+        }
+    }
     function switchTab(name) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
-        document.getElementById(`tab-${name}`).classList.add('active');
+        const targetBtn = document.querySelector(`[onclick="switchTab('${name}')"]`);
+        const targetPane = document.getElementById(`tab-${name}`);
+        if (targetBtn && targetPane) {
+            targetBtn.classList.add('active');
+            targetPane.classList.add('active');
+        }
+    }
+
+    function openAddShowRuleModal() {
+        document.getElementById('edit-show-rule-id').value = '0';
+        document.getElementById('show-rule-modal-title').textContent = 'Add Show Rule';
+        document.getElementById('show-rule-modal-submit').textContent = 'Add Rule';
+        document.getElementById('show-rule-icon').value = '📜';
+        document.getElementById('show-rule-title').value = '';
+        document.getElementById('show-rule-desc').value = '';
+        document.getElementById('show-rule-modal').showModal();
+    }
+
+    function openEditShowRuleModal(rule) {
+        document.getElementById('edit-show-rule-id').value = rule.id || 0;
+        document.getElementById('show-rule-modal-title').textContent = 'Edit Rule: ' + (rule.title || '');
+        document.getElementById('show-rule-modal-submit').textContent = 'Save Changes';
+        document.getElementById('show-rule-icon').value = rule.icon || '📜';
+        document.getElementById('show-rule-title').value = rule.title || '';
+        document.getElementById('show-rule-desc').value = rule.description || '';
+        document.getElementById('show-rule-modal').showModal();
     }
 
     function openNewRoundModal() {
@@ -487,6 +761,25 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Activate tab if URL hash is present (e.g. #tab-rules)
+        if (window.location.hash) {
+            const hashTab = window.location.hash.replace('#tab-', '').replace('#', '');
+            if (['teams', 'rounds', 'rules'].includes(hashTab)) {
+                switchTab(hashTab);
+            }
+        }
+
+        document.querySelectorAll('.edit-show-rule-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                try {
+                    const ruleData = JSON.parse(this.dataset.rule);
+                    openEditShowRuleModal(ruleData);
+                } catch (e) {
+                    console.error('Failed to parse rule data', e);
+                }
+            });
+        });
+
         document.querySelectorAll('.edit-round-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 try {

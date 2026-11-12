@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="cave_bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14110e" />
+      <stop offset="40%" stop-color="#241b14" />
+      <stop offset="100%" stop-color="#0d0a08" />
+    </linearGradient>
+
+    <!-- Center Warm Amber Glow -->
+    <radialGradient id="cave_glow" cx="50%" cy="54%" r="45%">
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25" />
+      <stop offset="60%" stop-color="#f59e0b" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Cave Opening Interior Shadow -->
+    <linearGradient id="cavern_depth" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#050403" />
+      <stop offset="100%" stop-color="#18110b" />
+    </linearGradient>
+
+    <!-- Stone Rock Texture Gradient -->
+    <linearGradient id="stone_rock" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8c7866" />
+      <stop offset="35%" stop-color="#5a493b" />
+      <stop offset="70%" stop-color="#3d3025" />
+      <stop offset="100%" stop-color="#2a2018" />
+    </linearGradient>
+
+    <filter id="shadow_deep" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#000000" flood-opacity="0.75" />
+    </filter>
+
+    <filter id="glow_letter" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.9" />
+    </feDropShadow>
+  </defs>
+
+  <!-- Card Background -->
+  <rect width="800" height="500" rx="28" fill="url(#cave_bg)" stroke="#45382e" stroke-width="2.5"/>
+  <circle cx="400" cy="270" r="260" fill="url(#cave_glow)" />
+  <rect x="22" y="22" width="756" height="456" rx="22" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="10,8" opacity="0.35"/>
+
+  <!-- Top Category Badge -->
+  <g transform="translate(400, 68)">
+    <rect x="-115" y="-18" width="230" height="36" rx="18" fill="rgba(245, 158, 11, 0.12)" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow_deep)"/>
+    <text x="0" y="5" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="900" fill="#f59e0b" text-anchor="middle" letter-spacing="3">CLASSIC REBUS</text>
+  </g>
+
+  <!-- Main Puzzle Stage -->
+  <!-- M  [CAVE]  N  -->
+  <g id="rebus-puzzle-board" transform="translate(0, 20)">
+
+    <!-- Letter M on Left -->
+    <text x="175" y="300" font-family="'Impact', 'Arial Black', system-ui, sans-serif" font-size="150" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2" filter="url(#shadow_deep)">M</text>
+
+    <!-- Center Cave / Cavern Structure (Acts as both CAVE and Letter A) -->
+    <g transform="translate(400, 260)" filter="url(#shadow_deep)">
+      <!-- Outer Mountain / Rock Mound -->
+      <path d="M -115 50 
+               Q -105 -40, -75 -90 
+               Q -40 -135, 0 -140 
+               Q 40 -135, 75 -90 
+               Q 105 -40, 115 50 
+               Z" 
+            fill="url(#stone_rock)" 
+            stroke="#6b5744" 
+            stroke-width="4" />
+
+      <!-- Rocky Facet Highlights -->
+      <path d="M -75 -90 L -30 -30 L 0 -140 L 30 -30 L 75 -90" 
+            fill="none" 
+            stroke="#a38c76" 
+            stroke-width="2.5" 
+            opacity="0.6" />
+      <path d="M -90 -10 L -45 10 L -25 -20" 
+            fill="none" 
+            stroke="#3d3025" 
+            stroke-width="3" 
+            opacity="0.8" />
+      <path d="M 90 -10 L 45 10 L 25 -20" 
+            fill="none" 
+            stroke="#3d3025" 
+            stroke-width="3" 
+            opacity="0.8" />
+
+      <!-- Cave Entrance Hole (Dark Cavern Arch) -->
+      <path d="M -52 50 
+               Q -48 -20, -32 -48 
+               Q 0 -72, 32 -48 
+               Q 48 -20, 52 50 
+               Z" 
+            fill="url(#cavern_depth)" 
+            stroke="#f59e0b" 
+            stroke-width="3" />
+
+      <!-- Warm Torchlight Embers Inside Cave -->
+      <ellipse cx="0" cy="46" rx="42" ry="12" fill="#f59e0b" opacity="0.35" />
+      <ellipse cx="0" cy="35" rx="24" ry="16" fill="#fbbf24" opacity="0.45" />
+
+      <!-- Subtle "A" Peak Notch in the Silhouette -->
+      <polygon points="0,-125 -12,-98 12,-98" fill="#14110e" opacity="0.9" />
+    </g>
+
+    <!-- Letter N on Right -->
+    <text x="625" y="300" font-family="'Impact', 'Arial Black', system-ui, sans-serif" font-size="150" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="2" filter="url(#shadow_deep)">N</text>
+
+  </g>
+
+  <!-- Bottom Visual Clue Caption Bar -->
+  <g transform="translate(400, 440)">
+    <rect x="-140" y="-16" width="280" height="32" rx="16" fill="rgba(255, 255, 255, 0.05)" stroke="#524336" stroke-width="1.2"/>
+    <text x="0" y="5" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#cbd5e1" text-anchor="middle" letter-spacing="1">Say What You See</text>
+  </g>
+</svg>
+

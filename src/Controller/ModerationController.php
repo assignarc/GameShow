@@ -250,6 +250,7 @@ SQL);
             $this->addFlash('success', 'New puzzle added to question bank!');
         }
 
+        $this->gameDatabase->syncMasterJson();
         return $this->redirectToRoute('app_moderation_index');
     }
 
@@ -261,6 +262,7 @@ SQL);
         $pdo->prepare('DELETE FROM duplicate_dismissals WHERE question_id_a = ? OR question_id_b = ?')->execute([$id, $id]);
         $pdo->prepare('DELETE FROM show_used_questions WHERE question_id = ?')->execute([$id]);
         $pdo->prepare('DELETE FROM questions WHERE id = ?')->execute([$id]);
+        $this->gameDatabase->syncMasterJson();
         $this->addFlash('success', 'Puzzle removed from question bank.');
 
         return $this->redirectToRoute('app_moderation_index');
@@ -289,6 +291,8 @@ SQL);
             $stmt = $pdo->prepare("DELETE FROM questions WHERE id IN ({$placeholders})");
             $stmt->execute($ids);
             $deletedCount = $stmt->rowCount();
+
+            $this->gameDatabase->syncMasterJson();
 
             if (str_contains($contentType, 'application/json')) {
                 return $this->json([
@@ -364,30 +368,14 @@ SQL);
             return $this->redirectToRoute('app_moderation_index');
         }
 
+        $this->gameDatabase->syncMasterJson();
+
         if (str_contains($contentType, 'application/json')) {
             return $this->json([
                 'success' => true,
                 'affected_count' => $count,
                 'message' => $msg,
             ]);
-        }
-
-        $this->addFlash('success', $msg);
-        return $this->redirectToRoute('app_moderation_index');
-    }
-            $count = $stmt->rowCount();
-            $msg = "Marked {$count} puzzles as Included (Active).";
-        } elseif ($action === 'exclude') {
-            $stmt = $pdo->prepare("UPDATE questions SET review_status = 'excluded', is_active = 0 WHERE id IN ({$placeholders})");
-            $stmt->execute($ids);
-            $count = $stmt->rowCount();
-            $msg = "Marked {$count} puzzles as Excluded.";
-        } else {
-            return $this->json(['error' => 'Invalid action'], Response::HTTP_BAD_REQUEST);
-        }
-
-        if (str_contains($contentType, 'application/json')) {
-            return $this->json(['success' => true, 'count' => $count, 'message' => $msg]);
         }
 
         $this->addFlash('success', $msg);
@@ -400,6 +388,7 @@ SQL);
         $pdo = $this->gameDatabase->getPdo();
         $pdo->prepare('UPDATE questions SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END WHERE id = ?')->execute([$id]);
         $fav = (int) $pdo->query("SELECT is_favorite FROM questions WHERE id = {$id}")->fetchColumn();
+        $this->gameDatabase->syncMasterJson();
 
         return $this->json(['success' => true, 'is_favorite' => $fav]);
     }
@@ -433,6 +422,8 @@ SQL);
         // Store the decision persistently in database (survives refreshes and restarts)
         $stmt = $pdo->prepare('UPDATE questions SET is_active = ?, review_status = ? WHERE id = ?');
         $stmt->execute([$isActive, $reviewStatus, $id]);
+
+        $this->gameDatabase->syncMasterJson();
 
         $counts = [
             'unrated' => (int) $pdo->query("SELECT COUNT(*) FROM questions WHERE review_status = 'unrated' OR (review_status NOT IN ('included', 'excluded', 'skipped') AND is_active = 1)")->fetchColumn(),
@@ -608,6 +599,7 @@ SQL);
 
         $upd = $pdo->prepare('UPDATE questions SET media_path = ? WHERE id = ?');
         $upd->execute([$imageUrl, $id]);
+        $this->gameDatabase->syncMasterJson();
 
         return $this->json([
             'success' => true,
@@ -635,6 +627,7 @@ SQL);
 
         $stmt = $pdo->prepare('UPDATE questions SET answer = ?, alternate_answers = ?, hint = ?, explanation = ? WHERE id = ?');
         $stmt->execute([$answer, $alts, $hint, $explanation, $id]);
+        $this->gameDatabase->syncMasterJson();
 
         $qStmt = $pdo->prepare('SELECT q.*, c.name as category_name FROM questions q JOIN categories c ON q.category_id = c.id WHERE q.id = ?');
         $qStmt->execute([$id]);
@@ -672,6 +665,8 @@ SQL);
             $stmt = $pdo->prepare('INSERT INTO categories (name, slug, description, color, icon) VALUES (?, ?, ?, ?, ?)');
             $stmt->execute([$name, $slug, $desc, $color, $icon]);
         }
+
+        $this->gameDatabase->syncMasterJson();
 
         $this->addFlash('success', 'Category saved.');
         return $this->redirectToRoute('app_moderation_index');
