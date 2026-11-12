@@ -1115,4 +1115,70 @@ class GameShowTest extends WebTestCase
             $this->assertStringContainsString('dock-btn-prev', $arenaContent);
         }
     }
+
+    public function testEditTeamNameAndFixedIcon(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, status) VALUES (?, ?, ?)')
+            ->execute(['Team Edit Test Show', 'Testing team edit', 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO show_teams (show_id, name, members, flight_group, avatar_emoji, avatar_color) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$showId, 'Original Team', 'Member 1', 'Acorn Flight', '🍁', '#f97316']);
+        $teamId = (int) $pdo->lastInsertId();
+
+        try {
+            // Verify Manage Show renders the edit team modal and button
+            $client->request('GET', "/shows/{$showId}/manage");
+            $this->assertResponseIsSuccessful();
+            $manageHtml = (string) $client->getResponse()->getContent();
+            $this->assertStringContainsString('edit-team-modal', $manageHtml);
+            $this->assertStringContainsString('openEditTeamModal', $manageHtml);
+            $this->assertStringContainsString('edit-team-btn', $manageHtml);
+
+            // 1. Update team via HTTP POST form
+            $client->request('POST', "/shows/{$showId}/teams/{$teamId}/update", [
+                'name' => 'The Golden Pumpkins',
+                'members' => 'Alice & Bob',
+                'flight_group' => 'Pumpkin Flight',
+                'avatar_emoji' => '🎃',
+                'avatar_color' => '#eab308',
+            ]);
+            $this->assertResponseRedirects("/shows/{$showId}/manage");
+            $client->followRedirect();
+            $this->assertResponseIsSuccessful();
+
+            $team = $pdo->query("SELECT * FROM show_teams WHERE id = {$teamId}")->fetch();
+            $this->assertSame('The Golden Pumpkins', $team['name']);
+            $this->assertSame('Alice & Bob', $team['members']);
+            $this->assertSame('Pumpkin Flight', $team['flight_group']);
+            $this->assertSame('🎃', $team['avatar_emoji']);
+            $this->assertSame('#eab308', $team['avatar_color']);
+
+            // 2. Update team via API action
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'update_team',
+                'team_id' => $teamId,
+                'name' => 'Apple Pie Champions',
+                'members' => 'Charlie & Dana',
+                'flight_group' => 'Acorn Flight',
+                'avatar_emoji' => '🍎',
+                'avatar_color' => '#10b981',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $apiRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($apiRes['success']);
+
+            $teamUpdated = $pdo->query("SELECT * FROM show_teams WHERE id = {$teamId}")->fetch();
+            $this->assertSame('Apple Pie Champions', $teamUpdated['name']);
+            $this->assertSame('🍎', $teamUpdated['avatar_emoji']);
+            $this->assertSame('#10b981', $teamUpdated['avatar_color']);
+        } finally {
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+        }
+    }
 }

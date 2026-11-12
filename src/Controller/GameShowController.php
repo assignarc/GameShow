@@ -166,7 +166,7 @@ class GameShowController extends AbstractController
     {
         $pdo = $this->gameDatabase->getPdo();
         $show = $this->getShowOrFail($id);
-        $teams = $pdo->prepare('SELECT * FROM show_teams WHERE show_id = ? ORDER BY score DESC, sort_order ASC');
+        $teams = $pdo->prepare('SELECT * FROM show_teams WHERE show_id = ? ORDER BY sort_order ASC, id ASC');
         $teams->execute([$id]);
         $teamsList = $teams->fetchAll();
 
@@ -410,7 +410,7 @@ class GameShowController extends AbstractController
         $pdo = $this->gameDatabase->getPdo();
         $show = $this->getShowOrFail($id);
 
-        $teams = $pdo->prepare('SELECT * FROM show_teams WHERE show_id = ? ORDER BY score DESC, sort_order ASC');
+        $teams = $pdo->prepare('SELECT * FROM show_teams WHERE show_id = ? ORDER BY is_eliminated ASC, score DESC, sort_order ASC, id ASC');
         $teams->execute([$id]);
         $teamList = $teams->fetchAll();
 

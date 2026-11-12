@@ -73,26 +73,43 @@
             gap: 0.85rem;
         }
 
-        .round-badge {
-            background: rgba(245, 158, 11, 0.18);
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            padding: 0.4rem 1.25rem;
-            border-radius: 30px;
-            font-size: 1.2rem;
-            font-weight: 800;
-            letter-spacing: 0.5px;
+        .tv-round-bubble {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(249, 115, 22, 0.12) 100%);
+            border: 2px solid rgba(245, 158, 11, 0.55);
+            border-radius: 18px;
+            padding: 0.45rem 1.35rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            min-width: 0;
+            gap: 0.15rem;
         }
 
-        .cat-badge {
-            background: rgba(249, 115, 22, 0.15);
-            border: 1px solid rgba(249, 115, 22, 0.35);
-            color: #ffedd5;
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 1rem;
+        .tv-round-title {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #fbbf24;
+            letter-spacing: 0.5px;
+            line-height: 1.25;
+            text-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tv-round-cat {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.98rem;
             font-weight: 700;
-            display: none;
+            color: #ffedd5;
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            opacity: 0.92;
         }
 
         .timer-container {
@@ -550,8 +567,10 @@
     <header class="tv-header">
         <div class="show-title-group">
             <div class="show-title">🍁 {{ show.name }}</div>
-            <div class="round-badge" id="tv-round">Round 1</div>
-            <div class="cat-badge" id="tv-cat">Classic Dingbats</div>
+            <div class="tv-round-bubble" id="tv-round-bubble">
+                <div class="tv-round-title" id="tv-round">Round 1</div>
+                <div class="tv-round-cat" id="tv-cat" style="display: none;">Classic Dingbats</div>
+            </div>
         </div>
         <div class="timer-container">
             <span class="timer-label">TIMER</span>
@@ -667,7 +686,7 @@
 
                             if (q.category_name) {
                                 catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}`;
-                                catBadge.style.display = 'inline-block';
+                                catBadge.style.display = 'flex';
                             } else {
                                 catBadge.style.display = 'none';
                             }
@@ -716,23 +735,47 @@
                     teamsWrap.innerHTML = '';
                     document.getElementById('tv-team-count').innerText = `${data.teams.length} Teams`;
 
+                    // Sort: Active first, highest score on top, stable order for ties
+                    const sortedTeams = [...(data.teams || [])].sort((a, b) => {
+                        const aElim = (a.is_eliminated == 1) ? 1 : 0;
+                        const bElim = (b.is_eliminated == 1) ? 1 : 0;
+                        if (aElim !== bElim) return aElim - bElim;
+
+                        const aScore = parseInt(a.score) || 0;
+                        const bScore = parseInt(b.score) || 0;
+                        if (bScore !== aScore) return bScore - aScore;
+
+                        return (parseInt(a.sort_order) || a.id) - (parseInt(b.sort_order) || b.id);
+                    });
+
                     let rank = 1;
-                    data.teams.forEach(t => {
+                    sortedTeams.forEach(t => {
                         const isEliminated = (t.is_eliminated == 1);
-                        const row = document.createElement('div');
-                        row.className = 'team-card-row ' + (isEliminated ? 'eliminated' : `rank-${rank}`);
+                        const score = parseInt(t.score) || 0;
 
                         let rankDisplay = `#${rank}`;
-                        if (!isEliminated) {
-                            if (rank === 1) rankDisplay = '🥇';
-                            else if (rank === 2) rankDisplay = '🥈';
-                            else if (rank === 3) rankDisplay = '🥉';
-                            rank++;
-                        } else {
+                        let rankClass = '';
+
+                        if (isEliminated) {
                             rankDisplay = '✕';
+                        } else {
+                            if (score > 0) {
+                                if (rank === 1) {
+                                    rankDisplay = '🥇';
+                                    rankClass = 'rank-1';
+                                } else if (rank === 2) {
+                                    rankDisplay = '🥈';
+                                    rankClass = 'rank-2';
+                                } else if (rank === 3) {
+                                    rankDisplay = '🥉';
+                                    rankClass = 'rank-3';
+                                }
+                            }
+                            rank++;
                         }
 
-                        const membersText = t.members ? ` • ${t.members}` : '';
+                        const row = document.createElement('div');
+                        row.className = 'team-card-row ' + (isEliminated ? 'eliminated' : rankClass);
                         const elimBadge = isEliminated ? `<span class="eliminated-tag">OUT</span>` : '';
 
                         row.innerHTML = `
@@ -741,10 +784,10 @@
                                 <div class="team-avatar" style="border: 2px solid ${t.avatar_color || '#f97316'};">${t.avatar_emoji || '🍁'}</div>
                                 <div class="team-name-group">
                                     <div class="team-name">${t.name} ${elimBadge}</div>
-                                    <div class="team-sub">${t.flight_group || 'General'}${membersText}</div>
+                                    ${t.members ? `<div class="team-sub">${t.members}</div>` : ''}
                                 </div>
                             </div>
-                            <div class="team-score-badge">${t.score}</div>
+                            <div class="team-score-badge">${score}</div>
                         `;
                         teamsWrap.appendChild(row);
                     });

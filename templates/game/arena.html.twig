@@ -1255,7 +1255,7 @@
                     <span style="font-size:1.5rem;">${t.avatar_emoji || '🍁'}</span>
                     <div style="min-width:0; overflow:hidden;">
                         <strong style="font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${t.name}</strong>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">${t.score} pts • ${t.flight_group || 'General'}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${t.score} pts${t.members ? ' • ' + t.members : ''}</div>
                     </div>
                 </div>
                 <div class="team-score-ctrl">
