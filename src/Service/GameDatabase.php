@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS game_shows (
     question_started_at INTEGER DEFAULT NULL,
     timer_duration INTEGER NOT NULL DEFAULT 25,
     answer_revealed INTEGER NOT NULL DEFAULT 0,
+    starred_only INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -179,6 +180,12 @@ SQL);
 
         try {
             $pdo->exec('ALTER TABLE game_shows ADD COLUMN active_rule_index INTEGER NOT NULL DEFAULT -1');
+        } catch (\Throwable) {
+            // Column already exists
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE game_shows ADD COLUMN starred_only INTEGER NOT NULL DEFAULT 0');
         } catch (\Throwable) {
             // Column already exists
         }

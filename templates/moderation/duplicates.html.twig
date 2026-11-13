@@ -341,11 +341,21 @@
                                             <div class="meta-badges">
                                                 <span class="id-badge">#{{ q.id }}</span>
                                                 <span class="status-badge status-{{ q.review_status }}">{{ q.review_status }}</span>
+                                                {% if q.is_favorite is defined and q.is_favorite %}
+                                                    <span class="category-pill" style="color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4);">⭐ Starred</span>
+                                                {% endif %}
                                                 {% if q.category_name %}
                                                     <span class="category-pill">{{ q.category_icon ?? '🏷️' }} {{ q.category_name }}</span>
                                                 {% endif %}
                                                 {% if q.difficulty %}
                                                     <span class="category-pill">⚡ {{ q.difficulty }}</span>
+                                                {% endif %}
+                                            </div>
+
+                                            <div style="font-size: 0.92rem; font-weight: 800; color: var(--primary); margin-top: 0.15rem;">
+                                                🎯 Answer: "{{ q.answer }}"
+                                                {% if q.alternate_answers %}
+                                                    <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-left: 0.35rem;">(Alts: {{ q.alternate_answers }})</span>
                                                 {% endif %}
                                             </div>
 

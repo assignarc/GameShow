@@ -298,6 +298,11 @@
                     <span class="meta-tag">🔄 <strong>{{ show.round_count }}</strong> Rounds</span>
                     <span class="meta-tag">⏱️ <strong>{{ show.default_timer_seconds }}s</strong> Timer</span>
                     <span class="meta-tag">🚫 <strong>{{ show.used_q_count }}</strong> Asked (No repeats)</span>
+                    {% if show.starred_only|default(0) %}
+                        <span class="meta-tag" style="border-color: rgba(251, 191, 36, 0.45); color: #fbbf24; background: rgba(251, 191, 36, 0.12);">⭐ <strong>Starred Only</strong></span>
+                    {% else %}
+                        <span class="meta-tag">👍 <strong>All Included</strong></span>
+                    {% endif %}
                 </div>
             </div>
 
@@ -336,11 +341,20 @@
         </div>
         <div class="form-group">
             <label class="form-label" for="show-subtitle">Subtitle / Theme</label>
-            <input type="text" id="show-subtitle" name="subtitle" class="form-input" placeholder="e.g. 10 Couples • Acorn & Pumpkin Flights">
+            <input type="text" id="show-subtitle" name="subtitle" class="form-input" placeholder="e.g. 10 Couples • Fall Party Championship">
         </div>
         <div class="form-group">
             <label class="form-label" for="show-timer">Default Question Timer (seconds)</label>
             <input type="number" id="show-timer" name="default_timer" class="form-input" value="25" min="10" max="120">
+        </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: flex-start; gap: 0.65rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.35); padding: 0.85rem 1rem; border-radius: 10px; cursor: pointer;">
+                <input type="checkbox" name="starred_only" value="1" style="width: 18px; height: 18px; margin-top: 2px; accent-color: #fbbf24; cursor: pointer;">
+                <div>
+                    <div style="font-weight: 800; color: #fbbf24; font-size: 0.95rem;">⭐ Select Only Starred Puzzles</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0.2rem;">If checked, this game show will only draw from Starred ({{ stats.total_favorites }}) puzzles. If unchecked, it will draw from all Included puzzles.</div>
+                </div>
+            </label>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('new-show-modal').close()">Cancel</button>
@@ -359,11 +373,20 @@
         </div>
         <div class="form-group">
             <label class="form-label" for="edit-show-subtitle">Subtitle / Theme</label>
-            <input type="text" id="edit-show-subtitle" name="subtitle" class="form-input" placeholder="e.g. 10 Couples • Acorn & Pumpkin Flights">
+            <input type="text" id="edit-show-subtitle" name="subtitle" class="form-input" placeholder="e.g. 10 Couples • Fall Party Championship">
         </div>
         <div class="form-group">
             <label class="form-label" for="edit-show-timer">Default Question Timer (seconds)</label>
             <input type="number" id="edit-show-timer" name="default_timer_seconds" class="form-input" value="25" min="5" max="300" required>
+        </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: flex-start; gap: 0.65rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.35); padding: 0.85rem 1rem; border-radius: 10px; cursor: pointer;">
+                <input type="checkbox" id="edit-show-starred-only" name="starred_only" value="1" style="width: 18px; height: 18px; margin-top: 2px; accent-color: #fbbf24; cursor: pointer;">
+                <div>
+                    <div style="font-weight: 800; color: #fbbf24; font-size: 0.95rem;">⭐ Select Only Starred Puzzles</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0.2rem;">If checked, this game show will only draw from Starred ({{ stats.total_favorites }}) puzzles. If unchecked, it will draw from all Included puzzles.</div>
+                </div>
+            </label>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-show-modal').close()">Cancel</button>
@@ -412,6 +435,10 @@
         document.getElementById('edit-show-name').value = show.name || '';
         document.getElementById('edit-show-subtitle').value = show.subtitle || '';
         document.getElementById('edit-show-timer').value = show.default_timer_seconds || 25;
+        const starredCb = document.getElementById('edit-show-starred-only');
+        if (starredCb) {
+            starredCb.checked = (parseInt(show.starred_only || 0, 10) === 1);
+        }
         document.getElementById('edit-show-modal').showModal();
     }
 

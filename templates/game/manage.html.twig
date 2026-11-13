@@ -400,6 +400,36 @@
             </button>
         </form>
     </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.65rem 1rem; margin-top: 0.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <span style="font-size: 1.35rem;">{{ show.starred_only|default(0) ? '⭐' : '👍' }}</span>
+            <div>
+                <div style="font-weight: 800; font-size: 0.92rem; color: #fff;">
+                    Game Show Puzzle Pool:
+                    {% if show.starred_only|default(0) %}
+                        <span style="color: #fbbf24;">⭐ Only Starred Puzzles ({{ pool_stats.starred }} available)</span>
+                    {% else %}
+                        <span style="color: var(--success);">👍 All Included Puzzles ({{ pool_stats.included }} available)</span>
+                    {% endif %}
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                    {% if show.starred_only|default(0) %}
+                        Strictly selects from Starred puzzles only. Uncheck to include all Included puzzles.
+                    {% else %}
+                        Selects from all Included puzzles ({{ pool_stats.starred }} Starred). Check the box to restrict to Starred puzzles only.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <form method="POST" action="{{ path('app_show_puzzle_pool', {'id': show.id}) }}" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+            <input type="hidden" name="starred_only" value="{{ show.starred_only|default(0) ? '0' : '1' }}">
+            <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 800; font-size: 0.85rem; padding: 0.45rem 0.9rem; border-radius: 8px; border: 1.5px solid {{ show.starred_only|default(0) ? '#fbbf24' : 'var(--border-color)' }}; background: {{ show.starred_only|default(0) ? 'rgba(251, 191, 36, 0.18)' : 'var(--bg-card)' }}; color: {{ show.starred_only|default(0) ? '#fbbf24' : 'var(--text-main)' }}; transition: all 0.2s ease;">
+                <input type="checkbox" {% if show.starred_only|default(0) %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; accent-color: #fbbf24; cursor: pointer;">
+                <span>⭐ Only Select Starred Puzzles</span>
+            </label>
+        </form>
+    </div>
 </div>
 
 <div class="tabs-nav">

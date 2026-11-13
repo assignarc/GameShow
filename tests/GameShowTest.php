@@ -1181,4 +1181,114 @@ class GameShowTest extends WebTestCase
             $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
         }
     }
+
+    public function testBatchStarUnstarAndFilterQuestionBankByStarred(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories ORDER BY id ASC LIMIT 1')->fetchColumn();
+        $ins = $pdo->prepare("INSERT INTO questions (category_id, title, answer, is_active, is_favorite, review_status) VALUES (?, ?, ?, 1, 0, 'included')");
+        $ins->execute([$catId, 'Star Test 1', 'STAR ANSWER ONE']);
+        $qId1 = (int) $pdo->lastInsertId();
+        $ins->execute([$catId, 'Star Test 2', 'STAR ANSWER TWO']);
+        $qId2 = (int) $pdo->lastInsertId();
+
+        try {
+            // 1. Batch star both puzzles
+            $client->request('POST', '/moderation/questions/batch-action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'ids' => [$qId1, $qId2],
+                'action' => 'star',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $res = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($res['success']);
+            $this->assertSame(2, $res['affected_count']);
+
+            $fav1 = (int) $pdo->query("SELECT is_favorite FROM questions WHERE id = {$qId1}")->fetchColumn();
+            $fav2 = (int) $pdo->query("SELECT is_favorite FROM questions WHERE id = {$qId2}")->fetchColumn();
+            $this->assertSame(1, $fav1);
+            $this->assertSame(1, $fav2);
+
+            // 2. Filter Question Bank by status=starred
+            $client->request('GET', '/moderation?status=starred&q=STAR+ANSWER');
+            $this->assertResponseIsSuccessful();
+            $html = (string) $client->getResponse()->getContent();
+            $this->assertStringContainsString('STAR ANSWER ONE', $html);
+            $this->assertStringContainsString('STAR ANSWER TWO', $html);
+
+            // 3. Batch unstar one puzzle
+            $client->request('POST', '/moderation/questions/batch-action', [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'ids' => [$qId1],
+                'action' => 'unstar',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $fav1After = (int) $pdo->query("SELECT is_favorite FROM questions WHERE id = {$qId1}")->fetchColumn();
+            $this->assertSame(0, $fav1After);
+
+            // 4. Filter by status=starred again: only STAR ANSWER TWO should appear
+            $client->request('GET', '/moderation?status=starred&q=STAR+ANSWER');
+            $this->assertResponseIsSuccessful();
+            $htmlAfter = (string) $client->getResponse()->getContent();
+            $this->assertStringNotContainsString('STAR ANSWER ONE', $htmlAfter);
+            $this->assertStringContainsString('STAR ANSWER TWO', $htmlAfter);
+        } finally {
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$qId1, $qId2]);
+        }
+    }
+
+    public function testGameShowStarredOnlyPuzzleSelectionMode(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        // Create temporary category with 1 Starred puzzle and 1 Unstarred Included puzzle
+        $pdo->prepare('INSERT INTO categories (name, slug, color, icon) VALUES (?, ?, ?, ?)')
+            ->execute(['Starred Test Cat', 'starred-test-cat-' . uniqid(), '#f59e0b', '⭐']);
+        $catId = (int) $pdo->lastInsertId();
+
+        $ins = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, ?, 'included')");
+        $ins->execute([$catId, 'Unstarred Included Puzzle', 'UNSTARRED INCLUDED', 0]);
+        $unstarredQId = (int) $pdo->lastInsertId();
+
+        $ins->execute([$catId, 'Starred Special Puzzle', 'STARRED SPECIAL', 1]);
+        $starredQId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
+            ->execute(['Starred Mode Show', 'Testing starred_only', 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        $allocJson = json_encode([['category_id' => $catId, 'count' => 5, 'difficulty' => 'Any']]);
+        $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, category_allocations, status) VALUES (?, 1, ?, ?, ?, ?)')
+            ->execute([$showId, 'Round 1', 'all_play', $allocJson, 'active']);
+        $roundId = (int) $pdo->lastInsertId();
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$roundId, $showId]);
+
+        try {
+            // Enable Starred Only mode via POST /shows/{id}/puzzle-pool
+            $client->request('POST', "/shows/{$showId}/puzzle-pool", ['starred_only' => '1']);
+            $this->assertResponseRedirects("/shows/{$showId}/manage");
+
+            $starredFlag = (int) $pdo->query("SELECT starred_only FROM game_shows WHERE id = {$showId}")->fetchColumn();
+            $this->assertSame(1, $starredFlag);
+
+            // Start question in Starred-Only mode: MUST pick the starred puzzle ($starredQId) and NOT $unstarredQId
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'start_question',
+                'round_id' => $roundId,
+            ]));
+            $this->assertResponseIsSuccessful();
+            $startData = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($startData['success']);
+            $this->assertSame($starredQId, (int) $startData['question_id']);
+        } finally {
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$unstarredQId, $starredQId]);
+            $pdo->prepare('DELETE FROM categories WHERE id = ?')->execute([$catId]);
+        }
+    }
 }

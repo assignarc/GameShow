@@ -19,11 +19,18 @@ class DuplicateDetector
     public function normalizeAnswer(string $answer): string
     {
         $normalized = mb_strtolower(trim($answer));
-        // Remove leading articles
-        $normalized = (string) preg_replace('/^(the|a|an)\s+/i', '', $normalized);
-        // Replace common shorthand digits/abbreviations
+        // Remove leading articles and conversational fillers
+        $normalized = (string) preg_replace('/^(the|a|an|but|to be|it is|its|it\'s|that is|thats|that\'s)\s+/i', '', $normalized);
+        // Replace common shorthand digits/abbreviations/homophones
+        $normalized = (string) preg_replace('/\b1\b/', 'one', $normalized);
         $normalized = (string) preg_replace('/\b2\b/', 'to', $normalized);
+        $normalized = (string) preg_replace('/\btwo\b/', 'to', $normalized);
+        $normalized = (string) preg_replace('/\btoo\b/', 'to', $normalized);
         $normalized = (string) preg_replace('/\b4\b/', 'for', $normalized);
+        $normalized = (string) preg_replace('/\bfour\b/', 'for', $normalized);
+        $normalized = (string) preg_replace('/\b1st\b/', 'first', $normalized);
+        $normalized = (string) preg_replace('/\b2nd\b/', 'second', $normalized);
+        $normalized = (string) preg_replace('/\b3rd\b/', 'third', $normalized);
         $normalized = (string) preg_replace('/\bu\b/', 'you', $normalized);
         $normalized = str_replace('&', 'and', $normalized);
         // Remove punctuation
@@ -35,26 +42,189 @@ class DuplicateDetector
     }
 
     /**
-     * Light singularization for matching plurals (e.g. eggs -> egg, leftovers -> leftover)
+     * Stem a single word for inflection/root matching
+     */
+    private function stemWord(string $w): string
+    {
+        if (in_array($w, ['misunderstood', 'misunderstanding', 'misunderstand'], true)) {
+            return 'misunderstand';
+        }
+        if (in_array($w, ['forgive', 'forgiveness', 'forgiving'], true)) {
+            return 'forgive';
+        }
+        if (in_array($w, ['indian', 'india'], true)) {
+            return 'india';
+        }
+
+        $len = mb_strlen($w);
+        if ($len > 5 && str_ends_with($w, 'ing')) {
+            return substr($w, 0, -3);
+        }
+        if ($len > 4 && str_ends_with($w, 'ed') && !str_ends_with($w, 'eed')) {
+            return substr($w, 0, -2);
+        }
+        if ($len > 4 && str_ends_with($w, 'ies')) {
+            return substr($w, 0, -3) . 'y';
+        }
+        if ($len > 4 && str_ends_with($w, 'es') && !str_ends_with($w, 'ees')) {
+            return substr($w, 0, -2);
+        }
+        if ($len > 3 && str_ends_with($w, 's') && !str_ends_with($w, 'ss')) {
+            return substr($w, 0, -1);
+        }
+
+        return $w;
+    }
+
+    /**
+     * Light singularization & stemming for matching plurals, tenses, and optional fillers
      */
     private function singularize(string $normalized): string
     {
         $words = explode(' ', $normalized);
+        $filler = ['up', 'food', 'the', 'a', 'an', 'but'];
         $res = [];
         foreach ($words as $w) {
-            $len = mb_strlen($w);
-            if ($len > 4 && str_ends_with($w, 'ies')) {
-                $res[] = substr($w, 0, -3) . 'y';
-            } elseif ($len > 4 && str_ends_with($w, 'es') && !str_ends_with($w, 'ees')) {
-                $res[] = substr($w, 0, -2);
-            } elseif ($len > 3 && str_ends_with($w, 's') && !str_ends_with($w, 'ss')) {
-                $res[] = substr($w, 0, -1);
-            } else {
-                $res[] = $w;
+            if (count($words) >= 2 && in_array($w, $filler, true)) {
+                continue;
             }
+            $res[] = $this->stemWord($w);
+        }
+
+        if (empty($res)) {
+            return $normalized;
         }
 
         return implode(' ', $res);
+    }
+
+    /**
+     * Extract normalized/stemmed variants from primary answer and alternate_answers
+     *
+     * @param array<string, mixed> $q
+     * @return array<int, array{norm: string, sing: string, sl: string, tokens: array<int, string>, sorted: string}>
+     */
+    private function extractVariants(array $q): array
+    {
+        $rawList = [(string) ($q['answer'] ?? '')];
+        $altsRaw = trim((string) ($q['alternate_answers'] ?? ''));
+        if ($altsRaw !== '') {
+            if (str_starts_with($altsRaw, '[')) {
+                $decoded = json_decode($altsRaw, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $item) {
+                        $rawList[] = (string) $item;
+                    }
+                }
+            } else {
+                foreach (explode(',', $altsRaw) as $item) {
+                    $rawList[] = trim($item);
+                }
+            }
+        }
+
+        $variants = [];
+        foreach ($rawList as $r) {
+            $norm = $this->normalizeAnswer($r);
+            if ($norm === '') {
+                continue;
+            }
+            $sing = $this->singularize($norm);
+            $sl = str_replace(' ', '', $sing);
+            $tokens = explode(' ', $sing);
+            $sortedTokens = $tokens;
+            sort($sortedTokens);
+
+            $variants[] = [
+                'norm' => $norm,
+                'sing' => $sing,
+                'sl' => $sl,
+                'tokens' => $tokens,
+                'sorted' => implode(' ', $sortedTokens),
+            ];
+        }
+
+        return $variants;
+    }
+
+    /**
+     * Determine whether two questions' variant sets match as duplicate / near-duplicate
+     *
+     * @param array<int, array{norm: string, sing: string, sl: string, tokens: array<int, string>, sorted: string}> $vListA
+     * @param array<int, array{norm: string, sing: string, sl: string, tokens: array<int, string>, sorted: string}> $vListB
+     */
+    private function questionsMatch(array $vListA, array $vListB): bool
+    {
+        $commonStopWords = [
+            'between', 'friend', 'around', 'little', 'people', 'something', 'nothing',
+            'everything', 'someone', 'anyone', 'second', 'thought', 'broken', 'double',
+            'ground', 'center', 'morning', 'evening', 'letter', 'number', 'animal',
+            'season', 'square', 'corner', 'family', 'doctor', 'person', 'school',
+            'market', 'street', 'water', 'money', 'heart', 'light', 'night', 'world',
+            'point', 'right', 'stand', 'house', 'first', 'under', 'over',
+        ];
+
+        foreach ($vListA as $idxA => $va) {
+            foreach ($vListB as $idxB => $vb) {
+                // Avoid matching two short secondary alternates against each other
+                if ($idxA > 0 && $idxB > 0 && min(mb_strlen($va['sl']), mb_strlen($vb['sl'])) < 5) {
+                    continue;
+                }
+
+                // 1. Exact normalized or stemmed/singular match
+                if ($va['norm'] === $vb['norm'] || $va['sing'] === $vb['sing']) {
+                    return true;
+                }
+
+                // 2. Spaceless compound match (e.g. "left over" vs "leftover", "tuna fish" vs "tunafish")
+                if ($va['sl'] === $vb['sl'] && mb_strlen($va['sl']) >= 4) {
+                    return true;
+                }
+
+                // 3. Word-order permutation match (e.g. "Overseas travel" vs "Travel Overseas")
+                if (count($va['tokens']) >= 2 && count($va['tokens']) === count($vb['tokens']) && $va['sorted'] === $vb['sorted']) {
+                    return true;
+                }
+
+                // 4. Primary-to-primary near-duplicate checks
+                if ($idxA === 0 && $idxB === 0) {
+                    // Typo fuzzy match (Levenshtein)
+                    $minLen = min(mb_strlen($va['sing']), mb_strlen($vb['sing']));
+                    if ($minLen >= 5) {
+                        $dist = levenshtein($va['sing'], $vb['sing']);
+                        if ($dist <= 1 || ($dist <= 2 && $minLen >= 10)) {
+                            return true;
+                        }
+                    }
+
+                    $sA = $va['sing'];
+                    $sB = $vb['sing'];
+
+                    // Prefix variant (e.g. "Noon tea" vs "Afternoon tea")
+                    if ($sA === 'after' . $sB || $sB === 'after' . $sA || $va['sl'] === 'after' . $vb['sl'] || $vb['sl'] === 'after' . $va['sl']) {
+                        return true;
+                    }
+
+                    // Single distinctive word (>= 6 chars) contained as a whole token inside another answer
+                    // (e.g. "Forecast" vs "Weather forecast", "Blanket" vs "Electric blanket", "Teacup" vs "Storm in a teacup", "Dragon" vs "Dragon Warrior", "Infinity" vs "To infinity and beyond")
+                    if (count($va['tokens']) === 1 && mb_strlen($sA) >= 6 && !in_array($sA, $commonStopWords, true) && in_array($sA, $vb['tokens'], true)) {
+                        return true;
+                    }
+                    if (count($vb['tokens']) === 1 && mb_strlen($sB) >= 6 && !in_array($sB, $commonStopWords, true) && in_array($sB, $va['tokens'], true)) {
+                        return true;
+                    }
+
+                    // Shared long distinctive root token (>= 10 chars, e.g. "conversation", "misunderstand")
+                    foreach ($va['tokens'] as $tA) {
+                        if (mb_strlen($tA) >= 10 && in_array($tA, $vb['tokens'], true)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -91,38 +261,29 @@ class DuplicateDetector
         SQL;
         $questions = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
-        // 3. Group questions by normalized answer + fuzzy matching
-        /** @var array<int, array{key: string, sing: string, sl: string, display_answer: string, questions: array<int, array<string, mixed>>}> $groups */
+        // 3. Precompute variants for each question and group by matching rules
+        $qVariants = [];
+        foreach ($questions as $q) {
+            $qVariants[(int) $q['id']] = $this->extractVariants($q);
+        }
+
+        /** @var array<int, array{key: string, display_answer: string, questions: array<int, array<string, mixed>>}> $groups */
         $groups = [];
 
         foreach ($questions as $q) {
-            $norm = $this->normalizeAnswer((string) ($q['answer'] ?? ''));
-            if ($norm === '') {
+            $qId = (int) $q['id'];
+            $variants = $qVariants[$qId] ?? [];
+            if (empty($variants)) {
                 continue;
             }
 
-            $sing = $this->singularize($norm);
-            $sl = str_replace(' ', '', $sing);
-
             $matchedIndex = null;
             foreach ($groups as $idx => $g) {
-                // Exact normalized or singular match
-                if ($norm === $g['key'] || $sing === $g['sing']) {
-                    $matchedIndex = $idx;
-                    break;
-                }
-                // Spaceless match (e.g. "tuna fish" vs "tunafish", "robin hood" vs "robinhood")
-                if ($sl === $g['sl']) {
-                    $matchedIndex = $idx;
-                    break;
-                }
-                // Fuzzy match for typos (e.g. "scrambled egg" vs "scambled egg", "itself" vs "iteself")
-                $minLen = min(mb_strlen($sing), mb_strlen($g['sing']));
-                if ($minLen >= 5) {
-                    $dist = levenshtein($sing, $g['sing']);
-                    if ($dist <= 1 || ($dist <= 2 && $minLen >= 10)) {
+                foreach ($g['questions'] as $gq) {
+                    $gqId = (int) $gq['id'];
+                    if ($this->questionsMatch($variants, $qVariants[$gqId] ?? [])) {
                         $matchedIndex = $idx;
-                        break;
+                        break 2;
                     }
                 }
             }
@@ -131,9 +292,7 @@ class DuplicateDetector
                 $groups[$matchedIndex]['questions'][] = $q;
             } else {
                 $groups[] = [
-                    'key' => $norm,
-                    'sing' => $sing,
-                    'sl' => $sl,
+                    'key' => $variants[0]['norm'],
                     'display_answer' => (string) $q['answer'],
                     'questions' => [$q],
                 ];

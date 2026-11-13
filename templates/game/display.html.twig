@@ -52,51 +52,57 @@
 
         .show-title-group {
             display: flex;
-            align-items: center;
-            gap: 1.25rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.45rem;
+            min-width: 0;
+            flex: 1;
         }
 
         .show-title {
             font-family: 'Bungee', cursive, sans-serif;
-            font-size: 2rem;
+            font-size: clamp(1.4rem, 2.2vw, 2.1rem);
             color: var(--primary);
             letter-spacing: 1.5px;
             text-shadow: 0 4px 20px rgba(249, 115, 22, 0.5);
             display: flex;
             align-items: center;
             gap: 0.6rem;
-        }
-
-        .header-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.15;
         }
 
         .tv-round-bubble {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(249, 115, 22, 0.12) 100%);
-            border: 2px solid rgba(245, 158, 11, 0.55);
-            border-radius: 18px;
-            padding: 0.45rem 1.35rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-            min-width: 0;
-            gap: 0.15rem;
+            display: inline-flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.65rem;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(249, 115, 22, 0.1) 100%);
+            border: 1.5px solid rgba(245, 158, 11, 0.45);
+            border-radius: 20px;
+            padding: 0.35rem 1.15rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+            max-width: 100%;
+            white-space: nowrap;
         }
 
         .tv-round-title {
             font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-            font-size: 1.25rem;
+            font-size: 1.05rem;
             font-weight: 800;
             color: #fbbf24;
-            letter-spacing: 0.5px;
-            line-height: 1.25;
-            text-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+            letter-spacing: 0.4px;
+            line-height: 1;
+            text-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        }
+
+        .tv-round-divider {
+            color: rgba(251, 191, 36, 0.45);
+            font-size: 0.95rem;
+            font-weight: 900;
         }
 
         .tv-round-cat {
@@ -105,11 +111,12 @@
             font-weight: 700;
             color: #ffedd5;
             letter-spacing: 0.3px;
-            line-height: 1.2;
+            line-height: 1;
             display: flex;
             align-items: center;
-            gap: 0.4rem;
-            opacity: 0.92;
+            gap: 0.35rem;
+            opacity: 0.95;
+            white-space: nowrap;
         }
 
         .timer-container {
@@ -561,6 +568,19 @@
         .rule-dot.completed {
             background: var(--success);
         }
+
+        footer.tv-footer {
+            flex-shrink: 0;
+            padding: 0.5rem 1.5rem;
+            background: linear-gradient(180deg, rgba(20, 16, 13, 0.95) 0%, rgba(10, 8, 7, 0.98) 100%);
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -568,8 +588,9 @@
         <div class="show-title-group">
             <div class="show-title">🍁 {{ show.name }}</div>
             <div class="tv-round-bubble" id="tv-round-bubble">
-                <div class="tv-round-title" id="tv-round">Round 1</div>
-                <div class="tv-round-cat" id="tv-cat" style="display: none;">Classic Dingbats</div>
+                <span class="tv-round-title" id="tv-round">Round 1</span>
+                <span class="tv-round-divider" id="tv-round-divider" style="display: none;">•</span>
+                <span class="tv-round-cat" id="tv-cat" style="display: none;">Classic Dingbats</span>
             </div>
         </div>
         <div class="timer-container">
@@ -632,6 +653,10 @@
         </aside>
     </div>
 
+    <footer class="tv-footer">
+        Fall Party Rebus Gameshow - Copyrights (c) Vishal Khapre, Crafted with Natural Intelligence and powered by Artificial Intelligence
+    </footer>
+
     <script>
         const SHOW_ID = {{ show.id }};
 
@@ -648,6 +673,7 @@
                     }
 
                     const catBadge = document.getElementById('tv-cat');
+                    const roundDivider = document.getElementById('tv-round-divider');
                     const imgCard = document.getElementById('tv-img-card');
                     const img = document.getElementById('tv-img');
                     const ansBanner = document.getElementById('tv-answer');
@@ -662,6 +688,7 @@
                         imgCard.style.display = 'none';
                         ansBanner.style.display = 'none';
                         catBadge.style.display = 'none';
+                        if (roundDivider) roundDivider.style.display = 'none';
                         rulesCard.style.display = 'flex';
 
                         document.getElementById('tv-rule-step').innerText = `RULE ${activeRuleIdx + 1} OF ${rulesList.length}`;
@@ -686,9 +713,11 @@
 
                             if (q.category_name) {
                                 catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}`;
-                                catBadge.style.display = 'flex';
+                                catBadge.style.display = 'inline-flex';
+                                if (roundDivider) roundDivider.style.display = 'inline';
                             } else {
                                 catBadge.style.display = 'none';
+                                if (roundDivider) roundDivider.style.display = 'none';
                             }
 
                             ansBanner.innerText = q.answer;
@@ -702,6 +731,7 @@
                             imgCard.style.display = 'none';
                             ansBanner.style.display = 'none';
                             catBadge.style.display = 'none';
+                            if (roundDivider) roundDivider.style.display = 'none';
                         }
                     }
 

@@ -59,9 +59,10 @@ class GameShowController extends AbstractController
         $name = trim((string) $request->request->get('name', 'Fall Party Game Show'));
         $subtitle = trim((string) $request->request->get('subtitle', 'Couples Rebus Championship'));
         $timer = max(10, min(120, (int) $request->request->get('default_timer', 25)));
+        $starredOnly = (int) $request->request->get('starred_only', 0) ? 1 : 0;
 
-        $stmt = $pdo->prepare('INSERT INTO game_shows (name, subtitle, default_timer_seconds, max_teams, status) VALUES (?, ?, ?, 12, "setup")');
-        $stmt->execute([$name, $subtitle, $timer]);
+        $stmt = $pdo->prepare('INSERT INTO game_shows (name, subtitle, default_timer_seconds, starred_only, max_teams, status) VALUES (?, ?, ?, ?, 12, "setup")');
+        $stmt->execute([$name, $subtitle, $timer, $starredOnly]);
         $showId = (int) $pdo->lastInsertId();
 
         $this->gameDatabase->getShowRules($showId);
@@ -79,20 +80,42 @@ class GameShowController extends AbstractController
         $name = trim((string) $request->request->get('name', ''));
         $subtitle = trim((string) $request->request->get('subtitle', ''));
         $timer = max(5, min(300, (int) $request->request->get('default_timer_seconds', 25)));
+        $starredOnly = (int) $request->request->get('starred_only', 0) ? 1 : 0;
 
         if ($name === '') {
             $this->addFlash('error', 'Show name cannot be empty.');
             return $this->redirectToRoute('app_show_manage', ['id' => $id]);
         }
 
-        $stmt = $pdo->prepare('UPDATE game_shows SET name = ?, subtitle = ?, default_timer_seconds = ? WHERE id = ?');
-        $stmt->execute([$name, $subtitle, $timer, $id]);
+        $stmt = $pdo->prepare('UPDATE game_shows SET name = ?, subtitle = ?, default_timer_seconds = ?, starred_only = ? WHERE id = ?');
+        $stmt->execute([$name, $subtitle, $timer, $starredOnly, $id]);
 
         $this->addFlash('success', 'Game show details updated successfully.');
 
         $referer = (string) $request->headers->get('referer', '');
         if ($referer !== '' && !str_contains($referer, '/manage')) {
             return $this->redirect($referer);
+        }
+
+        return $this->redirectToRoute('app_show_manage', ['id' => $id]);
+    }
+
+    #[Route('/shows/{id}/puzzle-pool', name: 'app_show_puzzle_pool', methods: ['POST'])]
+    public function updatePuzzlePool(int $id, Request $request): RedirectResponse
+    {
+        $pdo = $this->gameDatabase->getPdo();
+        $show = $this->getShowOrFail($id);
+
+        $starredOnly = $request->request->has('starred_only')
+            ? ((int) $request->request->get('starred_only') ? 1 : 0)
+            : (((int) ($show['starred_only'] ?? 0) === 1) ? 0 : 1);
+
+        $pdo->prepare('UPDATE game_shows SET starred_only = ? WHERE id = ?')->execute([$starredOnly, $id]);
+
+        if ($starredOnly === 1) {
+            $this->addFlash('success', '⭐ Puzzle Pool updated: This game show will now pick ONLY Starred puzzles.');
+        } else {
+            $this->addFlash('success', '👍 Puzzle Pool updated: This game show will now pick from all Included puzzles.');
         }
 
         return $this->redirectToRoute('app_show_manage', ['id' => $id]);
@@ -181,6 +204,11 @@ class GameShowController extends AbstractController
 
         $usedCount = (int) $pdo->prepare('SELECT COUNT(*) FROM show_used_questions WHERE show_id = ?')->execute([$id]) ? $pdo->query("SELECT COUNT(*) FROM show_used_questions WHERE show_id = {$id}")->fetchColumn() : 0;
 
+        $poolStats = [
+            'included' => (int) $pdo->query("SELECT COUNT(*) FROM questions WHERE is_active = 1 AND review_status = 'included'")->fetchColumn(),
+            'starred' => (int) $pdo->query("SELECT COUNT(*) FROM questions WHERE is_favorite = 1 AND is_active = 1 AND review_status != 'excluded'")->fetchColumn(),
+        ];
+
         $mobileHostUrl = $this->getHostLanUrl($request, "/shows/{$id}/play");
 
         return $this->render('game/manage.html.twig', [
@@ -190,6 +218,7 @@ class GameShowController extends AbstractController
             'categories' => $categories,
             'rules' => $this->gameDatabase->getShowRules($id),
             'used_count' => $usedCount,
+            'pool_stats' => $poolStats,
             'mobile_host_url' => $mobileHostUrl,
             'lan_ip' => $this->getLanIp(),
         ]);
@@ -550,19 +579,24 @@ class GameShowController extends AbstractController
                 $activeAllocations = !empty($eligibleAllocations) ? $eligibleAllocations : $allocations;
                 $question = null;
 
-                // 1. Try picking an 'included' (approved) question matching category & difficulty from active allocations
+                $isStarredOnly = ((int) ($show['starred_only'] ?? 0)) === 1;
+                $poolCondition = $isStarredOnly
+                    ? "q.is_favorite = 1 AND q.is_active = 1 AND q.review_status != 'excluded'"
+                    : "q.is_active = 1 AND q.review_status = 'included'";
+
+                // 1. Try picking a question from the configured pool matching category & difficulty from active allocations
                 foreach ($activeAllocations as $alloc) {
                     $catId = (int) $alloc['category_id'];
                     $diff = $alloc['difficulty'] ?? 'Any';
 
-                    $sql = "SELECT q.* FROM questions q WHERE q.is_active = 1 AND q.review_status = 'included' AND q.category_id = ? AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?)";
+                    $sql = "SELECT q.* FROM questions q WHERE {$poolCondition} AND q.category_id = ? AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?)";
                     $params = [$catId, $id];
                     if ($diff !== 'Any') {
                         $sql .= ' AND (q.difficulty = ? OR (? = "Simple" AND q.difficulty = "Easy"))';
                         $params[] = $diff;
                         $params[] = $diff;
                     }
-                    $sql .= ' ORDER BY q.is_favorite DESC, RANDOM() LIMIT 1';
+                    $sql .= ' ORDER BY RANDOM() LIMIT 1';
 
                     $qStmt = $pdo->prepare($sql);
                     $qStmt->execute($params);
@@ -574,7 +608,7 @@ class GameShowController extends AbstractController
 
                     // If not found with exact difficulty, try any difficulty in that category
                     if ($diff !== 'Any') {
-                        $fbCatStmt = $pdo->prepare("SELECT q.* FROM questions q WHERE q.is_active = 1 AND q.review_status = 'included' AND q.category_id = ? AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) ORDER BY q.is_favorite DESC, RANDOM() LIMIT 1");
+                        $fbCatStmt = $pdo->prepare("SELECT q.* FROM questions q WHERE {$poolCondition} AND q.category_id = ? AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) ORDER BY RANDOM() LIMIT 1");
                         $fbCatStmt->execute([$catId, $id]);
                         $candidate = $fbCatStmt->fetch();
                         if ($candidate) {
@@ -584,32 +618,35 @@ class GameShowController extends AbstractController
                     }
                 }
 
-                // 2. Fallback: Any unused 'included' question from any allocated category
+                // 2. Fallback: Any unused question from the configured pool in any allocated category
                 if (!$question && !empty($allocations)) {
                     $catIds = array_column($allocations, 'category_id');
                     $placeholders = implode(',', array_fill(0, count($catIds), '?'));
                     $params = array_merge([$id], $catIds);
-                    $fbAllocStmt = $pdo->prepare("SELECT q.* FROM questions q WHERE q.is_active = 1 AND q.review_status = 'included' AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) AND q.category_id IN ({$placeholders}) ORDER BY q.is_favorite DESC, RANDOM() LIMIT 1");
+                    $fbAllocStmt = $pdo->prepare("SELECT q.* FROM questions q WHERE {$poolCondition} AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) AND q.category_id IN ({$placeholders}) ORDER BY RANDOM() LIMIT 1");
                     $fbAllocStmt->execute($params);
                     $question = $fbAllocStmt->fetch();
                 }
 
-                // 3. Fallback: Any unused 'included' question in entire master bank
+                // 3. Fallback: Any unused question from the configured pool in entire master bank
                 if (!$question) {
-                    $fbStmt = $pdo->prepare("SELECT * FROM questions WHERE is_active = 1 AND review_status = 'included' AND id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) ORDER BY is_favorite DESC, RANDOM() LIMIT 1");
+                    $fbStmt = $pdo->prepare("SELECT q.* FROM questions q WHERE {$poolCondition} AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) ORDER BY RANDOM() LIMIT 1");
                     $fbStmt->execute([$id]);
                     $question = $fbStmt->fetch();
                 }
 
-                // 4. Ultimate Fallback: Any active non-excluded question
-                if (!$question) {
-                    $fbAnyStmt = $pdo->prepare("SELECT * FROM questions WHERE is_active = 1 AND review_status != 'excluded' AND id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) ORDER BY is_favorite DESC, RANDOM() LIMIT 1");
+                // 4. Ultimate Fallback (only when NOT in Starred-Only mode): Any active non-excluded question
+                if (!$question && !$isStarredOnly) {
+                    $fbAnyStmt = $pdo->prepare("SELECT * FROM questions WHERE is_active = 1 AND review_status != 'excluded' AND id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?) ORDER BY RANDOM() LIMIT 1");
                     $fbAnyStmt->execute([$id]);
                     $question = $fbAnyStmt->fetch();
                 }
 
                 if (!$question) {
-                    return $this->json(['error' => 'All available questions have been used for this game show!'], Response::HTTP_BAD_REQUEST);
+                    $errMsg = $isStarredOnly
+                        ? 'All available Starred puzzles have been used for this game show! Star more puzzles in the Question Bank or switch to "All Included Puzzles" in Manage Show.'
+                        : 'All available questions have been used for this game show!';
+                    return $this->json(['error' => $errMsg], Response::HTTP_BAD_REQUEST);
                 }
 
                 $timerSec = $round['timer_seconds'] ?: 25;

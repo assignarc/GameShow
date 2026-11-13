@@ -52,6 +52,10 @@ class ModerationController extends AbstractController
             $where[] = "q.review_status = 'included'";
         } elseif ($status === 'excluded' || $status === '0') {
             $where[] = "(q.review_status = 'excluded' OR q.is_active = 0)";
+        } elseif ($status === 'starred' || $status === 'favorites') {
+            $where[] = 'q.is_favorite = 1';
+        } elseif ($status === 'unstarred') {
+            $where[] = 'q.is_favorite = 0';
         }
 
         if ($selectedCat > 0) {
@@ -140,6 +144,10 @@ class ModerationController extends AbstractController
             $where[] = "q.review_status = 'included'";
         } elseif ($status === 'excluded' || $status === '0') {
             $where[] = "(q.review_status = 'excluded' OR q.is_active = 0)";
+        } elseif ($status === 'starred' || $status === 'favorites') {
+            $where[] = 'q.is_favorite = 1';
+        } elseif ($status === 'unstarred') {
+            $where[] = 'q.is_favorite = 0';
         }
 
         if ($selectedCat > 0) {
@@ -360,6 +368,16 @@ SQL);
             $stmt->execute($ids);
             $count = $stmt->rowCount();
             $msg = "Marked {$count} puzzles as Excluded (Inactive).";
+        } elseif ($action === 'star' || $action === 'favorite') {
+            $stmt = $pdo->prepare("UPDATE questions SET is_favorite = 1 WHERE id IN ({$placeholders})");
+            $stmt->execute($ids);
+            $count = $stmt->rowCount();
+            $msg = "Starred {$count} puzzles.";
+        } elseif ($action === 'unstar' || $action === 'unfavorite') {
+            $stmt = $pdo->prepare("UPDATE questions SET is_favorite = 0 WHERE id IN ({$placeholders})");
+            $stmt->execute($ids);
+            $count = $stmt->rowCount();
+            $msg = "Removed star from {$count} puzzles.";
         } else {
             if (str_contains($contentType, 'application/json')) {
                 return $this->json(['success' => false, 'message' => 'Invalid action.'], Response::HTTP_BAD_REQUEST);
@@ -370,10 +388,13 @@ SQL);
 
         $this->gameDatabase->syncMasterJson();
 
+        $favCount = (int) $pdo->query('SELECT COUNT(*) FROM questions WHERE is_favorite = 1')->fetchColumn();
+
         if (str_contains($contentType, 'application/json')) {
             return $this->json([
                 'success' => true,
                 'affected_count' => $count,
+                'favorites_count' => $favCount,
                 'message' => $msg,
             ]);
         }
@@ -388,9 +409,10 @@ SQL);
         $pdo = $this->gameDatabase->getPdo();
         $pdo->prepare('UPDATE questions SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END WHERE id = ?')->execute([$id]);
         $fav = (int) $pdo->query("SELECT is_favorite FROM questions WHERE id = {$id}")->fetchColumn();
+        $favCount = (int) $pdo->query('SELECT COUNT(*) FROM questions WHERE is_favorite = 1')->fetchColumn();
         $this->gameDatabase->syncMasterJson();
 
-        return $this->json(['success' => true, 'is_favorite' => $fav]);
+        return $this->json(['success' => true, 'is_favorite' => $fav, 'favorites_count' => $favCount]);
     }
 
     #[Route('/question/{id}/vote', name: 'app_moderation_vote', methods: ['POST'])]

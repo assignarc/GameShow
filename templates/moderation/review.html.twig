@@ -545,13 +545,14 @@
             <span class="stat-pill pill-included" title="Included in Game Show">👍 <span id="stat-included">{{ stats.included }}</span></span>
             <span class="stat-pill pill-excluded" title="Rejected / Excluded">👎 <span id="stat-excluded">{{ stats.excluded }}</span></span>
             <span class="stat-pill" title="Skipped for later" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b;">⏭️ Skipped: <span id="stat-skipped">{{ stats.skipped }}</span></span>
-            <span class="stat-pill pill-fav" title="Starred Favorites">⭐ <span id="stat-fav">{{ stats.favorites }}</span></span>
+            <a href="{{ path('app_moderation_review', {'status': 'starred'}) }}" class="stat-pill pill-fav" title="Filter by Starred Favorites" style="text-decoration: none;">⭐ <span id="stat-fav">{{ stats.favorites }}</span></a>
         </div>
 
         <!-- Compact Filters -->
         <form method="GET" action="{{ path('app_moderation_review') }}" class="filter-items-group" id="review-filter-form">
             <select name="status" class="form-select-xs" onchange="this.form.submit()" id="status-filter-select">
                 <option value="unrated" {% if status == 'unrated' or status == 'avoid_selected' or not status %}selected{% endif %}>🎯 Only Unrated ({{ stats.unrated }})</option>
+                <option value="starred" {% if status == 'starred' or status == 'favorites' %}selected{% endif %}>⭐ Starred ({{ stats.favorites }})</option>
                 <option value="skipped" {% if status == 'skipped' %}selected{% endif %}>⏭️ Skipped ({{ stats.skipped }})</option>
                 <option value="included" {% if status == 'included' %}selected{% endif %}>👍 Selected (Included) ({{ stats.included }})</option>
                 <option value="excluded" {% if status == 'excluded' %}selected{% endif %}>👎 Rejected (Excluded) ({{ stats.excluded }})</option>
