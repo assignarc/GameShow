@@ -865,7 +865,7 @@
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-prev-rule" onclick="triggerAction('prev_rule')">⬅ Prev Rule</button>
                 <button type="button" class="btn btn-primary btn-sm" id="btn-next-rule" onclick="triggerAction('next_rule')">Next Rule ➡</button>
-                <button type="button" class="btn btn-success btn-sm" onclick="finishRulesAndPlay()" style="font-weight: 700;">🚀 Start Round 1</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="triggerAction('finish_rules')" style="font-weight: 700;">⏭️ Round 1 Briefing</button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="triggerAction('close_rules')" title="Close rules briefing">✕ Close</button>
             </div>
         </div>
@@ -879,15 +879,26 @@
                 <div style="font-size: 3.8rem; width: 85px; height: 85px; margin: 0 auto 1.25rem auto; border-radius: 22px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center;" id="arena-rule-icon">💡</div>
                 <h2 style="font-size: 1.85rem; font-weight: 900; color: #fff; margin-bottom: 1rem;" id="arena-rule-title">Say What You See</h2>
                 <p style="font-size: 1.15rem; line-height: 1.6; color: #cbd5e1; margin-bottom: 1.5rem;" id="arena-rule-desc">Call out the famous phrase, movie, object, or idiom hidden in the picture puzzle.</p>
-                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;" id="arena-rule-hint">Advance 1-by-1 with "Next Rule ➡" or finish to begin Round 1.</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;" id="arena-rule-hint">Advance 1-by-1 with "Next Rule ➡" to unveil each rule on TV, then proceed to Round 1 Briefing.</div>
             </div>
 
             <div class="puzzle-img-wrap" id="img-wrap">
                 <img src="" alt="Rebus Puzzle" class="puzzle-img" id="puzzle-image" style="display: none;">
-                <div id="no-question-splash" style="text-align: center; color: var(--text-muted);">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">🍁</div>
-                    <h2>Ready to Play!</h2>
-                    <p style="margin-top: 0.5rem;">Click "Next Question" to start the round timer.</p>
+                <div id="no-question-splash" style="text-align: center; color: var(--text-muted); max-width: 660px; width: 95%; background: rgba(32, 26, 21, 0.92); border: 1.5px solid var(--border-color); border-radius: 18px; padding: 1.5rem 1.75rem;">
+                    <div style="font-size: 2.75rem; margin-bottom: 0.4rem;" id="arena-splash-icon">🍁</div>
+                    <div id="arena-splash-badge" style="display: inline-block; background: rgba(249, 115, 22, 0.18); border: 1px solid var(--primary); color: var(--primary); font-weight: 800; font-size: 0.78rem; padding: 0.2rem 0.85rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.45rem;">
+                        📺 TV SCREEN IS SHOWING: SPLASH SCREEN
+                    </div>
+                    <h2 id="arena-splash-title" style="color: #fff; font-size: 1.5rem; font-weight: 900; margin-bottom: 0.3rem;">Welcome Splash Screen is Live on TV</h2>
+                    <p id="arena-splash-sub" style="margin-bottom: 0.85rem; font-size: 0.95rem; color: #cbd5e1;">The TV screen is displaying the Khapre Party splash screen. Click Next to unveil the competing teams!</p>
+                    <div id="arena-splash-preview-wrap" style="display: none; margin-bottom: 0.85rem;">
+                        <img src="/media/khapre_party_splash.jpg" alt="Splash Preview" style="max-height: 140px; max-width: 100%; border-radius: 12px; border: 2px solid rgba(251, 191, 36, 0.45); box-shadow: 0 8px 25px rgba(0,0,0,0.6);">
+                    </div>
+                    <div id="arena-splash-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;"></div>
+                    <div id="arena-splash-meta" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.85rem;"></div>
+                    <button type="button" class="btn btn-primary" id="arena-splash-action-btn" onclick="hostNextStep()" style="font-weight: 800; padding: 0.6rem 1.5rem;">
+                        👥 Next: Show Teams on TV
+                    </button>
                 </div>
             </div>
 
@@ -911,7 +922,7 @@
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-prev-q" onclick="triggerAction('prev_question')" title="Previous Question (Go back in history)">
                     ⏮️ Prev
                 </button>
-                <button type="button" class="btn btn-primary btn-sm" id="btn-next-q" onclick="triggerAction('next_question')" title="Next Question">
+                <button type="button" class="btn btn-primary btn-sm" id="btn-next-q" onclick="hostNextStep()" title="Advance to Next Stage or Question">
                     ▶️ Next
                 </button>
                 <button type="button" class="btn btn-success btn-sm" id="btn-reveal" onclick="triggerAction('reveal_answer')">
@@ -954,7 +965,7 @@
     <button type="button" class="dock-btn dock-btn-icon" id="dock-btn-prev" onclick="triggerAction('prev_question')" title="Previous Question">
         ⏮️
     </button>
-    <button type="button" class="dock-btn dock-btn-next" id="dock-btn-next" onclick="triggerAction('next_question')">
+    <button type="button" class="dock-btn dock-btn-next" id="dock-btn-next" onclick="hostNextStep()">
         ▶️ Next
     </button>
     <button type="button" class="dock-btn dock-btn-reveal" id="dock-btn-reveal" onclick="triggerAction('reveal_answer')">
@@ -976,8 +987,8 @@
     <button type="button" class="dock-btn dock-btn-next" id="dock-btn-next-rule" onclick="triggerAction('next_rule')">
         Next Rule ➡
     </button>
-    <button type="button" class="dock-btn dock-btn-reveal" onclick="finishRulesAndPlay()">
-        🚀 Start R1
+    <button type="button" class="dock-btn dock-btn-reveal" onclick="triggerAction('finish_rules')">
+        ⏭️ R1 Info
     </button>
     <button type="button" class="dock-btn dock-btn-icon" onclick="triggerAction('close_rules')" title="Close rules">
         ✕
@@ -1124,8 +1135,8 @@
         grid.innerHTML = '';
 
         const round = currentState.current_round;
-        const roundPts = round ? round.points_per_question : 10;
-        const stealPts = round ? round.steal_points : 5;
+        const roundPts = (round && round.points_per_question !== undefined && round.points_per_question !== null) ? parseInt(round.points_per_question, 10) : 10;
+        const stealPts = (round && round.steal_points !== undefined && round.steal_points !== null) ? parseInt(round.steal_points, 10) : 0;
 
         // Update default button values
         const roundBtn = document.getElementById('qa-pts-round');
@@ -1210,8 +1221,8 @@
         const show = currentState.show;
         const q = currentState.current_question;
         const round = currentState.current_round;
-        const roundPts = round ? round.points_per_question : 10;
-        const stealPts = round ? round.steal_points : 5;
+        const roundPts = (round && round.points_per_question !== undefined && round.points_per_question !== null) ? parseInt(round.points_per_question, 10) : 10;
+        const stealPts = (round && round.steal_points !== undefined && round.steal_points !== null) ? parseInt(round.steal_points, 10) : 0;
 
         // Round indicator
         if (round) {
@@ -1278,13 +1289,16 @@
             document.getElementById('arena-rule-desc').innerText = rule.description;
 
             if (btnPrevRule) btnPrevRule.disabled = (activeRuleIdx === 0);
+            const dockNextRuleBtn = document.getElementById('dock-btn-next-rule');
             if (btnNextRule) {
                 if (activeRuleIdx === rulesList.length - 1) {
-                    btnNextRule.innerText = 'Last Rule ✔';
-                    btnNextRule.disabled = true;
+                    btnNextRule.innerText = '⏭️ Next: Round 1 Briefing';
+                    btnNextRule.disabled = false;
+                    if (dockNextRuleBtn) dockNextRuleBtn.innerText = '⏭️ R1 Info';
                 } else {
                     btnNextRule.innerText = 'Next Rule ➡';
                     btnNextRule.disabled = false;
+                    if (dockNextRuleBtn) dockNextRuleBtn.innerText = 'Next Rule ➡';
                 }
             }
 
@@ -1299,14 +1313,22 @@
             }
             document.getElementById('img-wrap').style.display = 'flex';
 
+            const btnNextQ = document.getElementById('btn-next-q');
+            const dockBtnNext = document.getElementById('dock-btn-next');
+
             if (q) {
                 document.getElementById('no-question-splash').style.display = 'none';
                 const img = document.getElementById('puzzle-image');
                 img.src = q.media_path;
                 img.style.display = 'block';
 
+                if (btnNextQ) btnNextQ.innerText = '▶️ Next';
+                if (dockBtnNext) dockBtnNext.innerText = '▶️ Next';
+
                 const badge = document.getElementById('cat-badge');
-                badge.innerText = q.category_name + ' • ' + q.difficulty;
+                const rProg = currentState.round_progress || {};
+                const qProgress = (rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '';
+                badge.innerText = q.category_name + ' • ' + q.difficulty + qProgress;
                 badge.style.background = q.category_color || 'var(--primary)';
 
                 document.getElementById('answer-text').innerText = q.answer;
@@ -1321,8 +1343,152 @@
                 document.getElementById('puzzle-image').style.display = 'none';
                 document.getElementById('answer-banner').style.display = 'none';
                 document.getElementById('time-up-banner').style.display = 'none';
-                document.getElementById('cat-badge').innerText = 'Ready';
-                document.getElementById('cat-badge').style.background = 'var(--primary)';
+
+                const rProg = currentState.round_progress || {};
+                const showStatus = show.status || 'setup';
+                const splashIcon = document.getElementById('arena-splash-icon');
+                const splashBadge = document.getElementById('arena-splash-badge');
+                const splashTitle = document.getElementById('arena-splash-title');
+                const splashSub = document.getElementById('arena-splash-sub');
+                const splashPreviewWrap = document.getElementById('arena-splash-preview-wrap');
+                const splashStats = document.getElementById('arena-splash-stats');
+                const splashMeta = document.getElementById('arena-splash-meta');
+                const splashBtn = document.getElementById('arena-splash-action-btn');
+
+                function buildDynamicRoundDescription(rObj) {
+                    if (!rObj) return '';
+                    if (rObj.settings_summary) return rObj.settings_summary;
+                    const typeLabel = rObj.round_type === 'rapid_fire'
+                        ? '⚡ Rapid Fire (All Remaining Starred Puzzles)'
+                        : (rObj.round_type === 'head_to_head' ? 'Head-to-Head Flight Matchup' : 'All Teams Open Play');
+                    const tSec = (rObj.timer_seconds !== undefined && rObj.timer_seconds !== null) ? parseInt(rObj.timer_seconds, 10) : 25;
+                    const pts = (rObj.points_per_question !== undefined && rObj.points_per_question !== null) ? parseInt(rObj.points_per_question, 10) : 10;
+                    const steal = (rObj.steal_points !== undefined && rObj.steal_points !== null) ? parseInt(rObj.steal_points, 10) : 0;
+                    const advStr = rObj.advancement_type === 'top_x'
+                        ? `Top ${rObj.advance_top_x} Teams Advance`
+                        : 'All Advance';
+                    return `Type: ${typeLabel} • Timer: ${tSec}s • Points: +${pts} (Steal: +${steal}) • Advancement: ${advStr}`;
+                }
+
+                function renderArenaRoundStats(rObj) {
+                    if (!rObj) return '';
+                    const tSec = (rObj.timer_seconds !== undefined && rObj.timer_seconds !== null) ? parseInt(rObj.timer_seconds, 10) : 25;
+                    const pts = (rObj.points_per_question !== undefined && rObj.points_per_question !== null) ? parseInt(rObj.points_per_question, 10) : 10;
+                    const steal = (rObj.steal_points !== undefined && rObj.steal_points !== null) ? parseInt(rObj.steal_points, 10) : 0;
+                    const totQ = rObj.total_questions || (Array.isArray(rObj.category_allocations) ? rObj.category_allocations.reduce((s, a) => s + (parseInt(a.count) || 0), 0) : 0);
+                    const boxStyle = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 0.45rem 0.35rem; text-align: center;';
+                    return `
+                        <div style="${boxStyle}"><div style="font-size:0.68rem; color:#94a3b8; font-weight:800;">⏱️ TIMER</div><div style="font-size:1.05rem; font-weight:900; color:#38bdf8;">${tSec}s</div></div>
+                        <div style="${boxStyle}"><div style="font-size:0.68rem; color:#94a3b8; font-weight:800;">🏆 WIN</div><div style="font-size:1.05rem; font-weight:900; color:#10b981;">+${pts}</div></div>
+                        <div style="${boxStyle}"><div style="font-size:0.68rem; color:#94a3b8; font-weight:800;">⚡ STEAL</div><div style="font-size:1.05rem; font-weight:900; color:#f59e0b;">+${steal}</div></div>
+                        <div style="${boxStyle}"><div style="font-size:0.68rem; color:#94a3b8; font-weight:800;">🧩 PUZZLES</div><div style="font-size:1.05rem; font-weight:900; color:#fff;">${totQ || 'All'}</div></div>
+                    `;
+                }
+
+                function renderArenaRoundMeta(rObj) {
+                    if (!rObj) return '';
+                    const dynDesc = buildDynamicRoundDescription(rObj);
+                    const allocs = Array.isArray(rObj.category_allocations) ? rObj.category_allocations : [];
+                    const cats = allocs.map(a => `${a.category_icon || '🧩'} ${a.category_name || 'Category'} (${a.count})`).join(' • ');
+                    return `<div style="color:#f8fafc; font-weight:700; margin-bottom:0.2rem;">${dynDesc}</div>` +
+                        (cats ? `<div style="font-size:0.78rem; color:#94a3b8;">${cats}</div>` : '');
+                }
+
+                if (round && rProg.is_completed) {
+                    document.getElementById('cat-badge').innerText = `End of Round ${round.round_number || 1}`;
+                    document.getElementById('cat-badge').style.background = 'var(--accent)';
+                    if (splashPreviewWrap) splashPreviewWrap.style.display = 'none';
+                    if (splashIcon) splashIcon.innerText = '🏁';
+                    if (splashBadge) {
+                        splashBadge.innerText = `📺 TV SCREEN IS SHOWING: END OF ROUND ${round.round_number || 1} (${rProg.used || rProg.total || 0} PUZZLES)`;
+                        splashBadge.style.borderColor = 'var(--accent)';
+                        splashBadge.style.color = 'var(--accent)';
+                    }
+                    if (splashTitle) splashTitle.innerText = `End of Round ${round.round_number || 1}!`;
+                    const nextR = rProg.next_round;
+                    if (nextR) {
+                        if (splashSub) splashSub.innerHTML = `<strong style="color:var(--primary);">⏭️ Up Next: ${nextR.name}</strong>`;
+                        if (splashStats) splashStats.innerHTML = renderArenaRoundStats(nextR);
+                        if (splashMeta) splashMeta.innerHTML = renderArenaRoundMeta(nextR);
+                        if (splashBtn) {
+                            splashBtn.style.display = 'inline-flex';
+                            splashBtn.innerText = `⏭️ Next: Show Round ${nextR.round_number} Briefing on TV`;
+                        }
+                        if (btnNextQ) btnNextQ.innerText = `⏭️ Round ${nextR.round_number} Info`;
+                        if (dockBtnNext) dockBtnNext.innerText = `⏭️ R${nextR.round_number} Info`;
+                    } else {
+                        if (splashSub) splashSub.innerText = '🏆 Final Championship Round Complete! Congratulations to the winners!';
+                        if (splashStats) splashStats.innerHTML = '';
+                        if (splashMeta) splashMeta.innerHTML = '';
+                        if (splashBtn) splashBtn.style.display = 'none';
+                    }
+                } else if (showStatus === 'setup') {
+                    // Stage 1: TV Screen is displaying Welcome Splash Screen
+                    document.getElementById('cat-badge').innerText = 'TV: Splash Screen';
+                    document.getElementById('cat-badge').style.background = 'var(--accent)';
+                    if (splashIcon) splashIcon.innerText = '📺';
+                    if (splashBadge) {
+                        splashBadge.innerText = '📺 TV SCREEN IS SHOWING: SPLASH SCREEN';
+                        splashBadge.style.borderColor = 'var(--accent)';
+                        splashBadge.style.color = 'var(--accent)';
+                    }
+                    if (splashTitle) splashTitle.innerText = 'Welcome Splash Screen is Live on TV';
+                    if (splashSub) splashSub.innerText = 'TV screen is displaying the Khapre Party splash screen (teams hidden). Click Next to reveal competing teams on TV!';
+                    if (splashPreviewWrap) splashPreviewWrap.style.display = 'block';
+                    if (splashStats) splashStats.innerHTML = '';
+                    if (splashMeta) splashMeta.innerHTML = '';
+                    if (splashBtn) {
+                        splashBtn.style.display = 'inline-flex';
+                        splashBtn.innerText = '👥 Next: Show Teams on TV';
+                    }
+                    if (btnNextQ) btnNextQ.innerText = '👥 Show Teams';
+                    if (dockBtnNext) dockBtnNext.innerText = '👥 Teams';
+                } else if (showStatus === 'teams_intro') {
+                    // Stage 2: TV Screen is displaying Competing Teams Lineup
+                    document.getElementById('cat-badge').innerText = 'TV: Competing Teams';
+                    document.getElementById('cat-badge').style.background = 'var(--primary)';
+                    if (splashPreviewWrap) splashPreviewWrap.style.display = 'none';
+                    if (splashIcon) splashIcon.innerText = '👥';
+                    if (splashBadge) {
+                        splashBadge.innerText = '📺 TV SCREEN IS SHOWING: COMPETING TEAMS LINEUP';
+                        splashBadge.style.borderColor = 'var(--primary)';
+                        splashBadge.style.color = 'var(--primary)';
+                    }
+                    if (splashTitle) splashTitle.innerText = `Competing Teams Unveiled on TV (${(currentState.teams || []).length} Teams)`;
+                    if (splashSub) splashSub.innerText = 'Introduce the competing couples! Click Next to unveil the tournament rules 1-by-1 on TV.';
+                    if (splashStats) splashStats.innerHTML = '';
+                    if (splashMeta) {
+                        splashMeta.innerHTML = (currentState.teams || []).map(t => `<span style="display:inline-block; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:999px; padding:0.2rem 0.65rem; margin:0.15rem; color:#f8fafc; font-weight:700; font-size:0.78rem;">${t.avatar_emoji || '🍁'} ${t.name}</span>`).join('');
+                    }
+                    if (splashBtn) {
+                        splashBtn.style.display = 'inline-flex';
+                        splashBtn.innerText = '📜 Next: Unveil Rules on TV';
+                    }
+                    if (btnNextQ) btnNextQ.innerText = '📜 Unveil Rules';
+                    if (dockBtnNext) dockBtnNext.innerText = '📜 Rules';
+                } else if (round) {
+                    // Stage 4: Round Briefing & Rules on TV (Waiting for explicit Start Round)
+                    const rNum = round.round_number || 1;
+                    document.getElementById('cat-badge').innerText = `TV: Round ${rNum} Briefing`;
+                    document.getElementById('cat-badge').style.background = 'var(--primary)';
+                    if (splashPreviewWrap) splashPreviewWrap.style.display = 'none';
+                    if (splashIcon) splashIcon.innerText = '🍁';
+                    if (splashBadge) {
+                        splashBadge.innerText = `📺 TV SCREEN IS SHOWING: ROUND ${rNum} BRIEFING & RULES`;
+                        splashBadge.style.borderColor = 'var(--primary)';
+                        splashBadge.style.color = 'var(--primary)';
+                    }
+                    if (splashTitle) splashTitle.innerText = round.name;
+                    if (splashSub) splashSub.innerText = buildDynamicRoundDescription(round);
+                    if (splashStats) splashStats.innerHTML = renderArenaRoundStats(round);
+                    if (splashMeta) splashMeta.innerHTML = renderArenaRoundMeta(round);
+                    if (splashBtn) {
+                        splashBtn.style.display = 'inline-flex';
+                        splashBtn.innerText = `🚀 Start Round ${rNum}`;
+                    }
+                    if (btnNextQ) btnNextQ.innerText = `🚀 Start Round ${rNum}`;
+                    if (dockBtnNext) dockBtnNext.innerText = `🚀 Start R${rNum}`;
+                }
             }
         }
 
@@ -1363,7 +1529,12 @@
             rSelect.appendChild(opt);
         });
 
-        document.getElementById('q-counter').innerText = 'Asked: ' + currentState.used_questions_count;
+        const rProgSummary = currentState.round_progress || {};
+        if (rProgSummary.total > 0) {
+            document.getElementById('q-counter').innerText = `Round Q: ${rProgSummary.used}/${rProgSummary.total} • Total: ${currentState.used_questions_count}`;
+        } else {
+            document.getElementById('q-counter').innerText = 'Asked: ' + currentState.used_questions_count;
+        }
 
         const prevBtn = document.getElementById('btn-prev-q');
         const dockPrevBtn = document.getElementById('dock-btn-prev');
@@ -1420,6 +1591,10 @@
         isPaused = !isPaused;
     }
 
+    function hostNextStep() {
+        triggerAction('host_next');
+    }
+
     function triggerAction(actionName) {
         if (actionName === 'reveal_answer') {
             window.soundFX.playDingCorrect();
@@ -1429,7 +1604,31 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: actionName })
-        }).then(() => fetchState());
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data && data.stage === 'teams_intro') {
+                window.soundFX.playFanfare();
+                showToast('👥 Competing Teams Unveiled on TV!');
+            } else if (data && data.stage === 'rules_intro') {
+                window.soundFX.playTick();
+                if (data.active_rule_index === 0) {
+                    showToast('📜 Unveiling Tournament Rules on TV!');
+                }
+            } else if (data && data.stage === 'round_intro') {
+                window.soundFX.playFanfare();
+                showToast('🍁 Round Briefing & Rules Live on TV!');
+            } else if (data && data.round_completed) {
+                window.soundFX.playFanfare();
+                showToast(`🏁 End of Round ${data.round_number || ''}!`);
+            } else if (data && data.round_intro) {
+                window.soundFX.playFanfare();
+                showToast(`🚀 Up Next: ${data.round_name || 'Next Round'}`);
+            } else if (data && data.question) {
+                window.soundFX.playTick();
+            }
+            fetchState();
+        });
     }
 
     function showToast(msg) {
@@ -1508,14 +1707,7 @@
     }
 
     function finishRulesAndPlay() {
-        fetch(`/api/shows/${SHOW_ID}/action`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'finish_rules' })
-        }).then(() => {
-            fetchState();
-            triggerAction('start_question');
-        });
+        triggerAction('finish_rules');
     }
 
     // Keyboard Shortcuts for Host!
@@ -1526,12 +1718,7 @@
         if (activeRuleIdx >= 0) {
             if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') {
                 e.preventDefault();
-                const rulesCount = currentState?.rules?.length || 0;
-                if (activeRuleIdx < rulesCount - 1) {
-                    triggerAction('next_rule');
-                } else {
-                    finishRulesAndPlay();
-                }
+                triggerAction('next_rule');
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 triggerAction('prev_rule');
@@ -1544,9 +1731,13 @@
 
         if (e.key === ' ' || e.key === 'Enter') {
             e.preventDefault();
-            triggerAction('reveal_answer');
+            if (currentState?.current_question) {
+                triggerAction('reveal_answer');
+            } else {
+                hostNextStep();
+            }
         } else if (e.key === 'ArrowRight' || e.key === 'n') {
-            triggerAction('next_question');
+            hostNextStep();
         } else if (e.key === 'ArrowLeft') {
             triggerAction('prev_question');
         } else if (e.key === 'p') {

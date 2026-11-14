@@ -356,6 +356,15 @@
                 </div>
             </label>
         </div>
+        <div class="form-group">
+            <label style="display: flex; align-items: flex-start; gap: 0.65rem; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.35); padding: 0.85rem 1rem; border-radius: 10px; cursor: pointer;">
+                <input type="checkbox" name="include_rapid_fire" value="1" style="width: 18px; height: 18px; margin-top: 2px; accent-color: #38bdf8; cursor: pointer;">
+                <div>
+                    <div style="font-weight: 800; color: #38bdf8; font-size: 0.95rem;">⚡ Add Rapid Fire Round (All Remaining Starred Puzzles)</div>
+                    <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 0.2rem;">Automatically adds a Rapid Fire round containing all Starred &amp; Included puzzles not yet taken into other rounds, randomized (order &amp; selection locked).</div>
+                </div>
+            </label>
+        </div>
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('new-show-modal').close()">Cancel</button>
             <button type="submit" class="btn btn-primary">Create Show & Setup Rounds</button>

@@ -125,6 +125,32 @@
             gap: 0.75rem;
         }
 
+        .tv-sound-btn {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1.5px solid rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+            padding: 0.45rem 0.9rem;
+            border-radius: 12px;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            font-size: 0.9rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+        }
+
+        .tv-sound-btn:hover {
+            background: rgba(245, 158, 11, 0.18);
+            border-color: var(--accent);
+        }
+
+        .tv-sound-btn.muted {
+            border-color: rgba(148, 163, 184, 0.3);
+            color: #94a3b8;
+        }
+
         .timer-label {
             font-size: 0.95rem;
             font-weight: 800;
@@ -159,6 +185,10 @@
             flex: 1;
             overflow: hidden;
             position: relative;
+        }
+
+        .tv-content.splash-fullscreen {
+            grid-template-columns: 1fr !important;
         }
 
         @media (min-width: 1800px) {
@@ -594,6 +624,9 @@
             </div>
         </div>
         <div class="timer-container">
+            <button type="button" class="tv-sound-btn" id="tv-sound-btn" onclick="toggleTvSound()" title="Toggle TV Sound Effects">
+                🔊 Sound
+            </button>
             <span class="timer-label">TIMER</span>
             <div class="timer-box" id="tv-timer">25</div>
         </div>
@@ -627,19 +660,83 @@
 
                 <div class="answer-overlay" id="tv-answer">ANSWER</div>
 
-                <div class="splash-card" id="tv-splash">
-                    <div style="font-size: 5rem; margin-bottom: 0.85rem;">🍁</div>
-                    <h1 style="font-size: 3.2rem; font-weight: 900; letter-spacing: 1.5px;">FALL PARTY REBUS ARENA</h1>
-                    <p style="font-size: 1.5rem; color: #cbd5e1; margin-top: 0.4rem; margin-bottom: 1.5rem;">Say What You See!</p>
-                    <div style="display: inline-flex; align-items: center; gap: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1.5px solid rgba(245, 158, 11, 0.4); padding: 0.85rem 2rem; border-radius: 30px; font-weight: 800; font-size: 1.15rem; color: var(--accent);">
-                        🎮 Game Show Ready • Next Puzzle Starting Soon!
+                <!-- END OF ROUND ANNOUNCEMENT CARD -->
+                <div class="splash-card" id="tv-round-end-card" style="display: none; max-width: 820px; width: 92%; padding: 2.2rem 2.5rem; border: 2px solid var(--accent); box-shadow: 0 20px 60px rgba(0,0,0,0.85);">
+                    <div id="tv-end-badge" style="display: inline-block; background: rgba(245, 158, 11, 0.2); border: 1.5px solid var(--accent); color: var(--accent); font-weight: 900; font-size: 0.95rem; padding: 0.35rem 1.2rem; border-radius: 999px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.75rem;">
+                        🏁 ROUND COMPLETE
+                    </div>
+                    <h1 id="tv-end-title" style="font-size: 3rem; font-weight: 900; letter-spacing: 1px; color: #fff; margin: 0 0 0.35rem 0;">END OF ROUND 1</h1>
+                    <p id="tv-end-subtitle" style="font-size: 1.35rem; color: #cbd5e1; font-weight: 700; margin: 0 0 1.35rem 0;">All round puzzles completed!</p>
+
+                    <!-- UP NEXT ROUND BRIEFING & RULES PREVIEW -->
+                    <div id="tv-next-round-box" style="background: rgba(15, 23, 42, 0.75); border: 1.5px solid rgba(249, 115, 22, 0.45); border-radius: 16px; padding: 1.25rem 1.5rem; text-align: left;">
+                        <div style="font-size: 0.85rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0.35rem;" id="tv-next-round-label">
+                            ⏭️ UP NEXT • ROUND 2 BRIEFING &amp; RULES
+                        </div>
+                        <div style="font-size: 1.55rem; font-weight: 900; color: #fff; margin-bottom: 0.85rem;" id="tv-next-round-name">
+                            Round 2: Flight Battles
+                        </div>
+                        <div id="tv-next-round-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 0.75rem;">
+                            <!-- Populated dynamically: Timer, Points, Steal, Questions -->
+                        </div>
+                        <div id="tv-next-round-cats" style="font-size: 0.95rem; color: #cbd5e1; font-weight: 600;"></div>
+                    </div>
+                </div>
+
+                <!-- WELCOME SPLASH SCREEN (STAGE 1: ONLY ON TV SCREEN) -->
+                <div class="splash-card" id="tv-welcome-splash-card" style="display: none; max-width: 1120px; width: 95%; padding: 1.5rem 2rem; background: linear-gradient(145deg, rgba(32, 26, 21, 0.96) 0%, rgba(18, 14, 11, 0.99) 100%); border: 2.5px solid rgba(245, 158, 11, 0.55); border-radius: 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.92), 0 0 60px rgba(249, 115, 22, 0.22);">
+                    <div style="display: inline-block; background: rgba(249, 115, 22, 0.2); border: 1.5px solid rgba(249, 115, 22, 0.55); color: var(--accent); font-weight: 900; font-size: 0.9rem; padding: 0.3rem 1.25rem; border-radius: 999px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.65rem;">
+                        🍁 WELCOME TO THE TOURNAMENT ARENA
+                    </div>
+                    <h1 style="font-size: clamp(2.1rem, 3.2vw, 3.1rem); font-weight: 900; letter-spacing: 1px; color: #fff; margin: 0 0 0.25rem 0; text-shadow: 0 4px 20px rgba(0,0,0,0.6);">
+                        {{ show.name }}
+                    </h1>
+                    <p style="font-size: 1.15rem; color: #cbd5e1; font-weight: 700; margin: 0 0 1rem 0;">
+                        {{ show.description ?? show.subtitle ?? 'Say What You See • Couple Edition Rebus Championship!' }}
+                    </p>
+                    <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.85rem;">
+                        <img src="/media/khapre_party_splash.jpg" alt="Khapre Party Splash" style="max-height: 54vh; max-width: 100%; width: auto; border-radius: 20px; border: 3px solid rgba(251, 191, 36, 0.55); box-shadow: 0 20px 55px rgba(0,0,0,0.85); object-fit: contain;">
+                    </div>
+                    <div style="display: inline-flex; align-items: center; gap: 0.65rem; background: rgba(245, 158, 11, 0.16); border: 1.5px solid rgba(245, 158, 11, 0.45); padding: 0.55rem 1.5rem; border-radius: 999px; font-weight: 800; font-size: 1rem; color: var(--accent);">
+                        🎉 Get Ready! Host Will Unveil Competing Teams &amp; Rules Shortly
+                    </div>
+                </div>
+
+                <!-- COMPETING TEAMS LINEUP CARD (STAGE 2: TEAMS UNVEILED ON TV) -->
+                <div class="splash-card" id="tv-teams-intro-card" style="display: none; max-width: 1060px; width: 95%; padding: 2rem 2.5rem; background: linear-gradient(145deg, rgba(32, 26, 21, 0.96) 0%, rgba(18, 14, 11, 0.99) 100%); border: 2px solid rgba(249, 115, 22, 0.5); border-radius: 28px; box-shadow: 0 25px 70px rgba(0,0,0,0.9);">
+                    <div style="display: inline-block; background: rgba(249, 115, 22, 0.2); border: 1.5px solid rgba(249, 115, 22, 0.55); color: var(--primary); font-weight: 900; font-size: 0.9rem; padding: 0.35rem 1.25rem; border-radius: 999px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.6rem;">
+                        👥 OFFICIAL CONTESTANT LINEUP
+                    </div>
+                    <h1 style="font-size: clamp(2rem, 3vw, 2.8rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem 0;">
+                        MEET TONIGHT'S COMPETING TEAMS
+                    </h1>
+                    <p style="font-size: 1.15rem; color: #cbd5e1; margin: 0 0 1.35rem 0;">
+                         Let's hear it for our competing couples &amp; challengers!
+                    </p>
+                    <div id="tv-teams-showcase-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem; text-align: left; max-height: 52vh; overflow-y: auto; padding: 0.25rem;">
+                        <!-- Populated dynamically with competing teams -->
+                    </div>
+                </div>
+
+                <!-- ROUND INTRO / SPLASH CARD -->
+                <div class="splash-card" id="tv-splash" style="display: none; max-width: 820px; width: 92%; padding: 2.2rem 2.5rem;">
+                    <div style="font-size: 4rem; margin-bottom: 0.5rem;" id="tv-splash-icon">🍁</div>
+                    <div id="tv-splash-badge" style="display: inline-block; background: rgba(249, 115, 22, 0.18); border: 1.5px solid rgba(249, 115, 22, 0.45); color: var(--primary); font-weight: 900; font-size: 0.9rem; padding: 0.3rem 1.1rem; border-radius: 999px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.6rem;">
+                        ROUND 1 BRIEFING &amp; FORMAT
+                    </div>
+                    <h1 id="tv-splash-title" style="font-size: 2.6rem; font-weight: 900; letter-spacing: 1px; margin: 0 0 0.4rem 0;">FALL PARTY REBUS ARENA</h1>
+                    <p id="tv-splash-sub" style="font-size: 1.25rem; color: #cbd5e1; margin: 0 0 1.25rem 0;">Say What You See!</p>
+                    <div id="tv-splash-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1rem;"></div>
+                    <div id="tv-splash-cats" style="font-size: 0.95rem; color: #cbd5e1; font-weight: 600; margin-bottom: 1.25rem;"></div>
+                    <div style="display: inline-flex; align-items: center; gap: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1.5px solid rgba(245, 158, 11, 0.4); padding: 0.7rem 1.75rem; border-radius: 30px; font-weight: 800; font-size: 1.05rem; color: var(--accent);">
+                        🎮 Waiting for Host to Start Round!
                     </div>
                 </div>
             </div>
         </main>
 
         <!-- RIGHT: LIVE SCOREBOARD -->
-        <aside class="tv-scoreboard">
+        <aside class="tv-scoreboard" id="tv-scoreboard-aside">
             <div class="scoreboard-header">
                 <span class="scoreboard-title">🏆 Live Scores</span>
                 <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;" id="tv-team-count">10 Teams</span>
@@ -657,8 +754,98 @@
         Fall Party Rebus Gameshow - Copyrights (c) Vishal Khapre, Crafted with Natural Intelligence and powered by Artificial Intelligence
     </footer>
 
+    <script src="/js/sounds.js"></script>
     <script>
         const SHOW_ID = {{ show.id }};
+        let tvSoundEnabled = true;
+        let tvTimerInterval = null;
+        let tvRemainingSeconds = 25;
+        let activeTimerStartStamp = null;
+        let timeUpBuzzerPlayedForStamp = null;
+
+        let hasInitializedTvState = false;
+        let prevQuestionId = null;
+        let prevQuestionStartedAt = null;
+        let prevAnswerRevealed = 0;
+        let prevRoundId = null;
+        let prevRoundCompleted = false;
+        let prevTeamScoreSum = 0;
+        let prevShowStatus = null;
+        let prevActiveRuleIdx = -1;
+
+        function toggleTvSound() {
+            tvSoundEnabled = !tvSoundEnabled;
+            if (window.soundFX) {
+                window.soundFX.enabled = tvSoundEnabled;
+                if (tvSoundEnabled) {
+                    window.soundFX.init();
+                    window.soundFX.playTick();
+                }
+            }
+            const btn = document.getElementById('tv-sound-btn');
+            if (btn) {
+                btn.innerText = tvSoundEnabled ? '🔊 Sound' : '🔇 Muted';
+                btn.classList.toggle('muted', !tvSoundEnabled);
+            }
+        }
+
+        function updateTvTimerBox(sec) {
+            const box = document.getElementById('tv-timer');
+            if (!box) return;
+            box.innerText = sec;
+            if (sec <= 5) {
+                box.classList.add('danger');
+            } else {
+                box.classList.remove('danger');
+            }
+        }
+
+        function startTvClientTimer(startedAt, duration) {
+            const elapsed = Math.floor(Date.now() / 1000) - startedAt;
+            tvRemainingSeconds = Math.max(0, (duration || 25) - elapsed);
+            updateTvTimerBox(tvRemainingSeconds);
+
+            if (activeTimerStartStamp === startedAt && tvTimerInterval) {
+                return;
+            }
+
+            activeTimerStartStamp = startedAt;
+            clearInterval(tvTimerInterval);
+
+            tvTimerInterval = setInterval(() => {
+                const nowElapsed = Math.floor(Date.now() / 1000) - startedAt;
+                const nextRem = Math.max(0, (duration || 25) - nowElapsed);
+
+                if (nextRem !== tvRemainingSeconds) {
+                    tvRemainingSeconds = nextRem;
+                    updateTvTimerBox(tvRemainingSeconds);
+
+                    if (tvRemainingSeconds > 0 && tvRemainingSeconds <= 5 && window.soundFX) {
+                        window.soundFX.playWarningTick();
+                    }
+
+                    if (tvRemainingSeconds === 0) {
+                        clearInterval(tvTimerInterval);
+                        tvTimerInterval = null;
+                        if (timeUpBuzzerPlayedForStamp !== startedAt && window.soundFX) {
+                            timeUpBuzzerPlayedForStamp = startedAt;
+                            window.soundFX.playTimeUpBuzzer();
+                        }
+                    }
+                }
+            }, 250);
+        }
+
+        function stopTvClientTimer(defaultSec) {
+            clearInterval(tvTimerInterval);
+            tvTimerInterval = null;
+            activeTimerStartStamp = null;
+            const box = document.getElementById('tv-timer');
+            if (box) {
+                box.innerText = defaultSec || 25;
+                box.classList.remove('danger');
+            }
+        }
 
         function syncDisplay() {
             fetch(`/api/shows/${SHOW_ID}/state`)
@@ -677,14 +864,95 @@
                     const imgCard = document.getElementById('tv-img-card');
                     const img = document.getElementById('tv-img');
                     const ansBanner = document.getElementById('tv-answer');
+                    const welcomeSplashCard = document.getElementById('tv-welcome-splash-card');
+                    const teamsIntroCard = document.getElementById('tv-teams-intro-card');
                     const splash = document.getElementById('tv-splash');
+                    const roundEndCard = document.getElementById('tv-round-end-card');
                     const rulesCard = document.getElementById('tv-rules-card');
+                    const tvContentGrid = document.querySelector('.tv-content');
+                    const scoreboardAside = document.getElementById('tv-scoreboard-aside');
                     const rulesList = Array.isArray(data.rules) ? data.rules : [];
                     const activeRuleIdx = (show.active_rule_index !== undefined && show.active_rule_index !== null) ? parseInt(show.active_rule_index) : -1;
+                    const rProg = data.round_progress || {};
+                    const showStatus = show.status || 'setup';
+
+                    function buildDynamicRoundDescription(rObj) {
+                        if (!rObj) return '';
+                        if (rObj.settings_summary) return rObj.settings_summary;
+                        const typeLabel = rObj.round_type === 'rapid_fire'
+                            ? '⚡ Rapid Fire (All Remaining Starred Puzzles)'
+                            : (rObj.round_type === 'head_to_head' ? 'Head-to-Head Flight Matchup' : 'All Teams Open Play');
+                        const timerSec = (rObj.timer_seconds !== undefined && rObj.timer_seconds !== null) ? parseInt(rObj.timer_seconds, 10) : 25;
+                        const pts = (rObj.points_per_question !== undefined && rObj.points_per_question !== null) ? parseInt(rObj.points_per_question, 10) : 10;
+                        const steal = (rObj.steal_points !== undefined && rObj.steal_points !== null) ? parseInt(rObj.steal_points, 10) : 0;
+                        const advLabel = rObj.advancement_type === 'top_x'
+                            ? `Top ${rObj.advance_top_x} Teams Advance`
+                            : 'All Advance';
+                        return `Type: ${typeLabel} • Timer: ${timerSec}s • Points: +${pts} (Steal: +${steal}) • Advancement: ${advLabel}`;
+                    }
+
+                    function buildRoundStatsHtml(rObj) {
+                        if (!rObj) return '';
+                        const timerSec = (rObj.timer_seconds !== undefined && rObj.timer_seconds !== null) ? parseInt(rObj.timer_seconds, 10) : 25;
+                        const pts = (rObj.points_per_question !== undefined && rObj.points_per_question !== null) ? parseInt(rObj.points_per_question, 10) : 10;
+                        const steal = (rObj.steal_points !== undefined && rObj.steal_points !== null) ? parseInt(rObj.steal_points, 10) : 0;
+                        const totalQ = rObj.total_questions || (Array.isArray(rObj.category_allocations) ? rObj.category_allocations.reduce((s, a) => s + (parseInt(a.count) || 0), 0) : 0);
+                        const tileStyle = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 0.65rem 0.5rem; text-align: center;';
+                        return `
+                            <div style="${tileStyle}">
+                                <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">⏱️ Timer</div>
+                                <div style="font-size: 1.3rem; font-weight: 900; color: #38bdf8; margin-top: 0.15rem;">${timerSec}s</div>
+                            </div>
+                            <div style="${tileStyle}">
+                                <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">🏆 Win Points</div>
+                                <div style="font-size: 1.3rem; font-weight: 900; color: #10b981; margin-top: 0.15rem;">+${pts} pts</div>
+                            </div>
+                            <div style="${tileStyle}">
+                                <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">⚡ Steal</div>
+                                <div style="font-size: 1.3rem; font-weight: 900; color: #f59e0b; margin-top: 0.15rem;">+${steal} pts</div>
+                            </div>
+                            <div style="${tileStyle}">
+                                <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 800; text-transform: uppercase;">🧩 Puzzles</div>
+                                <div style="font-size: 1.3rem; font-weight: 900; color: #fff; margin-top: 0.15rem;">${totalQ || 'All'}</div>
+                            </div>
+                        `;
+                    }
+
+                    function buildRoundMetaSummary(rObj) {
+                        if (!rObj) return '';
+                        const dynDesc = buildDynamicRoundDescription(rObj);
+                        const allocs = Array.isArray(rObj.category_allocations) ? rObj.category_allocations : [];
+                        const catPills = allocs.map(a => `${a.category_icon || '🧩'} ${a.category_name || 'Category'} (${a.count})`).join('  •  ');
+                        return `<div style="margin-bottom: 0.35rem; color: #f8fafc;">${dynDesc}</div>` +
+                            (catPills ? `<div style="font-size: 0.85rem; color: #94a3b8;">Categories: ${catPills}</div>` : '');
+                    }
+
+                    // Determine if we are on the initial Welcome Splash Screen (hide teams scoreboard until host clicks Next)
+                    const isWelcomeSplashStage = (!q && activeRuleIdx < 0 && !rProg.is_completed && showStatus === 'setup');
+                    const isTeamsIntroStage = (!q && activeRuleIdx < 0 && !rProg.is_completed && showStatus === 'teams_intro');
+
+                    if (isWelcomeSplashStage) {
+                        if (scoreboardAside) scoreboardAside.style.display = 'none';
+                        if (tvContentGrid) tvContentGrid.classList.add('splash-fullscreen');
+                        document.getElementById('tv-round').innerText = 'Welcome Splash';
+                    } else {
+                        if (scoreboardAside) scoreboardAside.style.display = 'flex';
+                        if (tvContentGrid) tvContentGrid.classList.remove('splash-fullscreen');
+                        if (isTeamsIntroStage) {
+                            document.getElementById('tv-round').innerText = 'Competing Teams';
+                        } else if (activeRuleIdx >= 0) {
+                            document.getElementById('tv-round').innerText = 'Tournament Rules';
+                        } else if (round) {
+                            document.getElementById('tv-round').innerText = round.name;
+                        }
+                    }
 
                     if (activeRuleIdx >= 0 && rulesList.length > 0 && activeRuleIdx < rulesList.length) {
                         const activeRule = rulesList[activeRuleIdx];
+                        if (welcomeSplashCard) welcomeSplashCard.style.display = 'none';
+                        if (teamsIntroCard) teamsIntroCard.style.display = 'none';
                         splash.style.display = 'none';
+                        if (roundEndCard) roundEndCard.style.display = 'none';
                         imgCard.style.display = 'none';
                         ansBanner.style.display = 'none';
                         catBadge.style.display = 'none';
@@ -707,12 +975,16 @@
                         rulesCard.style.display = 'none';
 
                         if (q) {
+                            if (welcomeSplashCard) welcomeSplashCard.style.display = 'none';
+                            if (teamsIntroCard) teamsIntroCard.style.display = 'none';
                             splash.style.display = 'none';
+                            if (roundEndCard) roundEndCard.style.display = 'none';
                             imgCard.style.display = 'flex';
                             img.src = q.media_path;
 
                             if (q.category_name) {
-                                catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}`;
+                                const qProgress = (rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '';
+                                catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}${qProgress}`;
                                 catBadge.style.display = 'inline-flex';
                                 if (roundDivider) roundDivider.style.display = 'inline';
                             } else {
@@ -726,12 +998,89 @@
                             } else {
                                 ansBanner.style.display = 'none';
                             }
+                        } else if (round && rProg.is_completed) {
+                            if (welcomeSplashCard) welcomeSplashCard.style.display = 'none';
+                            if (teamsIntroCard) teamsIntroCard.style.display = 'none';
+                            splash.style.display = 'none';
+                            imgCard.style.display = 'none';
+                            ansBanner.style.display = 'none';
+                            catBadge.style.display = 'none';
+                            if (roundDivider) roundDivider.style.display = 'none';
+                            if (roundEndCard) {
+                                roundEndCard.style.display = 'block';
+                                const rNum = round.round_number || 1;
+                                document.getElementById('tv-end-badge').innerText = `🏁 ROUND ${rNum} COMPLETE • ${rProg.used || rProg.total || 0} PUZZLES FINISHED`;
+                                document.getElementById('tv-end-title').innerText = `END OF ROUND ${rNum}`;
+                                document.getElementById('tv-end-subtitle').innerText = `${round.name} is complete! Check the live standings on the right.`;
+
+                                const nextR = rProg.next_round;
+                                const nextBox = document.getElementById('tv-next-round-box');
+                                if (nextR) {
+                                    nextBox.style.display = 'block';
+                                    document.getElementById('tv-next-round-label').innerText = `⏭️ UP NEXT • ROUND ${nextR.round_number} RULES & INFO`;
+                                    document.getElementById('tv-next-round-name').innerText = nextR.name;
+                                    document.getElementById('tv-next-round-stats').innerHTML = buildRoundStatsHtml(nextR);
+                                    document.getElementById('tv-next-round-cats').innerHTML = buildRoundMetaSummary(nextR);
+                                } else {
+                                    nextBox.style.display = 'block';
+                                    document.getElementById('tv-next-round-label').innerText = '🏆 GRAND CHAMPIONSHIP COMPLETE';
+                                    document.getElementById('tv-next-round-name').innerText = 'Congratulations to our Grand Champions!';
+                                    document.getElementById('tv-next-round-stats').innerHTML = '';
+                                    document.getElementById('tv-next-round-cats').innerHTML = '<div style="color: var(--accent); font-weight: 800;">All tournament rounds have been completed!</div>';
+                                }
+                            }
+                        } else if (isWelcomeSplashStage) {
+                            if (roundEndCard) roundEndCard.style.display = 'none';
+                            if (teamsIntroCard) teamsIntroCard.style.display = 'none';
+                            splash.style.display = 'none';
+                            imgCard.style.display = 'none';
+                            ansBanner.style.display = 'none';
+                            catBadge.style.display = 'none';
+                            if (roundDivider) roundDivider.style.display = 'none';
+                            if (welcomeSplashCard) welcomeSplashCard.style.display = 'block';
+                        } else if (isTeamsIntroStage) {
+                            if (roundEndCard) roundEndCard.style.display = 'none';
+                            if (welcomeSplashCard) welcomeSplashCard.style.display = 'none';
+                            splash.style.display = 'none';
+                            imgCard.style.display = 'none';
+                            ansBanner.style.display = 'none';
+                            catBadge.style.display = 'none';
+                            if (roundDivider) roundDivider.style.display = 'none';
+                            if (teamsIntroCard) {
+                                teamsIntroCard.style.display = 'block';
+                                const showcaseGrid = document.getElementById('tv-teams-showcase-grid');
+                                if (showcaseGrid) {
+                                    showcaseGrid.innerHTML = (data.teams || []).map((t, idx) => `
+                                        <div style="background: rgba(255,255,255,0.05); border: 1.5px solid ${t.avatar_color || '#f97316'}; border-radius: 16px; padding: 0.9rem 1.1rem; display: flex; align-items: center; gap: 0.85rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">
+                                            <div style="width: 52px; height: 52px; border-radius: 14px; background: #120e0b; border: 2px solid ${t.avatar_color || '#f97316'}; display: flex; align-items: center; justify-content: center; font-size: 1.85rem; flex-shrink: 0;">
+                                                ${t.avatar_emoji || '🍁'}
+                                            </div>
+                                            <div style="min-width: 0; flex: 1;">
+                                                <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px;">TEAM #${idx + 1}</div>
+                                                <div style="font-size: 1.15rem; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.name}</div>
+                                                ${t.members ? `<div style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600; margin-top: 2px;">${t.members}</div>` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('');
+                                }
+                            }
                         } else {
+                            if (welcomeSplashCard) welcomeSplashCard.style.display = 'none';
+                            if (teamsIntroCard) teamsIntroCard.style.display = 'none';
+                            if (roundEndCard) roundEndCard.style.display = 'none';
                             splash.style.display = 'block';
                             imgCard.style.display = 'none';
                             ansBanner.style.display = 'none';
                             catBadge.style.display = 'none';
                             if (roundDivider) roundDivider.style.display = 'none';
+
+                            if (round) {
+                                document.getElementById('tv-splash-badge').innerText = `ROUND ${round.round_number || 1} BRIEFING & RULES`;
+                                document.getElementById('tv-splash-title').innerText = round.name;
+                                document.getElementById('tv-splash-sub').innerText = buildDynamicRoundDescription(round);
+                                document.getElementById('tv-splash-stats').innerHTML = buildRoundStatsHtml(round);
+                                document.getElementById('tv-splash-cats').innerHTML = buildRoundMetaSummary(round);
+                            }
                         }
                     }
 
@@ -744,21 +1093,50 @@
                         matchupBox.style.display = 'none';
                     }
 
-                    // Timer Sync
-                    if (show.question_started_at && show.answer_revealed == 0) {
-                        const elapsed = Math.floor(Date.now() / 1000) - show.question_started_at;
-                        const rem = Math.max(0, (show.timer_duration || 25) - elapsed);
-                        const box = document.getElementById('tv-timer');
-                        box.innerText = rem;
-                        if (rem <= 5) {
-                            box.classList.add('danger');
-                        } else {
-                            box.classList.remove('danger');
-                        }
+                    // Timer Sync (Smooth 1s client countdown + warning ticks & time-up buzzer)
+                    if (show.question_started_at && show.answer_revealed == 0 && q) {
+                        startTvClientTimer(parseInt(show.question_started_at), parseInt(show.timer_duration) || 25);
                     } else {
-                        document.getElementById('tv-timer').innerText = show.timer_duration || 25;
-                        document.getElementById('tv-timer').classList.remove('danger');
+                        stopTvClientTimer(parseInt(show.timer_duration) || 25);
                     }
+
+                    // Sound Effect Triggers on TV State Transitions
+                    const curQId = q ? q.id : null;
+                    const curQStart = show.question_started_at ? parseInt(show.question_started_at) : null;
+                    const curRev = parseInt(show.answer_revealed) || 0;
+                    const curRId = show.current_round_id ? parseInt(show.current_round_id) : null;
+                    const curRDone = !!rProg.is_completed;
+                    const curScoreSum = (data.teams || []).reduce((acc, t) => acc + (parseInt(t.score) || 0), 0);
+
+                    if (hasInitializedTvState && window.soundFX) {
+                        let playedDingThisTick = false;
+
+                        if (curRev === 1 && prevAnswerRevealed === 0) {
+                            window.soundFX.playDingCorrect();
+                            playedDingThisTick = true;
+                        }
+                        if (curScoreSum > prevTeamScoreSum && !playedDingThisTick) {
+                            window.soundFX.playDingCorrect();
+                            playedDingThisTick = true;
+                        }
+                        if ((curRDone && !prevRoundCompleted) || (prevRoundId !== null && curRId !== prevRoundId && !curQId) || (showStatus !== prevShowStatus && (showStatus === 'teams_intro' || showStatus === 'round_intro'))) {
+                            window.soundFX.playFanfare();
+                        } else if (activeRuleIdx >= 0 && activeRuleIdx !== prevActiveRuleIdx) {
+                            window.soundFX.playTick();
+                        } else if (curQId && (curQId !== prevQuestionId || curQStart !== prevQuestionStartedAt)) {
+                            window.soundFX.playTick();
+                        }
+                    }
+
+                    hasInitializedTvState = true;
+                    prevQuestionId = curQId;
+                    prevQuestionStartedAt = curQStart;
+                    prevAnswerRevealed = curRev;
+                    prevRoundId = curRId;
+                    prevRoundCompleted = curRDone;
+                    prevTeamScoreSum = curScoreSum;
+                    prevShowStatus = showStatus;
+                    prevActiveRuleIdx = activeRuleIdx;
 
                     // Right Scoreboard Teams
                     const teamsWrap = document.getElementById('tv-teams');

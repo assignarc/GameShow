@@ -370,6 +370,168 @@
         align-items: center;
         flex-shrink: 0;
     }
+
+    .round-questions-box {
+        margin-top: 1.25rem;
+        padding-top: 1.15rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .round-q-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 0.9rem;
+    }
+
+    .round-q-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(225px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .round-q-card {
+        background: #14100d;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        position: relative;
+        transition: all 0.15s ease;
+    }
+
+    .round-q-card:hover {
+        border-color: rgba(245, 158, 11, 0.45);
+        transform: translateY(-1px);
+    }
+
+    .round-q-card[draggable="true"] {
+        cursor: grab;
+    }
+
+    .round-q-card.dragging {
+        opacity: 0.4;
+        border-color: var(--primary);
+        cursor: grabbing;
+    }
+
+    .round-q-card.drag-over {
+        border: 2px dashed var(--accent);
+        background: rgba(245, 158, 11, 0.12);
+        transform: scale(1.02);
+    }
+
+    .round-q-thumb-wrap {
+        width: 100%;
+        height: 115px;
+        background: #ffffff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .round-q-thumb {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    .round-q-num-badge {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        background: rgba(15, 23, 42, 0.88);
+        color: #fbbf24;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 0.12rem 0.45rem;
+        border-radius: 6px;
+        border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .round-q-star-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: rgba(15, 23, 42, 0.88);
+        color: #fbbf24;
+        font-size: 0.78rem;
+        padding: 0.1rem 0.35rem;
+        border-radius: 6px;
+    }
+
+    .round-q-answer {
+        font-weight: 800;
+        font-size: 0.88rem;
+        color: #f8fafc;
+        line-height: 1.25;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .round-q-meta {
+        font-size: 0.74rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.35rem;
+    }
+
+    .round-q-actions {
+        display: flex;
+        gap: 0.4rem;
+        margin-top: auto;
+        padding-top: 0.35rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .picker-q-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+        gap: 0.75rem;
+        max-height: 54vh;
+        overflow-y: auto;
+        padding: 0.25rem;
+    }
+
+    .picker-q-card {
+        background: #14100d;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+
+    .picker-q-card:hover:not(.disabled) {
+        border-color: rgba(249, 115, 22, 0.6);
+    }
+
+    .picker-q-card.selected {
+        border-color: #10b981;
+        background: rgba(16, 185, 129, 0.12);
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+    }
+
+    .picker-q-card.disabled {
+        opacity: 0.48;
+        cursor: not-allowed;
+        border-style: dashed;
+    }
 </style>
 {% endblock %}
 
@@ -415,20 +577,29 @@
                 </div>
                 <div style="font-size: 0.78rem; color: var(--text-muted);">
                     {% if show.starred_only|default(0) %}
-                        Strictly selects from Starred puzzles only. Uncheck to include all Included puzzles.
+                        Strictly selects from Starred &amp; Included puzzles only. Skipped &amp; Excluded puzzles are never used.
                     {% else %}
-                        Selects from all Included puzzles ({{ pool_stats.starred }} Starred). Check the box to restrict to Starred puzzles only.
+                        Starred &amp; Included puzzles ({{ pool_stats.starred }}) always take 1st priority, followed by Unstarred Included puzzles. Skipped &amp; Excluded are never used.
                     {% endif %}
                 </div>
             </div>
         </div>
-        <form method="POST" action="{{ path('app_show_puzzle_pool', {'id': show.id}) }}" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-            <input type="hidden" name="starred_only" value="{{ show.starred_only|default(0) ? '0' : '1' }}">
-            <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 800; font-size: 0.85rem; padding: 0.45rem 0.9rem; border-radius: 8px; border: 1.5px solid {{ show.starred_only|default(0) ? '#fbbf24' : 'var(--border-color)' }}; background: {{ show.starred_only|default(0) ? 'rgba(251, 191, 36, 0.18)' : 'var(--bg-card)' }}; color: {{ show.starred_only|default(0) ? '#fbbf24' : 'var(--text-main)' }}; transition: all 0.2s ease;">
-                <input type="checkbox" {% if show.starred_only|default(0) %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; accent-color: #fbbf24; cursor: pointer;">
-                <span>⭐ Only Select Starred Puzzles</span>
-            </label>
-        </form>
+        <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+            <form method="POST" action="{{ path('app_show_puzzle_pool', {'id': show.id}) }}" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="hidden" name="starred_only" value="{{ show.starred_only|default(0) ? '0' : '1' }}">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 800; font-size: 0.85rem; padding: 0.45rem 0.9rem; border-radius: 8px; border: 1.5px solid {{ show.starred_only|default(0) ? '#fbbf24' : 'var(--border-color)' }}; background: {{ show.starred_only|default(0) ? 'rgba(251, 191, 36, 0.18)' : 'var(--bg-card)' }}; color: {{ show.starred_only|default(0) ? '#fbbf24' : 'var(--text-main)' }}; transition: all 0.2s ease;">
+                    <input type="checkbox" {% if show.starred_only|default(0) %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; accent-color: #fbbf24; cursor: pointer;">
+                    <span>⭐ Only Select Starred Puzzles</span>
+                </label>
+            </form>
+            <form method="POST" action="{{ path('app_show_rapid_fire_toggle', {'id': show.id}) }}" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <input type="hidden" name="enable" value="{{ has_rapid_fire|default(false) ? '0' : '1' }}">
+                <label title="Automatically adds a Rapid Fire round with all remaining Starred puzzles not yet taken into other rounds (randomized, locked order &amp; selection)" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 800; font-size: 0.85rem; padding: 0.45rem 0.9rem; border-radius: 8px; border: 1.5px solid {{ has_rapid_fire|default(false) ? '#38bdf8' : 'var(--border-color)' }}; background: {{ has_rapid_fire|default(false) ? 'rgba(56, 189, 248, 0.18)' : 'var(--bg-card)' }}; color: {{ has_rapid_fire|default(false) ? '#38bdf8' : 'var(--text-main)' }}; transition: all 0.2s ease;">
+                    <input type="checkbox" {% if has_rapid_fire|default(false) %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
+                    <span>⚡ Rapid Fire Round (Remaining Starred)</span>
+                </label>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -482,7 +653,14 @@
             <h2 style="margin: 0;">Game Rounds & Elimination Rules</h2>
             <p style="color: var(--text-muted); font-size: 0.88rem; margin-top: 0.25rem;">Configured for a 1-hour tournament pacing with balanced question quotas.</p>
         </div>
-        <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <form method="POST" action="{{ path('app_show_rapid_fire_toggle', {'id': show.id}) }}" style="margin: 0;">
+                <input type="hidden" name="enable" value="{{ has_rapid_fire|default(false) ? '0' : '1' }}">
+                <label title="Includes all Starred &amp; Included puzzles not yet taken into other rounds, randomized (order &amp; selection locked)" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 800; font-size: 0.85rem; padding: 0.42rem 0.85rem; border-radius: 8px; border: 1.5px solid {{ has_rapid_fire|default(false) ? '#38bdf8' : 'var(--border-color)' }}; background: {{ has_rapid_fire|default(false) ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255,255,255,0.04)' }}; color: {{ has_rapid_fire|default(false) ? '#38bdf8' : 'var(--text-main)' }};">
+                    <input type="checkbox" {% if has_rapid_fire|default(false) %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
+                    <span>⚡ Add Rapid Fire Round (All Remaining Starred)</span>
+                </label>
+            </form>
             <form method="POST" action="{{ path('app_show_apply_one_hour_template', {'id': show.id}) }}" onsubmit="return confirm('Update rounds to the official 1-Hour Championship structure (4 rounds, 38 questions, calibrated for current active questions)?');" style="margin: 0;">
                 <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;" title="Apply balanced 4-round 1-hour tournament format">
                     ⏱️ Apply 1-Hour Format (38 Qs)
@@ -500,10 +678,12 @@
             <div class="round-card">
                 <div class="round-title-row">
                     <div>
-                        <span class="badge" style="background: rgba(249, 115, 22, 0.2); color: var(--primary);">Round {{ r.round_number }}</span>
+                        <span class="badge" style="background: {{ r.round_type == 'rapid_fire' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(249, 115, 22, 0.2)' }}; color: {{ r.round_type == 'rapid_fire' ? '#38bdf8' : 'var(--primary)' }};">
+                            {{ r.round_type == 'rapid_fire' ? '⚡ Rapid Fire • Round ' ~ r.round_number : 'Round ' ~ r.round_number }}
+                        </span>
                         <h3 style="font-size: 1.35rem; font-weight: 800; display: inline-block; margin-left: 0.5rem;">{{ r.name }}</h3>
                         <div style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.25rem;">
-                            Type: <strong>{{ r.round_type == 'head_to_head' ? 'Head-to-Head Flight Matchup' : 'All Teams Open Play' }}</strong> • 
+                            Type: <strong>{{ r.round_type == 'rapid_fire' ? '⚡ Rapid Fire (All Remaining Starred Puzzles • Randomized & Locked)' : (r.round_type == 'head_to_head' ? 'Head-to-Head Flight Matchup' : 'All Teams Open Play') }}</strong> • 
                             Timer: <strong>{{ r.timer_seconds }}s</strong> • 
                             Points: <strong>+{{ r.points_per_question }}</strong> (Steal: +{{ r.steal_points }}) • 
                             Advancement: <strong>{{ r.advancement_type == 'top_x' ? 'Top ' ~ r.advance_top_x ~ ' Teams Advance' : 'All Advance' }}</strong>
@@ -559,6 +739,126 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                {% set rQuestions = r.questions|default([]) %}
+                <div class="round-questions-box" data-round-type="{{ r.round_type }}">
+                    {% if r.round_type == 'rapid_fire' %}
+                        <div class="round-q-header" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.75rem 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                                <strong style="font-size: 1.05rem; color: #38bdf8;">⚡ Rapid Fire Starred Pool</strong>
+                                <span class="badge" id="round-q-count-badge-{{ r.id }}" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.45);">
+                                    {{ rQuestions|length }} Remaining Starred Puzzles
+                                </span>
+                                <span style="font-size: 0.8rem; color: #cbd5e1;">
+                                    🔒 <strong>Auto-Selected &amp; Order Locked:</strong> Includes all Starred &amp; Included puzzles not taken into other rounds, in randomized order. Manual selection and reordering are disabled.
+                                </span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <form method="POST" action="{{ path('app_show_round_questions_randomize', {'id': show.id, 'roundId': r.id}) }}" style="margin: 0;">
+                                    <input type="hidden" name="mode" value="replace_all">
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.75rem; border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; font-weight: 700;" title="Re-shuffle the random order of remaining Starred puzzles">
+                                        🎲 Re-Shuffle Random Order
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="round-q-grid" id="round-q-grid-{{ r.id }}" data-rapid-fire="1">
+                            {% for q in rQuestions %}
+                                <div class="round-q-card"
+                                     id="round-q-card-{{ r.id }}-{{ q.id }}"
+                                     data-round-id="{{ r.id }}"
+                                     data-qid="{{ q.id }}"
+                                     style="cursor: default; border-color: rgba(56, 189, 248, 0.25);">
+                                    <div class="round-q-thumb-wrap">
+                                        <span class="round-q-num-badge" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">RF #{{ loop.index }} • #{{ q.id }}</span>
+                                        <span class="round-q-star-badge" title="Starred Puzzle">⭐</span>
+                                        <img src="{{ q.media_path }}" alt="{{ q.answer }}" class="round-q-thumb" loading="lazy" draggable="false">
+                                    </div>
+                                    <div class="round-q-answer" title="{{ q.answer }}">{{ q.answer }}</div>
+                                    <div class="round-q-meta">
+                                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ q.category_icon|default('🧩') }} {{ q.category_name }}</span>
+                                        <span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.68rem; padding: 0.1rem 0.4rem;">{{ q.difficulty }}</span>
+                                    </div>
+                                    <div class="round-q-actions" style="justify-content: center;">
+                                        <span style="font-size: 0.72rem; color: #38bdf8; font-weight: 700;">🔒 Auto-Included Starred • Random Order</span>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div style="grid-column: 1 / -1; text-align: center; padding: 1.5rem; background: rgba(0,0,0,0.25); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 12px; color: var(--text-muted);">
+                                    All Starred &amp; Included puzzles are currently assigned to earlier rounds! Any unused Starred puzzles will automatically appear here.
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="round-q-header">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <strong style="font-size: 1.05rem; color: #f8fafc;">🧩 Assigned Round Puzzles</strong>
+                                <span class="badge" id="round-q-count-badge-{{ r.id }}" style="background: rgba(16, 185, 129, 0.16); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
+                                    {{ rQuestions|length }} Puzzles
+                                </span>
+                                <span style="font-size: 0.78rem; color: var(--text-muted);">Drag cards or use ⬅ / ➡ to reorder • Zero duplicates across show</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openRoundQuestionPicker({{ r.id }}, {{ r.round_number }}, '{{ r.name|e('js') }}')" style="font-weight: 800; padding: 0.4rem 0.85rem;">
+                                    + Add Puzzles to Round {{ r.round_number }}
+                                </button>
+                                <form method="POST" action="{{ path('app_show_round_questions_randomize', {'id': show.id, 'roundId': r.id}) }}" onsubmit="return confirm('Randomize all puzzles in Round {{ r.round_number }} ({{ r.name|e('js') }})? This will pick a fresh random set of non-duplicate puzzles from the pool.');" style="margin: 0;">
+                                    <input type="hidden" name="mode" value="replace_all">
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.75rem; border-color: rgba(245, 158, 11, 0.4); color: #fbbf24; font-weight: 700;" title="Re-roll random non-duplicate puzzles for this round">
+                                        🎲 Randomize Round
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="round-q-grid" id="round-q-grid-{{ r.id }}" data-rapid-fire="0">
+                            {% for q in rQuestions %}
+                                <div class="round-q-card"
+                                     id="round-q-card-{{ r.id }}-{{ q.id }}"
+                                     data-round-id="{{ r.id }}"
+                                     data-qid="{{ q.id }}"
+                                     draggable="true"
+                                     ondragstart="onRoundCardDragStart(event, {{ r.id }}, {{ q.id }})"
+                                     ondragover="onRoundCardDragOver(event)"
+                                     ondragleave="onRoundCardDragLeave(event)"
+                                     ondrop="onRoundCardDrop(event, {{ r.id }}, {{ q.id }})"
+                                     ondragend="onRoundCardDragEnd(event)">
+                                    <div class="round-q-thumb-wrap">
+                                        <span class="round-q-num-badge">Q{{ loop.index }} • #{{ q.id }}</span>
+                                        {% if q.is_favorite %}
+                                            <span class="round-q-star-badge" title="Starred Puzzle">⭐</span>
+                                        {% endif %}
+                                        <img src="{{ q.media_path }}" alt="{{ q.answer }}" class="round-q-thumb" loading="lazy" draggable="false">
+                                    </div>
+                                    <div class="round-q-answer" title="{{ q.answer }}">{{ q.answer }}</div>
+                                    <div class="round-q-meta">
+                                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ q.category_icon|default('🧩') }} {{ q.category_name }}</span>
+                                        <span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.68rem; padding: 0.1rem 0.4rem;">{{ q.difficulty }}</span>
+                                    </div>
+                                    <div class="round-q-actions">
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="moveRoundQuestion({{ r.id }}, {{ q.id }}, 'left')" {% if loop.first %}disabled{% endif %} style="padding: 0.28rem 0.45rem; font-size: 0.75rem;" title="Move earlier in round">
+                                            ⬅
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="moveRoundQuestion({{ r.id }}, {{ q.id }}, 'right')" {% if loop.last %}disabled{% endif %} style="padding: 0.28rem 0.45rem; font-size: 0.75rem;" title="Move later in round">
+                                            ➡
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="swapRoundQuestion({{ r.id }}, {{ q.id }})" style="flex: 1; padding: 0.28rem 0.4rem; font-size: 0.75rem;" title="Swap with another random puzzle">
+                                            🔄 Swap
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="removeRoundQuestion({{ r.id }}, {{ q.id }})" style="padding: 0.28rem 0.45rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.35);" title="Remove puzzle from this round">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div style="grid-column: 1 / -1; text-align: center; padding: 1.5rem; background: rgba(0,0,0,0.25); border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-muted);">
+                                    No puzzles assigned to this round yet. Click <strong>"+ Add Puzzles to Round {{ r.round_number }}"</strong> or <strong>"🎲 Randomize Round"</strong>.
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         {% endfor %}
     </div>
@@ -734,9 +1034,10 @@
         <div class="form-row">
             <div class="form-group">
                 <label class="form-label" for="round-type">Round Format</label>
-                <select id="round-type" name="round_type" class="form-select">
+                <select id="round-type" name="round_type" class="form-select" onchange="toggleRoundModalCategorySection()">
                     <option value="all_play">All Teams Open Play (Buzz-in / Open)</option>
                     <option value="head_to_head">Head-to-Head Flight Matchups (Paired)</option>
+                    <option value="rapid_fire">⚡ Rapid Fire (All Remaining Starred Puzzles - Auto &amp; Locked)</option>
                 </select>
             </div>
             <div class="form-group">
@@ -770,26 +1071,32 @@
             </div>
         </div>
 
-        <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1rem; color: var(--accent);">Category Question Allocations</h4>
-        {% for cat in categories %}
-            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
-                <div>
-                    <input type="hidden" name="cat_ids[]" value="{{ cat.id }}">
-                    <strong>{{ cat.icon }} {{ cat.name }}</strong>
+        <div id="round-modal-rapid-fire-notice" style="display: none; margin: 1.25rem 0; padding: 1rem; border-radius: 10px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; font-size: 0.88rem; line-height: 1.45;">
+            <strong>⚡ Rapid Fire Mode:</strong> Automatically includes all <strong>Starred &amp; Included</strong> puzzles that are not yet taken into other rounds, in randomized order. Manual question selection and order changes are disabled for this round.
+        </div>
+
+        <div id="round-modal-cat-allocs-wrap">
+            <h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1rem; color: var(--accent);">Category Question Allocations</h4>
+            {% for cat in categories %}
+                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
+                    <div>
+                        <input type="hidden" name="cat_ids[]" value="{{ cat.id }}">
+                        <strong>{{ cat.icon }} {{ cat.name }}</strong>
+                    </div>
+                    <div>
+                        <input type="number" name="cat_counts[]" class="form-input cat-count-input" data-cat-id="{{ cat.id }}" placeholder="Questions count" value="0" min="0" max="50">
+                    </div>
+                    <div>
+                        <select name="cat_diffs[]" class="form-select cat-diff-select" data-cat-id="{{ cat.id }}">
+                            <option value="Any">Any Difficulty</option>
+                            <option value="Simple">Simple</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Hard">Hard</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <input type="number" name="cat_counts[]" class="form-input cat-count-input" data-cat-id="{{ cat.id }}" placeholder="Questions count" value="0" min="0" max="50">
-                </div>
-                <div>
-                    <select name="cat_diffs[]" class="form-select cat-diff-select" data-cat-id="{{ cat.id }}">
-                        <option value="Any">Any Difficulty</option>
-                        <option value="Simple">Simple</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Hard">Hard</option>
-                    </select>
-                </div>
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
             <button type="button" class="btn btn-secondary" onclick="document.getElementById('round-modal').close()">Cancel</button>
@@ -850,6 +1157,66 @@
     </p>
 
     <button type="button" class="btn btn-secondary" onclick="document.getElementById('host-qr-modal').close()" style="width: 100%;">Close</button>
+</dialog>
+
+<!-- Modal: Add Puzzles to Round (Question Picker) -->
+<dialog id="round-question-picker-modal" aria-labelledby="rqp-title" style="max-width: 960px; width: 95%;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h2 id="rqp-title" style="margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--primary);">🧩 Add Puzzles to Round</h2>
+            <p id="rqp-subtitle" style="margin: 0.2rem 0 0; font-size: 0.85rem; color: var(--text-muted);">
+                Browse Included puzzles below. Duplicate puzzles or answers already in this show are automatically blocked.
+            </p>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('round-question-picker-modal').close()" style="border-radius: 50%; width: 34px; height: 34px; padding: 0;">✕</button>
+    </div>
+
+    <!-- Filters Bar -->
+    <div style="display: grid; grid-template-columns: 1.8fr 1.2fr 1fr 1fr auto; gap: 0.65rem; align-items: center; margin-bottom: 1rem; background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color);">
+        <input type="text" id="rqp-search" class="form-input" placeholder="🔍 Search answer, keyword, or #ID..." oninput="debouncedLoadPickerQuestions()">
+        <select id="rqp-category" class="form-select" onchange="loadPickerQuestions()">
+            <option value="0">All Categories</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="rqp-difficulty" class="form-select" onchange="loadPickerQuestions()">
+            <option value="Any">Any Difficulty</option>
+            <option value="Simple">Simple</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+        </select>
+        <select id="rqp-starred" class="form-select" onchange="loadPickerQuestions()">
+            <option value="all">⭐ Starred First (All Included)</option>
+            <option value="1">⭐ Starred Only</option>
+            <option value="0">👍 Unstarred Included</option>
+        </select>
+        <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; cursor: pointer; white-space: nowrap;">
+            <input type="checkbox" id="rqp-hide-assigned" checked onchange="loadPickerQuestions()" style="accent-color: var(--primary);">
+            Hide already in show
+        </label>
+    </div>
+
+    <div id="rqp-status-bar" style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
+        <span id="rqp-results-count">Loading puzzles...</span>
+        <span id="rqp-selected-count" style="color: #10b981; font-weight: 800;">0 selected</span>
+    </div>
+
+    <div class="picker-q-grid" id="rqp-grid">
+        <!-- Populated dynamically -->
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+        <div style="font-size: 0.82rem; color: var(--text-muted);">
+            Tip: Click any card to select multiple, or click <strong>+ Add</strong> on a single puzzle.
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('round-question-picker-modal').close()">Done</button>
+            <button type="button" class="btn btn-primary" id="rqp-add-selected-btn" onclick="submitSelectedQuestionsToRound()" disabled>
+                + Add Selected Puzzles
+            </button>
+        </div>
+    </div>
 </dialog>
 {% endblock %}
 
@@ -991,6 +1358,19 @@
         document.getElementById('show-rule-modal').showModal();
     }
 
+    function toggleRoundModalCategorySection() {
+        const rType = document.getElementById('round-type')?.value;
+        const rfNotice = document.getElementById('round-modal-rapid-fire-notice');
+        const catWrap = document.getElementById('round-modal-cat-allocs-wrap');
+        if (rType === 'rapid_fire') {
+            if (rfNotice) rfNotice.style.display = 'block';
+            if (catWrap) catWrap.style.display = 'none';
+        } else {
+            if (rfNotice) rfNotice.style.display = 'none';
+            if (catWrap) catWrap.style.display = 'block';
+        }
+    }
+
     function openNewRoundModal() {
         document.getElementById('edit-round-id').value = '0';
         document.getElementById('round-modal-title').textContent = 'Configure New Game Round';
@@ -1005,6 +1385,7 @@
 
         document.querySelectorAll('.cat-count-input').forEach(input => input.value = 0);
         document.querySelectorAll('.cat-diff-select').forEach(select => select.value = 'Any');
+        toggleRoundModalCategorySection();
 
         document.getElementById('round-modal').showModal();
     }
@@ -1037,8 +1418,375 @@
                 diffSelect.value = alloc.difficulty || 'Any';
             }
         });
+        toggleRoundModalCategorySection();
 
         document.getElementById('round-modal').showModal();
+    }
+
+    const SHOW_ID = {{ show.id }};
+    let activePickerRoundId = null;
+    let activePickerRoundNumber = 1;
+    let activePickerRoundName = '';
+    let pickerSelectedIds = new Set();
+    let pickerSearchTimer = null;
+
+    function openRoundQuestionPicker(roundId, roundNum, roundName) {
+        activePickerRoundId = roundId;
+        activePickerRoundNumber = roundNum;
+        activePickerRoundName = roundName;
+        pickerSelectedIds.clear();
+        updatePickerSelectedCount();
+
+        document.getElementById('rqp-title').innerText = `🧩 Add Puzzles to Round ${roundNum}: ${roundName}`;
+        document.getElementById('rqp-search').value = '';
+        document.getElementById('rqp-modal')?.showModal?.();
+        document.getElementById('round-question-picker-modal').showModal();
+        loadPickerQuestions();
+    }
+
+    function debouncedLoadPickerQuestions() {
+        clearTimeout(pickerSearchTimer);
+        pickerSearchTimer = setTimeout(loadPickerQuestions, 220);
+    }
+
+    function updatePickerSelectedCount() {
+        const cnt = pickerSelectedIds.size;
+        const lbl = document.getElementById('rqp-selected-count');
+        const btn = document.getElementById('rqp-add-selected-btn');
+        if (lbl) lbl.innerText = `${cnt} selected`;
+        if (btn) {
+            btn.disabled = (cnt === 0);
+            btn.innerText = cnt > 0
+                ? `+ Add ${cnt} Selected Puzzle${cnt > 1 ? 's' : ''} to Round ${activePickerRoundNumber}`
+                : '+ Add Selected Puzzles';
+        }
+    }
+
+    function loadPickerQuestions() {
+        if (!activePickerRoundId) return;
+        const q = document.getElementById('rqp-search').value.trim();
+        const catId = document.getElementById('rqp-category').value;
+        const diff = document.getElementById('rqp-difficulty').value;
+        const starred = document.getElementById('rqp-starred').value;
+        const hideAssigned = document.getElementById('rqp-hide-assigned').checked ? '1' : '0';
+
+        const grid = document.getElementById('rqp-grid');
+        const countSpan = document.getElementById('rqp-results-count');
+        if (countSpan) countSpan.innerText = 'Loading eligible puzzles...';
+
+        const params = new URLSearchParams({
+            q,
+            category_id: catId,
+            difficulty: diff,
+            starred,
+            hide_assigned: hideAssigned,
+            limit: '120'
+        });
+
+        fetch(`/api/shows/${SHOW_ID}/available-questions?${params.toString()}`)
+            .then(r => r.json())
+            .then(data => {
+                const list = Array.isArray(data.questions) ? data.questions : [];
+                if (countSpan) {
+                    countSpan.innerText = `Showing ${list.length} Included puzzle${list.length === 1 ? '' : 's'} (${data.total_in_show || 0} total assigned across show)`;
+                }
+                grid.innerHTML = '';
+
+                if (list.length === 0) {
+                    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem; color: var(--text-muted);">No matching Included puzzles found. Try clearing your search or category filter.</div>`;
+                    return;
+                }
+
+                list.forEach(item => {
+                    const card = document.createElement('div');
+                    const isSelected = pickerSelectedIds.has(item.id);
+                    card.className = 'picker-q-card' + (!item.can_select ? ' disabled' : (isSelected ? ' selected' : ''));
+                    card.dataset.qid = item.id;
+
+                    const starHtml = item.is_favorite ? `<span class="round-q-star-badge" title="Starred">⭐</span>` : '';
+                    const actionHtml = item.can_select
+                        ? `<button type="button" class="btn btn-primary btn-sm" style="width: 100%; padding: 0.3rem 0.5rem; font-size: 0.78rem; font-weight: 800;" onclick="event.stopPropagation(); addSingleQuestionToRound(${item.id});">+ Add to Round ${activePickerRoundNumber}</button>`
+                        : `<div style="font-size: 0.72rem; color: #f59e0b; font-weight: 800; text-align: center; padding: 0.25rem; background: rgba(245, 158, 11, 0.12); border-radius: 6px;">🚫 ${item.duplicate_reason || 'Already in Show'}</div>`;
+
+                    card.innerHTML = `
+                        <div class="round-q-thumb-wrap" style="height: 105px;">
+                            <span class="round-q-num-badge">#${item.id}</span>
+                            ${starHtml}
+                            <img src="${item.media_path}" alt="" class="round-q-thumb" loading="lazy">
+                        </div>
+                        <div class="round-q-answer" title="${item.answer}">${item.answer}</div>
+                        <div class="round-q-meta">
+                            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${item.category_icon || '🧩'} ${item.category_name}</span>
+                            <span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.65rem; padding: 0.1rem 0.35rem;">${item.difficulty}</span>
+                        </div>
+                        <div style="margin-top: auto; padding-top: 0.3rem;">
+                            ${actionHtml}
+                        </div>
+                    `;
+
+                    if (item.can_select) {
+                        card.addEventListener('click', () => {
+                            if (pickerSelectedIds.has(item.id)) {
+                                pickerSelectedIds.delete(item.id);
+                                card.classList.remove('selected');
+                            } else {
+                                pickerSelectedIds.add(item.id);
+                                card.classList.add('selected');
+                            }
+                            updatePickerSelectedCount();
+                        });
+                    }
+
+                    grid.appendChild(card);
+                });
+            });
+    }
+
+    function syncRapidFireGridsFromPayload(rfList) {
+        if (!Array.isArray(rfList)) return;
+        rfList.forEach(rf => {
+            if (rf && rf.round_id) {
+                renderRoundQuestionsGrid(rf.round_id, rf.questions || [], true);
+            }
+        });
+    }
+
+    function addSingleQuestionToRound(qId) {
+        if (!activePickerRoundId) return;
+        fetch(`/shows/${SHOW_ID}/rounds/${activePickerRoundId}/questions/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ question_ids: [qId] })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.error || 'Could not add puzzle (duplicate or ineligible).');
+                return;
+            }
+            pickerSelectedIds.delete(qId);
+            updatePickerSelectedCount();
+            renderRoundQuestionsGrid(activePickerRoundId, data.round_questions || []);
+            syncRapidFireGridsFromPayload(data.rapid_fire_rounds);
+            loadPickerQuestions();
+        });
+    }
+
+    function submitSelectedQuestionsToRound() {
+        if (!activePickerRoundId || pickerSelectedIds.size === 0) return;
+        const ids = Array.from(pickerSelectedIds);
+        fetch(`/shows/${SHOW_ID}/rounds/${activePickerRoundId}/questions/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ question_ids: ids })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.error || 'Could not add selected puzzles.');
+                return;
+            }
+            pickerSelectedIds.clear();
+            updatePickerSelectedCount();
+            renderRoundQuestionsGrid(activePickerRoundId, data.round_questions || []);
+            syncRapidFireGridsFromPayload(data.rapid_fire_rounds);
+            loadPickerQuestions();
+        });
+    }
+
+    function removeRoundQuestion(roundId, qId) {
+        fetch(`/shows/${SHOW_ID}/rounds/${roundId}/questions/${qId}/remove`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderRoundQuestionsGrid(roundId, data.round_questions || []);
+                syncRapidFireGridsFromPayload(data.rapid_fire_rounds);
+            }
+        });
+    }
+
+    function swapRoundQuestion(roundId, qId) {
+        fetch(`/shows/${SHOW_ID}/rounds/${roundId}/questions/${qId}/swap`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                alert(data.error || 'No alternative unused puzzles available to swap.');
+                return;
+            }
+            renderRoundQuestionsGrid(roundId, data.round_questions || []);
+            syncRapidFireGridsFromPayload(data.rapid_fire_rounds);
+        });
+    }
+
+    let draggedRoundId = null;
+    let draggedQId = null;
+
+    function moveRoundQuestion(roundId, qId, direction) {
+        fetch(`/shows/${SHOW_ID}/rounds/${roundId}/questions/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ question_id: qId, direction })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderRoundQuestionsGrid(roundId, data.round_questions || []);
+            }
+        });
+    }
+
+    function onRoundCardDragStart(e, roundId, qId) {
+        draggedRoundId = roundId;
+        draggedQId = qId;
+        e.currentTarget.classList.add('dragging');
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(qId));
+        }
+    }
+
+    function onRoundCardDragOver(e) {
+        e.preventDefault();
+        if (e.dataTransfer) {
+            e.dataTransfer.dropEffect = 'move';
+        }
+        e.currentTarget.classList.add('drag-over');
+    }
+
+    function onRoundCardDragLeave(e) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+
+    function onRoundCardDragEnd(e) {
+        e.currentTarget.classList.remove('dragging');
+        document.querySelectorAll('.round-q-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    function onRoundCardDrop(e, targetRoundId, targetQId) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        if (draggedRoundId !== targetRoundId || !draggedQId || draggedQId === targetQId) {
+            return;
+        }
+
+        const grid = document.getElementById(`round-q-grid-${targetRoundId}`);
+        if (!grid) return;
+
+        const cards = Array.from(grid.querySelectorAll('.round-q-card'));
+        const currentIds = cards.map(c => parseInt(c.dataset.qid)).filter(Boolean);
+        const fromIdx = currentIds.indexOf(draggedQId);
+        const toIdx = currentIds.indexOf(targetQId);
+        if (fromIdx === -1 || toIdx === -1) return;
+
+        currentIds.splice(fromIdx, 1);
+        currentIds.splice(toIdx, 0, draggedQId);
+
+        fetch(`/shows/${SHOW_ID}/rounds/${targetRoundId}/questions/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ question_ids: currentIds })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderRoundQuestionsGrid(targetRoundId, data.round_questions || []);
+            }
+        });
+    }
+
+    function renderRoundQuestionsGrid(roundId, questions, forceRapidFire = null) {
+        const grid = document.getElementById(`round-q-grid-${roundId}`);
+        const badge = document.getElementById(`round-q-count-badge-${roundId}`);
+        const isRapidFire = forceRapidFire !== null
+            ? forceRapidFire
+            : (grid && grid.dataset.rapidFire === '1');
+
+        if (badge) {
+            badge.innerText = isRapidFire
+                ? `${questions.length} Remaining Starred Puzzles`
+                : `${questions.length} Puzzles`;
+        }
+        if (!grid) return;
+
+        if (!questions || questions.length === 0) {
+            grid.innerHTML = isRapidFire
+                ? `<div style="grid-column: 1 / -1; text-align: center; padding: 1.5rem; background: rgba(0,0,0,0.25); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 12px; color: var(--text-muted);">All Starred &amp; Included puzzles are currently assigned to earlier rounds! Any unused Starred puzzles will automatically appear here.</div>`
+                : `<div style="grid-column: 1 / -1; text-align: center; padding: 1.5rem; background: rgba(0,0,0,0.25); border: 1px dashed var(--border-color); border-radius: 12px; color: var(--text-muted);">No puzzles assigned to this round yet. Click <strong>"+ Add Puzzles"</strong> or <strong>"🎲 Randomize Round"</strong>.</div>`;
+            return;
+        }
+
+        grid.innerHTML = '';
+        questions.forEach((q, idx) => {
+            const card = document.createElement('div');
+            card.className = 'round-q-card';
+            card.id = `round-q-card-${roundId}-${q.id}`;
+            card.dataset.roundId = roundId;
+            card.dataset.qid = q.id;
+
+            if (isRapidFire) {
+                card.style.cursor = 'default';
+                card.style.borderColor = 'rgba(56, 189, 248, 0.25)';
+                card.innerHTML = `
+                    <div class="round-q-thumb-wrap">
+                        <span class="round-q-num-badge" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">RF #${idx + 1} • #${q.id}</span>
+                        <span class="round-q-star-badge" title="Starred Puzzle">⭐</span>
+                        <img src="${q.media_path}" alt="" class="round-q-thumb" loading="lazy" draggable="false">
+                    </div>
+                    <div class="round-q-answer" title="${q.answer}">${q.answer}</div>
+                    <div class="round-q-meta">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${q.category_icon || '🧩'} ${q.category_name}</span>
+                        <span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.68rem; padding: 0.1rem 0.4rem;">${q.difficulty}</span>
+                    </div>
+                    <div class="round-q-actions" style="justify-content: center;">
+                        <span style="font-size: 0.72rem; color: #38bdf8; font-weight: 700;">🔒 Auto-Included Starred • Random Order</span>
+                    </div>
+                `;
+            } else {
+                card.draggable = true;
+                card.ondragstart = (ev) => onRoundCardDragStart(ev, roundId, q.id);
+                card.ondragover = (ev) => onRoundCardDragOver(ev);
+                card.ondragleave = (ev) => onRoundCardDragLeave(ev);
+                card.ondrop = (ev) => onRoundCardDrop(ev, roundId, q.id);
+                card.ondragend = (ev) => onRoundCardDragEnd(ev);
+
+                const starHtml = q.is_favorite ? `<span class="round-q-star-badge" title="Starred Puzzle">⭐</span>` : '';
+                const firstDisabled = (idx === 0) ? 'disabled' : '';
+                const lastDisabled = (idx === questions.length - 1) ? 'disabled' : '';
+                card.innerHTML = `
+                    <div class="round-q-thumb-wrap">
+                        <span class="round-q-num-badge">Q${idx + 1} • #${q.id}</span>
+                        ${starHtml}
+                        <img src="${q.media_path}" alt="" class="round-q-thumb" loading="lazy" draggable="false">
+                    </div>
+                    <div class="round-q-answer" title="${q.answer}">${q.answer}</div>
+                    <div class="round-q-meta">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${q.category_icon || '🧩'} ${q.category_name}</span>
+                        <span class="badge" style="background: rgba(255,255,255,0.08); font-size: 0.68rem; padding: 0.1rem 0.4rem;">${q.difficulty}</span>
+                    </div>
+                    <div class="round-q-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="moveRoundQuestion(${roundId}, ${q.id}, 'left')" ${firstDisabled} style="padding: 0.28rem 0.45rem; font-size: 0.75rem;" title="Move earlier in round">
+                            ⬅
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="moveRoundQuestion(${roundId}, ${q.id}, 'right')" ${lastDisabled} style="padding: 0.28rem 0.45rem; font-size: 0.75rem;" title="Move later in round">
+                            ➡
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="swapRoundQuestion(${roundId}, ${q.id})" style="flex: 1; padding: 0.28rem 0.4rem; font-size: 0.75rem;" title="Swap with another random puzzle">
+                            🔄 Swap
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="removeRoundQuestion(${roundId}, ${q.id})" style="padding: 0.28rem 0.45rem; font-size: 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.35);" title="Remove puzzle from this round">
+                            ✕
+                        </button>
+                    </div>
+                `;
+            }
+            grid.appendChild(card);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', () => {

@@ -1249,11 +1249,14 @@ class GameShowTest extends WebTestCase
             ->execute(['Starred Test Cat', 'starred-test-cat-' . uniqid(), '#f59e0b', '⭐']);
         $catId = (int) $pdo->lastInsertId();
 
-        $ins = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, ?, 'included')");
-        $ins->execute([$catId, 'Unstarred Included Puzzle', 'UNSTARRED INCLUDED', 0]);
+        $ins = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, ?, ?)");
+        $ins->execute([$catId, 'Unstarred Included Puzzle', 'UNSTARRED INCLUDED', 0, 'included']);
         $unstarredQId = (int) $pdo->lastInsertId();
 
-        $ins->execute([$catId, 'Starred Special Puzzle', 'STARRED SPECIAL', 1]);
+        $ins->execute([$catId, 'Starred Skipped Puzzle', 'STARRED SKIPPED', 1, 'skipped']);
+        $starredSkippedQId = (int) $pdo->lastInsertId();
+
+        $ins->execute([$catId, 'Starred Special Puzzle', 'STARRED SPECIAL', 1, 'included']);
         $starredQId = (int) $pdo->lastInsertId();
 
         $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
@@ -1267,14 +1270,8 @@ class GameShowTest extends WebTestCase
         $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$roundId, $showId]);
 
         try {
-            // Enable Starred Only mode via POST /shows/{id}/puzzle-pool
-            $client->request('POST', "/shows/{$showId}/puzzle-pool", ['starred_only' => '1']);
-            $this->assertResponseRedirects("/shows/{$showId}/manage");
-
-            $starredFlag = (int) $pdo->query("SELECT starred_only FROM game_shows WHERE id = {$showId}")->fetchColumn();
-            $this->assertSame(1, $starredFlag);
-
-            // Start question in Starred-Only mode: MUST pick the starred puzzle ($starredQId) and NOT $unstarredQId
+            // 1. Even with starred_only = 0 (default), Starred & Included ($starredQId) MUST take 1st priority over Unstarred Included ($unstarredQId),
+            // and Starred Skipped ($starredSkippedQId) must NEVER be selected!
             $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
                 'action' => 'start_question',
                 'round_id' => $roundId,
@@ -1283,12 +1280,423 @@ class GameShowTest extends WebTestCase
             $startData = json_decode((string) $client->getResponse()->getContent(), true);
             $this->assertTrue($startData['success']);
             $this->assertSame($starredQId, (int) $startData['question_id']);
+
+            // 2. Next question (when all Starred & Included in that category are exhausted and starred_only = 0):
+            // falls back to Unstarred & Included ($unstarredQId), and still NEVER picks $starredSkippedQId!
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'start_question',
+                'round_id' => $roundId,
+            ]));
+            $this->assertResponseIsSuccessful();
+            $startData2 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($startData2['success']);
+            $this->assertSame($unstarredQId, (int) $startData2['question_id']);
         } finally {
             $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
-            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$unstarredQId, $starredQId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?, ?)')->execute([$unstarredQId, $starredSkippedQId, $starredQId]);
             $pdo->prepare('DELETE FROM categories WHERE id = ?')->execute([$catId]);
+        }
+    }
+
+    public function testRoundEndsAutomaticallyAndShowsNextRoundIntro(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories ORDER BY id ASC LIMIT 1')->fetchColumn();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
+            ->execute(['Auto End Round Show', 'Testing auto round end', 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        // Round 1 has quota = 2 questions; Round 2 has quota = 2 questions
+        $alloc1 = json_encode([['category_id' => $catId, 'count' => 2, 'difficulty' => 'Any']]);
+        $alloc2 = json_encode([['category_id' => $catId, 'count' => 2, 'difficulty' => 'Any']]);
+
+        $rStmt = $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, category_allocations, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, "pending")');
+        $rStmt->execute([$showId, 1, 'Round 1: Opening', 'all_play', 20, 10, 5, $alloc1]);
+        $round1Id = (int) $pdo->lastInsertId();
+
+        $rStmt->execute([$showId, 2, 'Round 2: Showdown', 'head_to_head', 30, 20, 10, $alloc2]);
+        $round2Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$round1Id, $showId]);
+
+        try {
+            // Question 1 of Round 1
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $res1 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($res1['success']);
+            $this->assertNotEmpty($res1['question_id']);
+
+            // Question 2 of Round 1
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $res2 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($res2['success']);
+            $this->assertNotEmpty($res2['question_id']);
+
+            // Clicking Next after Question 2 (quota = 2 reached) MUST automatically end Round 1
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $resEnd = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($resEnd['success']);
+            $this->assertTrue($resEnd['round_completed'] ?? false);
+            $this->assertSame(1, $resEnd['round_number']);
+
+            // Verify state endpoint reports round_progress.is_completed = true and includes next_round details
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $state = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($state['round_progress']['is_completed']);
+            $this->assertSame(2, $state['round_progress']['used']);
+            $this->assertSame(2, $state['round_progress']['total']);
+            $this->assertSame($round2Id, (int) $state['round_progress']['next_round']['id']);
+
+            // Clicking Next from End of Round 1 screen transitions to Round 2 Intro/Rules briefing screen
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $resIntro = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($resIntro['success']);
+            $this->assertTrue($resIntro['round_intro'] ?? false);
+            $this->assertSame($round2Id, $resIntro['round_id']);
+
+            // Clicking Next from Round 2 Intro screen starts Question 1 of Round 2
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $resR2Q1 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($resR2Q1['success']);
+            $this->assertNotEmpty($resR2Q1['question_id']);
+        } finally {
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+        }
+    }
+
+    public function testManualRoundQuestionsAddRemoveAndDuplicatePrevention(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories ORDER BY id ASC LIMIT 1')->fetchColumn();
+
+        $insQ = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, 1, ?)");
+        $insQ->execute([$catId, 'Manual Q1', '4 WHEEL DRIVE UNIQUE TEST', 'included']);
+        $q1Id = (int) $pdo->lastInsertId();
+
+        $insQ->execute([$catId, 'Manual Q2 Duplicate Answer', 'FOUR WHEEL DRIVE UNIQUE TEST', 'included']);
+        $q2DupAnsId = (int) $pdo->lastInsertId();
+
+        $insQ->execute([$catId, 'Manual Q3 Distinct', 'ONCE IN A BLUE MOON TEST', 'included']);
+        $q3Id = (int) $pdo->lastInsertId();
+
+        $insQ->execute([$catId, 'Manual Q4 Skipped', 'SKIPPED PUZZLE TEST', 'skipped']);
+        $q4SkippedId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
+            ->execute(['Manual Round Curation Show', 'Testing manual add/remove & no duplicates', 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        $rStmt = $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, category_allocations, status) VALUES (?, ?, ?, ?, 25, 10, 5, "[]", "pending")');
+        $rStmt->execute([$showId, 1, 'Round 1: Custom', 'all_play']);
+        $round1Id = (int) $pdo->lastInsertId();
+        $rStmt->execute([$showId, 2, 'Round 2: Custom', 'all_play']);
+        $round2Id = (int) $pdo->lastInsertId();
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$round1Id, $showId]);
+
+        try {
+            // 1. Add Q1 and Q3 to Round 1
+            $client->request('POST', "/shows/{$showId}/rounds/{$round1Id}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$q1Id, $q3Id],
+            ]));
+            $this->assertResponseIsSuccessful();
+            $addRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($addRes['success']);
+            $this->assertSame(2, $addRes['added_count']);
+            $this->assertCount(2, $addRes['round_questions']);
+
+            // 2. Attempt to add duplicate question ID ($q1Id) to Round 2 -> MUST be blocked!
+            $client->request('POST', "/shows/{$showId}/rounds/{$round2Id}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$q1Id],
+            ]));
+            $this->assertSame(409, $client->getResponse()->getStatusCode());
+
+            // 3. Attempt to add different question ID with duplicate normalized answer ($q2DupAnsId: "FOUR WHEEL DRIVE UNIQUE TEST") -> MUST be blocked!
+            $client->request('POST', "/shows/{$showId}/rounds/{$round2Id}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$q2DupAnsId],
+            ]));
+            $this->assertSame(409, $client->getResponse()->getStatusCode());
+
+            // 4. Attempt to add Skipped puzzle ($q4SkippedId) -> MUST be blocked!
+            $client->request('POST', "/shows/{$showId}/rounds/{$round2Id}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$q4SkippedId],
+            ]));
+            $this->assertSame(409, $client->getResponse()->getStatusCode());
+
+            // 4b. Reorder Round 1 questions so Q3 moves before Q1
+            $client->request('POST', "/shows/{$showId}/rounds/{$round1Id}/questions/reorder", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_id' => $q3Id,
+                'direction' => 'left',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $reordRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($reordRes['success']);
+            $this->assertSame($q3Id, (int) $reordRes['round_questions'][0]['id']);
+            $this->assertSame($q1Id, (int) $reordRes['round_questions'][1]['id']);
+
+            // 5. Remove Q3 from Round 1 -> Round 1 now has 1 question ($q1Id)
+            $client->request('POST', "/shows/{$showId}/rounds/{$round1Id}/questions/{$q3Id}/remove", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json']);
+            $this->assertResponseIsSuccessful();
+            $remRes = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($remRes['success']);
+            $this->assertCount(1, $remRes['round_questions']);
+
+            // 6. Playing Round 1 picks $q1Id first, and clicking Next again automatically ends Round 1!
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $play1 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($play1['success']);
+            $this->assertSame($q1Id, (int) $play1['question_id']);
+
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode(['action' => 'next_question']));
+            $playEnd = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($playEnd['round_completed'] ?? false);
+        } finally {
+            $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?, ?, ?)')->execute([$q1Id, $q2DupAnsId, $q3Id, $q4SkippedId]);
+        }
+    }
+
+    public function testRapidFireRoundIncludesAllRemainingStarredAndLocksOrderAndSelection(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories ORDER BY id ASC LIMIT 1')->fetchColumn();
+
+        $insQ = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, ?, ?)");
+        // Starred & Included puzzle 1 (will be put in Round 1 initially)
+        $insQ->execute([$catId, 'RF Starred 1', 'RAPID FIRE STARRED ALPHA TEST', 1, 'included']);
+        $qStar1 = (int) $pdo->lastInsertId();
+
+        // Starred & Included puzzle 2 (not in Round 1 -> must automatically be in Rapid Fire!)
+        $insQ->execute([$catId, 'RF Starred 2', 'RAPID FIRE STARRED BETA TEST', 1, 'included']);
+        $qStar2 = (int) $pdo->lastInsertId();
+
+        // Unstarred & Included puzzle (must NEVER be in Rapid Fire!)
+        $insQ->execute([$catId, 'RF Unstarred', 'RAPID FIRE UNSTARRED GAMMA TEST', 0, 'included']);
+        $qUnstarred = (int) $pdo->lastInsertId();
+
+        // Starred but Skipped puzzle (must NEVER be in Rapid Fire!)
+        $insQ->execute([$catId, 'RF Starred Skipped', 'RAPID FIRE SKIPPED DELTA TEST', 1, 'skipped']);
+        $qStarSkipped = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
+            ->execute(['Rapid Fire Test Show', 'Testing Rapid Fire overflow starred round', 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        $rStmt = $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, category_allocations, status) VALUES (?, ?, ?, ?, 25, 10, 5, "[]", "pending")');
+        $rStmt->execute([$showId, 1, 'Round 1: Main', 'all_play']);
+        $round1Id = (int) $pdo->lastInsertId();
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$round1Id, $showId]);
+
+        try {
+            // Put $qStar1 into Round 1
+            $client->request('POST', "/shows/{$showId}/rounds/{$round1Id}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$qStar1],
+            ]));
+            $this->assertResponseIsSuccessful();
+
+            // Enable Rapid Fire Round via checkbox toggle endpoint
+            $client->request('POST', "/shows/{$showId}/rapid-fire-toggle", ['enable' => '1']);
+            $this->assertResponseRedirects("/shows/{$showId}/manage#tab-rounds");
+
+            $rfRound = $pdo->query("SELECT * FROM show_rounds WHERE show_id = {$showId} AND round_type = 'rapid_fire'")->fetch();
+            $this->assertNotEmpty($rfRound, 'Rapid Fire round should be created');
+            $rfRoundId = (int) $rfRound['id'];
+
+            // Inspect all questions assigned to Rapid Fire round
+            $rfRows = $pdo->query("
+                SELECT srq.question_id, q.is_favorite, q.review_status
+                FROM show_round_questions srq
+                JOIN questions q ON q.id = srq.question_id
+                WHERE srq.show_id = {$showId} AND srq.round_id = {$rfRoundId}
+            ")->fetchAll();
+            $rfQIds = array_map(fn ($r) => (int) $r['question_id'], $rfRows);
+
+            // $qStar2 (not in Round 1) MUST be in Rapid Fire
+            $this->assertContains($qStar2, $rfQIds);
+            // $qStar1 (already in Round 1) MUST NOT be in Rapid Fire
+            $this->assertNotContains($qStar1, $rfQIds);
+            // $qUnstarred MUST NOT be in Rapid Fire
+            $this->assertNotContains($qUnstarred, $rfQIds);
+            // $qStarSkipped MUST NOT be in Rapid Fire
+            $this->assertNotContains($qStarSkipped, $rfQIds);
+
+            // Every single puzzle in Rapid Fire must be Starred & Included
+            foreach ($rfRows as $rRow) {
+                $this->assertSame(1, (int) $rRow['is_favorite']);
+                $this->assertSame('included', $rRow['review_status']);
+            }
+
+            // Adding $qStar2 to Round 1 must automatically remove $qStar2 from Rapid Fire!
+            $client->request('POST', "/shows/{$showId}/rounds/{$round1Id}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$qStar2],
+            ]));
+            $this->assertResponseIsSuccessful();
+            $rfQIdsAfterAdd = array_map('intval', $pdo->query("SELECT question_id FROM show_round_questions WHERE show_id = {$showId} AND round_id = {$rfRoundId}")->fetchAll(\PDO::FETCH_COLUMN));
+            $this->assertNotContains($qStar2, $rfQIdsAfterAdd);
+
+            // Removing $qStar1 from Round 1 must automatically add $qStar1 into Rapid Fire!
+            $client->request('POST', "/shows/{$showId}/rounds/{$round1Id}/questions/{$qStar1}/remove", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json']);
+            $this->assertResponseIsSuccessful();
+            $rfQIdsAfterRemove = array_map('intval', $pdo->query("SELECT question_id FROM show_round_questions WHERE show_id = {$showId} AND round_id = {$rfRoundId}")->fetchAll(\PDO::FETCH_COLUMN));
+            $this->assertContains($qStar1, $rfQIdsAfterRemove);
+
+            // Attempting to manually add, remove, swap, or reorder in Rapid Fire round MUST be rejected (400 Bad Request)
+            $client->request('POST', "/shows/{$showId}/rounds/{$rfRoundId}/questions/add", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_ids' => [$qUnstarred],
+            ]));
+            $this->assertSame(400, $client->getResponse()->getStatusCode());
+
+            $client->request('POST', "/shows/{$showId}/rounds/{$rfRoundId}/questions/{$qStar1}/remove", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json']);
+            $this->assertSame(400, $client->getResponse()->getStatusCode());
+
+            $client->request('POST', "/shows/{$showId}/rounds/{$rfRoundId}/questions/{$qStar1}/swap", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json']);
+            $this->assertSame(400, $client->getResponse()->getStatusCode());
+
+            $client->request('POST', "/shows/{$showId}/rounds/{$rfRoundId}/questions/reorder", [], [], ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'], json_encode([
+                'question_id' => $qStar1,
+                'direction' => 'left',
+            ]));
+            $this->assertSame(400, $client->getResponse()->getStatusCode());
+        } finally {
+            $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?, ?, ?)')->execute([$qStar1, $qStar2, $qUnstarred, $qStarSkipped]);
+        }
+    }
+
+    public function testPreShowSplashTeamsRulesAndExplicitRoundStartFlow(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories ORDER BY id ASC LIMIT 1')->fetchColumn();
+        $insQ = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, ?, ?)");
+        $insQ->execute([$catId, 'SF Q1', 'SPLASH FLOW Q1', 1, 'included']);
+        $q1Id = (int) $pdo->lastInsertId();
+
+        $insQ->execute([$catId, 'SF Q2', 'SPLASH FLOW Q2', 1, 'included']);
+        $q2Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
+            ->execute(['Khapre Party Splash Flow Test', 'Test Flow', 'setup']);
+        $showId = (int) $pdo->lastInsertId();
+
+        $allocJson = json_encode([['category_id' => $catId, 'count' => 1]]);
+        $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, advancement_type, advance_top_x, category_allocations, status) VALUES (?, 1, ?, ?, 25, 10, 0, ?, 0, ?, ?)')
+            ->execute([$showId, 'Round 1: Warm-Up', 'all_teams', 'all', $allocJson, 'pending']);
+        $r1Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, advancement_type, advance_top_x, category_allocations, status) VALUES (?, 2, ?, ?, 20, 15, 5, ?, 4, ?, ?)')
+            ->execute([$showId, 'Round 2: Showdown', 'head_to_head', 'top_x', $allocJson, 'pending']);
+        $r2Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ? WHERE id = ?')->execute([$r1Id, $showId]);
+        $pdo->prepare('INSERT INTO show_round_questions (show_id, round_id, question_id, sort_order) VALUES (?, ?, ?, 1)')->execute([$showId, $r1Id, $q1Id]);
+        $pdo->prepare('INSERT INTO show_round_questions (show_id, round_id, question_id, sort_order) VALUES (?, ?, ?, 1)')->execute([$showId, $r2Id, $q2Id]);
+
+        try {
+            // Verify TV Display contains the splash card with /media/khapre_party_splash.jpg
+            $client->request('GET', "/shows/{$showId}/display");
+            $this->assertResponseIsSuccessful();
+            $displayHtml = (string) $client->getResponse()->getContent();
+            $this->assertStringContainsString('/media/khapre_party_splash.jpg', $displayHtml);
+            $this->assertStringContainsString('tv-welcome-splash-card', $displayHtml);
+            $this->assertStringContainsString('tv-teams-intro-card', $displayHtml);
+
+            // Stage 1: Initial state is 'setup' (Welcome Splash Screen on TV)
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $state1 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('setup', $state1['show']['status']);
+            $this->assertNull($state1['current_question']);
+            $rulesCount = count($state1['rules']);
+            $this->assertGreaterThan(0, $rulesCount);
+
+            // Host clicks Next -> Stage 2: 'teams_intro' (Show Competing Teams on TV)
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resTeams = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('teams_intro', $resTeams['stage']);
+
+            // Host clicks Next -> Stage 3: 'rules_intro' (Unveil Rules 1-by-1 starting at Rule 0)
+            for ($i = 0; $i < $rulesCount; $i++) {
+                $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                    'action' => 'host_next',
+                ]));
+                $this->assertResponseIsSuccessful();
+                $resRule = json_decode((string) $client->getResponse()->getContent(), true);
+                $this->assertSame('rules_intro', $resRule['stage']);
+                $this->assertSame($i, $resRule['active_rule_index']);
+            }
+
+            // Host clicks Next after last rule -> Stage 4: 'round_intro' (Round 1 Briefing on TV, waiting for explicit start)
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resR1Intro = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('round_intro', $resR1Intro['stage']);
+            $this->assertSame(-1, $resR1Intro['active_rule_index']);
+
+            // Host explicitly clicks Start Round 1 ('host_next') -> Starts Round 1 Question 1!
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resR1Start = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame($q1Id, (int) $resR1Start['question_id']);
+
+            // Host clicks Next after Round 1 Question 1 -> Automatically ends Round 1!
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resR1End = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($resR1End['round_completed']);
+            $this->assertSame(1, (int) $resR1End['round_number']);
+
+            // Host clicks Next from End of Round 1 -> Shows Round 2 Briefing ('round_intro' for Round 2)!
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resR2Intro = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertTrue($resR2Intro['round_intro']);
+            $this->assertSame($r2Id, (int) $resR2Intro['round_id']);
+
+            // Host explicitly clicks Start Round 2 ('host_next') -> Starts Round 2 Question 1!
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resR2Start = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame($q2Id, (int) $resR2Start['question_id']);
+        } finally {
+            $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$q1Id, $q2Id]);
         }
     }
 }

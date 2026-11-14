@@ -3,6 +3,19 @@ class GameSoundFX {
     constructor() {
         this.ctx = null;
         this.enabled = true;
+        this._bindAutoUnlock();
+    }
+
+    _bindAutoUnlock() {
+        const unlock = () => {
+            if (!this.enabled) return;
+            this.init();
+        };
+        if (typeof window !== 'undefined') {
+            ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(evt => {
+                window.addEventListener(evt, unlock, { passive: true });
+            });
+        }
     }
 
     init() {
