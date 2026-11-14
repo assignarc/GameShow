@@ -7,18 +7,33 @@ A file-database-driven, multimodal Rebus Game Show web application built with **
 ## 🌟 Key Features
 
 ### 1. 🧩 Multimodal Master Question Bank (`/moderation`)
-- **600+ Curated Multimodal Puzzles:** Authentic visual images (illustrations, photographic rebuses, vector SVGs, and spatial typography). No plain-text-only riddles.
+- **740+ Curated Multimodal Puzzles:** Authentic visual images (illustrations, photographic rebuses, vector SVGs, extracted video rebus frames, and spatial typography). No plain-text-only riddles.
 - **Alphabet Wordplay & Sounds-Like Series:** Specially crafted letter sound cards (`Vegetable in Alphabet = P`, `Drink in Alphabet = T`, `Question in Alphabet = Y`, `Organ in Alphabet = I`, `Surprise in Alphabet = O`, `Math in Alphabet = X`, `Insect = B`, `Body of Water = C`, `Waiting Line = Q`, `Tree = U`) with zero-spoiler card designs.
 - **Categorized & Tiered:** Grouped into 7 distinct categories (Food & Drink, Movies & Pop Culture, Common Idioms & Sayings, Science & Nature, Compound Words & Places, Sounds-like Alphabet, Wordplay & Riddles) across **Simple**, **Medium**, and **Hard** difficulty curves.
+- **Starred Favorites (`⭐`) & Curation Status:** Star favorite puzzles to prioritize them during tournament round generation. Only `included` puzzles are ever selected for game shows (`skipped` and `excluded` puzzles are strictly filtered out).
 - **Multi-Select Bulk Operations:** Select multiple questions with a single click or "Select All on Page", with a floating bottom action bar to **Batch Delete**, **Batch Include**, or **Batch Exclude**.
 - **1-by-1 Review Deck (`/moderation/review`):** Fullscreen distraction-free curation deck with answers and clues visible upfront, keyboard hotkeys (`1` Include, `2` Skip, `3` Exclude, `Space` toggle hide, `E` Edit), and AI image generation/upscaling.
-- **Duplicate Detection & Merging (`/moderation/duplicates`):** Automated Levenshtein and token-based duplicate detector to merge and clean up duplicate questions.
+- **Duplicate Detection & Merging (`/moderation/duplicates`):** Automated Levenshtein, token, and visual/concept pattern duplicate detector to merge and clean up duplicate questions.
 - **JSON Import / Export:** One-click full export (`rebus_master_question_bank_YYYY-MM-DD.json`) and instant database seeding.
 
 ---
 
 ### 2. 🎬 Tournament & Game Show Engine
 - **Custom Game Shows:** Create, edit, and update Game Show names, subtitles, and default timers directly from the Dashboard or Manage view.
+- **Step-by-Step Pre-Show & Round-by-Round Progression:**
+  1. **Welcome Splash Screen (`status = 'setup'`):** Displayed full-screen on the TV Display (`/media/khapre_party_splash.jpg`) with competing teams hidden until unveiled. The Host Arena clearly indicates that the TV screen is displaying the splash screen.
+  2. **Competing Teams Unveil (`status = 'teams_intro'`):** Host clicks **Next** to unveil the competing couples/teams showcase on the TV screen and reveal the live scoreboard.
+  3. **1-by-1 Tournament Rules Briefing (`status = 'rules_intro'`):** Host clicks **Next** to step through each tournament rule 1-by-1 on the TV screen (`Rule 1 of N`, `Rule 2 of N`, ...).
+  4. **Dynamic Round Briefing & Explicit Round Start (`status = 'round_intro'`):** Before each round begins, the TV screen and Host Arena display that round's dynamic settings summary (`Type: All Teams Open Play • Timer: 25s • Points: +10 (Steal: +0) • Advancement: All Advance`), stat tiles, and categories. The round timer does not start until the host explicitly clicks **🚀 Start Round N**.
+  5. **Automatic End-of-Round Announcement:** When all puzzles in a round are completed, the show automatically announces **🏁 END OF ROUND N** on both TV and Host Arena and previews the upcoming round's rules before advancing to the next round's briefing.
+- **Manual & Random Round Question Selection + Reordering (`/shows/{id}/manage`):**
+  - Pre-assigns puzzles to each round (`show_round_questions`) prioritizing **Starred & Included** puzzles first, with **zero duplicates** across the entire game show.
+  - **Manually Add (`➕ Add Question`), Swap (`🎲`), or Remove (`✕`)** individual puzzles in any standard round via an interactive Question Picker modal.
+  - **Reorder Questions (`⬅` / `➡` buttons or Drag-and-Drop):** Change the exact presentation sequence of puzzles within any standard round.
+- **⚡ Rapid Fire Round Option:**
+  - Toggleable checkbox when creating a show or inside **Manage Show** (`⚡ Rapid Fire Round`).
+  - Automatically collects **all remaining Starred & Included puzzles** not assigned to other rounds in randomized order.
+  - Dynamically re-syncs whenever puzzles are added to or removed from earlier rounds, and locks manual selection and reordering so it always contains all remaining starred puzzles.
 - **Turnkey 1-Hour Championship Format:**
   - Standardized **4-Round, 38-Question Tournament** optimized for a 60-minute party schedule:
     - **Round 1: Warm-Up All-Play** (10 questions, 25s timer, 10 pts, open play).
@@ -28,27 +43,30 @@ A file-database-driven, multimodal Rebus Game Show web application built with **
 - **Flexible Round Management (`/shows/{id}/manage`):**
   - Add, edit, delete, and reorder rounds with **Move Up / Move Down** buttons.
   - Set custom category quotas and difficulty filters per round.
-  - Configure point rewards, steal penalties, and advancement rules ("All Advance" or "Top X Advance").
-- **One-Click Refresh / Reset:** Instant reset of all team scores to 0, clearing question history, and resetting the show back to Round 1 from the Dashboard, Manage Show, or Host Arena.
-- **Smart Non-Repeating Question Selector:** Tracks asked questions across the show run so no puzzle is ever repeated during an event, while prioritizing approved/included questions.
+  - Configure point rewards, steal points, and advancement rules ("All Advance" or "Top X Advance").
+- **One-Click Refresh / Reset:** Instant reset of all team scores to 0, clearing question history, re-randomizing round questions, and returning the show to the initial Welcome Splash Screen (`setup`).
 
 ---
 
 ### 3. 🚀 Live Host Arena (`/shows/{id}/play`)
-- Dedicated command center for the host / MC:
+- Dedicated command center for the host / MC (desktop & iPhone mobile remote view):
+  - Stage-aware **Next** progression button (`👥 Show Teams` ➔ `📜 Unveil Rules` ➔ `🚀 Start Round 1` ➔ `▶️ Next` ➔ `⏭️ Round 2 Info` ➔ `🚀 Start Round 2`).
+  - Host Secret Answer Key card always visible to the host while hidden on the TV until revealed.
   - Synchronized real-time countdown timer with danger/pulse warning as time runs down.
-  - One-click answer reveal and keyboard shortcuts (`Space` to reveal, `Right Arrow` for next question, `P` to play/pause timer).
-  - Award points directly to teams (+10, +15, +20, +25) and assign steal points (+5, +10, +15).
+  - One-click answer reveal and keyboard shortcuts (`Space` / `Enter` to reveal or advance stage, `Right Arrow` for next step/question, `Left Arrow` for previous, `P` to play/pause timer).
+  - Quick Award modal & scoreboard buttons to award round points, steal points, or penalties directly to teams.
   - Matchup selector for head-to-head flight battles.
-  - Real-time round progress counter.
 
 ---
 
-### 4. 📺 Projector / Big Screen TV Display (`/shows/{id}/display`)
+### 4. 📺 Projector / Big Screen TV Display (`/shows/{id}/display`) & 🔊 Dual-Arena Sound Effects
 - Clean, distraction-free widescreen view optimized for large displays and projectors:
-  - **Left Stage (70%):** Large visual rebus viewport (up to `78vh`), glowing category badges, round banner, dynamic countdown bar, and animated answer banner.
-  - **Right Sidebar Scoreboard (30%):** Dedicated vertical scoreboard displaying real-time team rankings, flight tags, team emojis, medal icons (🥇 🥈 🥉), and score badges.
-  - 1-second background state polling for seamless synchronization with the Host Arena.
+  - **Pre-Show Stages:** Fullscreen **Welcome Splash Screen** (`/media/khapre_party_splash.jpg`), **Competing Teams Lineup** showcase grid, **1-by-1 Rules Briefing** card, and **Round Briefing & Format** cards.
+  - **Left Stage (70%):** Large visual rebus viewport (up to `78vh`), glowing category badges with question progress (`3/10`), round banner, dynamic countdown timer, and animated answer reveal overlay.
+  - **Right Sidebar Scoreboard (30%):** Dedicated vertical scoreboard displaying real-time team rankings, couple names, team emojis, medal icons (🥇 🥈 🥉), and score badges.
+  - **🔊 Synchronized Sound Effects on Both TV & Host Arena (`/js/sounds.js`):**
+    - Built-in Web Audio API sound engine active on **both** the TV Display and Host Arena (with independent `🔊 Sound` / `🔇 Muted` toggle buttons).
+    - Plays countdown ticks, last-5-seconds warning beeps (`5..1s`), time-up buzzer (`0s`), correct answer reveal / score award chime, and celebratory fanfare on team unveil, round briefing, and end-of-round announcements.
 
 ---
 
