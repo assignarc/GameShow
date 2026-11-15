@@ -164,7 +164,7 @@ class GameShowController extends AbstractController
             $pdo->prepare('UPDATE show_teams SET score = 0, round_score = 0, is_eliminated = 0, eliminated_in_round = NULL WHERE show_id = ?')->execute([$id]);
             $pdo->prepare('UPDATE show_rounds SET status = "pending" WHERE show_id = ?')->execute([$id]);
             $firstRound = (int) $pdo->query("SELECT id FROM show_rounds WHERE show_id = {$id} ORDER BY round_number ASC LIMIT 1")->fetchColumn();
-            $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0, active_rule_index = -1 WHERE id = ?')
+            $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0, active_rule_index = -1, active_team_index = -1 WHERE id = ?')
                 ->execute([$firstRound ?: null, $id]);
             $pdo->commit();
         } catch (\Throwable $e) {
@@ -174,17 +174,52 @@ class GameShowController extends AbstractController
             throw $e;
         }
 
-        // Re-populate random non-duplicate questions across all rounds
-        $this->populateRoundQuestionsForShow($id);
-
-        $this->addFlash('success', 'Game show refreshed! Question history cleared for fresh random selection (Starred & Included prioritized first; Skipped & Excluded never included), and scores reset to 0.');
+        $this->addFlash('success', '🔄 Game Show Reset! Team scores reset to 0 and show state returned to the Welcome Splash Screen / Round 1 (assigned round questions & order preserved).');
 
         $referer = (string) $request->headers->get('referer', '');
         if (str_contains($referer, '/play')) {
             return $this->redirectToRoute('app_show_play', ['id' => $id]);
         }
+        if ($referer !== '' && !str_contains($referer, '/manage') && !str_contains($referer, '/shows/')) {
+            return $this->redirectToRoute('app_home');
+        }
 
         return $this->redirectToRoute('app_show_manage', ['id' => $id]);
+    }
+
+    #[Route('/shows/{id}/reset-questions', name: 'app_show_reset_questions', methods: ['POST'])]
+    public function resetQuestions(int $id, Request $request): RedirectResponse
+    {
+        $pdo = $this->gameDatabase->getPdo();
+        $this->getShowOrFail($id);
+
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$id]);
+            $pdo->prepare('UPDATE game_shows SET current_question_id = NULL, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+                ->execute([$id]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+
+        // Choose new random non-duplicate questions across all rounds while keeping all round settings, team scores, and show state intact
+        $this->populateRoundQuestionsForShow($id);
+
+        $this->addFlash('success', '🎲 Questions Reset! Selected a fresh random set of non-repeating puzzles across all rounds (round settings, team scores, and game show state preserved).');
+
+        $referer = (string) $request->headers->get('referer', '');
+        if (str_contains($referer, '/play')) {
+            return $this->redirectToRoute('app_show_play', ['id' => $id]);
+        }
+        if ($referer !== '' && !str_contains($referer, '/manage') && !str_contains($referer, '/shows/')) {
+            return $this->redirectToRoute('app_home');
+        }
+
+        return $this->redirect($this->generateUrl('app_show_manage', ['id' => $id]) . '#tab-rounds');
     }
 
     #[Route('/shows/{id}/apply-1hour-template', name: 'app_show_apply_one_hour_template', methods: ['POST'])]
@@ -1187,6 +1222,19 @@ class GameShowController extends AbstractController
                 FROM questions q JOIN categories c ON q.category_id = c.id WHERE q.id = ?');
             $qStmt->execute([$show['current_question_id']]);
             $currentQuestion = $qStmt->fetch();
+        } elseif (($show['status'] ?? '') === 'sample_puzzle') {
+            $currentQuestion = [
+                'id' => -1,
+                'is_sample' => true,
+                'title' => 'Sample Tryout Puzzle',
+                'prompt_text' => 'Practice Rebus Puzzle — Say What You See!',
+                'answer' => 'FALL PARTY',
+                'media_path' => '/media/sample_fall_party.jpg',
+                'difficulty' => 'Tryout (No Points)',
+                'category_name' => 'Sample Tryout Puzzle',
+                'category_color' => '#f59e0b',
+                'category_icon' => '🎯',
+            ];
         }
 
         $usedCount = (int) $pdo->query("SELECT COUNT(*) FROM show_used_questions WHERE show_id = {$id}")->fetchColumn();
@@ -1253,46 +1301,84 @@ class GameShowController extends AbstractController
                 return $this->json(['success' => true, 'question_id' => $targetItem['question_id']]);
 
             case 'show_splash':
-                $pdo->prepare('UPDATE game_shows SET status = "setup", current_question_id = NULL, active_rule_index = -1, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+                $pdo->prepare('UPDATE game_shows SET status = "setup", current_question_id = NULL, active_rule_index = -1, active_team_index = -1, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
                     ->execute([$id]);
-                return $this->json(['success' => true, 'stage' => 'setup']);
+                return $this->json(['success' => true, 'stage' => 'setup', 'active_team_index' => -1]);
 
             case 'show_teams':
-                $pdo->prepare('UPDATE game_shows SET status = "teams_intro", current_question_id = NULL, active_rule_index = -1, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
-                    ->execute([$id]);
-                return $this->json(['success' => true, 'stage' => 'teams_intro']);
+                $teamIdx = (int) ($payload['team_index'] ?? 0);
+                $pdo->prepare('UPDATE game_shows SET status = "teams_intro", current_question_id = NULL, active_rule_index = -1, active_team_index = ?, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+                    ->execute([$teamIdx, $id]);
+                return $this->json(['success' => true, 'stage' => 'teams_intro', 'active_team_index' => $teamIdx]);
+
+            case 'prev_team':
+                $currTIdx = (int) ($show['active_team_index'] ?? 0);
+                $prevTIdx = max(0, $currTIdx - 1);
+                $pdo->prepare('UPDATE game_shows SET status = "teams_intro", active_team_index = ?, active_rule_index = -1 WHERE id = ?')
+                    ->execute([$prevTIdx, $id]);
+                return $this->json(['success' => true, 'stage' => 'teams_intro', 'active_team_index' => $prevTIdx]);
+
+            case 'finish_teams':
+                $rules = $this->gameDatabase->getShowRules($id);
+                if (!empty($rules)) {
+                    $pdo->prepare('UPDATE game_shows SET status = "rules_intro", active_team_index = -1, active_rule_index = 0, current_question_id = NULL WHERE id = ?')
+                        ->execute([$id]);
+                    return $this->json(['success' => true, 'stage' => 'rules_intro', 'active_rule_index' => 0, 'active_team_index' => -1]);
+                }
+                $sampleTimer = (int) ($show['default_timer_seconds'] ?? 25) ?: 25;
+                $pdo->prepare('UPDATE game_shows SET status = "sample_puzzle", active_team_index = -1, active_rule_index = -1, current_question_id = NULL, question_started_at = ?, timer_duration = ?, answer_revealed = 0 WHERE id = ?')
+                    ->execute([time(), $sampleTimer, $id]);
+                return $this->json(['success' => true, 'stage' => 'sample_puzzle', 'active_rule_index' => -1, 'active_team_index' => -1, 'sample_puzzle' => true]);
+
+            case 'start_sample_puzzle':
+                $sampleTimer = (int) ($show['default_timer_seconds'] ?? 25) ?: 25;
+                $pdo->prepare('UPDATE game_shows SET status = "sample_puzzle", active_team_index = -1, active_rule_index = -1, current_question_id = NULL, question_started_at = ?, timer_duration = ?, answer_revealed = 0 WHERE id = ?')
+                    ->execute([time(), $sampleTimer, $id]);
+                return $this->json(['success' => true, 'stage' => 'sample_puzzle', 'sample_puzzle' => true]);
 
             case 'show_round_intro':
-                $pdo->prepare('UPDATE game_shows SET status = "round_intro", current_question_id = NULL, active_rule_index = -1, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+                $pdo->prepare('UPDATE game_shows SET status = "round_intro", current_question_id = NULL, active_rule_index = -1, active_team_index = -1, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
                     ->execute([$id]);
                 return $this->json(['success' => true, 'stage' => 'round_intro']);
 
+            case 'next_team':
             case 'host_next':
                 $showStatus = (string) ($show['status'] ?? 'setup');
                 $currQIdCheck = (int) ($show['current_question_id'] ?? 0);
                 $currRuleIdx = (int) ($show['active_rule_index'] ?? -1);
+                $currTeamIdx = (int) ($show['active_team_index'] ?? -1);
 
-                // Stage 1: Welcome Splash Screen -> Show Teams on TV
-                if ($showStatus === 'setup' && $currQIdCheck === 0 && $currRuleIdx < 0) {
-                    $pdo->prepare('UPDATE game_shows SET status = "teams_intro", current_question_id = NULL, active_rule_index = -1 WHERE id = ?')
+                // Stage 1: Welcome Splash Screen -> Show Team #1 on TV
+                if ($action !== 'next_team' && $showStatus === 'setup' && $currQIdCheck === 0 && $currRuleIdx < 0) {
+                    $pdo->prepare('UPDATE game_shows SET status = "teams_intro", current_question_id = NULL, active_rule_index = -1, active_team_index = 0 WHERE id = ?')
                         ->execute([$id]);
-                    return $this->json(['success' => true, 'stage' => 'teams_intro']);
+                    return $this->json(['success' => true, 'stage' => 'teams_intro', 'active_team_index' => 0]);
                 }
 
-                // Stage 2: Competing Teams Lineup -> Unveil Rules (or Round 1 Briefing if no rules)
-                if ($showStatus === 'teams_intro' && $currQIdCheck === 0 && $currRuleIdx < 0) {
+                // Stage 2: Competing Teams 1-by-1 -> Next Team or Unveil Rules (or Sample Puzzle if no rules)
+                if (($showStatus === 'teams_intro' || $action === 'next_team') && $currQIdCheck === 0 && $currRuleIdx < 0) {
+                    $teamCount = (int) $pdo->query("SELECT COUNT(*) FROM show_teams WHERE show_id = {$id}")->fetchColumn();
+                    $effectiveCurrTeamIdx = max(0, $currTeamIdx);
+                    $nextTeamIdx = $effectiveCurrTeamIdx + 1;
+                    if ($nextTeamIdx < $teamCount) {
+                        $pdo->prepare('UPDATE game_shows SET status = "teams_intro", active_team_index = ?, active_rule_index = -1, current_question_id = NULL WHERE id = ?')
+                            ->execute([$nextTeamIdx, $id]);
+                        return $this->json(['success' => true, 'stage' => 'teams_intro', 'active_team_index' => $nextTeamIdx]);
+                    }
+
                     $rules = $this->gameDatabase->getShowRules($id);
                     if (!empty($rules)) {
-                        $pdo->prepare('UPDATE game_shows SET status = "rules_intro", active_rule_index = 0, current_question_id = NULL WHERE id = ?')
+                        $pdo->prepare('UPDATE game_shows SET status = "rules_intro", active_team_index = -1, active_rule_index = 0, current_question_id = NULL WHERE id = ?')
                             ->execute([$id]);
-                        return $this->json(['success' => true, 'stage' => 'rules_intro', 'active_rule_index' => 0]);
+                        return $this->json(['success' => true, 'stage' => 'rules_intro', 'active_rule_index' => 0, 'active_team_index' => -1]);
                     }
-                    $pdo->prepare('UPDATE game_shows SET status = "round_intro", active_rule_index = -1, current_question_id = NULL WHERE id = ?')
-                        ->execute([$id]);
-                    return $this->json(['success' => true, 'stage' => 'round_intro', 'active_rule_index' => -1]);
+                    $sampleTimer = (int) ($show['default_timer_seconds'] ?? 25) ?: 25;
+                    $pdo->prepare('UPDATE game_shows SET status = "sample_puzzle", active_team_index = -1, active_rule_index = -1, current_question_id = NULL, question_started_at = ?, timer_duration = ?, answer_revealed = 0 WHERE id = ?')
+                        ->execute([time(), $sampleTimer, $id]);
+                    return $this->json(['success' => true, 'stage' => 'sample_puzzle', 'active_rule_index' => -1, 'active_team_index' => -1, 'sample_puzzle' => true]);
                 }
 
-                // Stage 3: Unveiling Rules 1-by-1 -> Next Rule or Round 1 Briefing
+                // Stage 3: Unveiling Rules 1-by-1 -> Next Rule or Sample Tryout Puzzle
                 if ($currRuleIdx >= 0 || ($showStatus === 'rules_intro' && $currQIdCheck === 0)) {
                     $rules = $this->gameDatabase->getShowRules($id);
                     $nextRuleIdx = $currRuleIdx + 1;
@@ -1301,7 +1387,15 @@ class GameShowController extends AbstractController
                             ->execute([$nextRuleIdx, $id]);
                         return $this->json(['success' => true, 'stage' => 'rules_intro', 'active_rule_index' => $nextRuleIdx]);
                     }
-                    $pdo->prepare('UPDATE game_shows SET status = "round_intro", active_rule_index = -1, current_question_id = NULL WHERE id = ?')
+                    $sampleTimer = (int) ($show['default_timer_seconds'] ?? 25) ?: 25;
+                    $pdo->prepare('UPDATE game_shows SET status = "sample_puzzle", active_team_index = -1, active_rule_index = -1, current_question_id = NULL, question_started_at = ?, timer_duration = ?, answer_revealed = 0 WHERE id = ?')
+                        ->execute([time(), $sampleTimer, $id]);
+                    return $this->json(['success' => true, 'stage' => 'sample_puzzle', 'active_rule_index' => -1, 'sample_puzzle' => true]);
+                }
+
+                // Stage 3.5: Sample Tryout Puzzle -> Round 1 Briefing & Rules
+                if ($showStatus === 'sample_puzzle' && $currQIdCheck === 0) {
+                    $pdo->prepare('UPDATE game_shows SET status = "round_intro", active_team_index = -1, active_rule_index = -1, current_question_id = NULL, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
                         ->execute([$id]);
                     return $this->json(['success' => true, 'stage' => 'round_intro', 'active_rule_index' => -1]);
                 }
@@ -1626,7 +1720,7 @@ class GameShowController extends AbstractController
             case 'show_rules':
                 $ruleIdx = (int) ($payload['rule_index'] ?? 0);
                 $nextStatus = empty($show['current_question_id']) ? 'rules_intro' : ($show['status'] ?: 'active');
-                $pdo->prepare('UPDATE game_shows SET status = ?, active_rule_index = ? WHERE id = ?')->execute([$nextStatus, $ruleIdx, $id]);
+                $pdo->prepare('UPDATE game_shows SET status = ?, active_team_index = -1, active_rule_index = ? WHERE id = ?')->execute([$nextStatus, $ruleIdx, $id]);
                 return $this->json(['success' => true, 'active_rule_index' => $ruleIdx, 'stage' => $nextStatus]);
 
             case 'next_rule':
@@ -1634,23 +1728,39 @@ class GameShowController extends AbstractController
                 $currIdx = (int) ($show['active_rule_index'] ?? -1);
                 $nextIdx = $currIdx + 1;
                 if ($nextIdx >= count($rules)) {
-                    $nextIdx = -1; // End of rules -> transition to round_intro if no question active
-                    $nextStatus = empty($show['current_question_id']) ? 'round_intro' : ($show['status'] ?: 'active');
+                    $nextIdx = -1; // End of rules -> transition to sample_puzzle if no question active
+                    if (empty($show['current_question_id'])) {
+                        $sampleTimer = (int) ($show['default_timer_seconds'] ?? 25) ?: 25;
+                        $pdo->prepare('UPDATE game_shows SET status = "sample_puzzle", active_rule_index = -1, question_started_at = ?, timer_duration = ?, answer_revealed = 0 WHERE id = ?')
+                            ->execute([time(), $sampleTimer, $id]);
+                        return $this->json(['success' => true, 'active_rule_index' => -1, 'stage' => 'sample_puzzle', 'sample_puzzle' => true]);
+                    }
+                    $nextStatus = $show['status'] ?: 'active';
                     $pdo->prepare('UPDATE game_shows SET status = ?, active_rule_index = -1 WHERE id = ?')->execute([$nextStatus, $id]);
                     return $this->json(['success' => true, 'active_rule_index' => -1, 'stage' => $nextStatus]);
                 }
                 $pdo->prepare('UPDATE game_shows SET active_rule_index = ? WHERE id = ?')->execute([$nextIdx, $id]);
-                return $this->json(['success' => true, 'active_rule_index' => $nextIdx]);
+                return $this->json(['success' => true, 'active_rule_index' => $nextIdx, 'stage' => 'rules_intro']);
 
             case 'prev_rule':
                 $currIdx = (int) ($show['active_rule_index'] ?? 0);
                 $prevIdx = max(0, $currIdx - 1);
                 $pdo->prepare('UPDATE game_shows SET active_rule_index = ? WHERE id = ?')->execute([$prevIdx, $id]);
-                return $this->json(['success' => true, 'active_rule_index' => $prevIdx]);
+                return $this->json(['success' => true, 'active_rule_index' => $prevIdx, 'stage' => 'rules_intro']);
 
             case 'close_rules':
-            case 'finish_rules':
                 $nextStatus = empty($show['current_question_id']) ? 'round_intro' : ($show['status'] ?: 'active');
+                $pdo->prepare('UPDATE game_shows SET status = ?, active_rule_index = -1 WHERE id = ?')->execute([$nextStatus, $id]);
+                return $this->json(['success' => true, 'active_rule_index' => -1, 'stage' => $nextStatus]);
+
+            case 'finish_rules':
+                if (empty($show['current_question_id'])) {
+                    $sampleTimer = (int) ($show['default_timer_seconds'] ?? 25) ?: 25;
+                    $pdo->prepare('UPDATE game_shows SET status = "sample_puzzle", active_rule_index = -1, question_started_at = ?, timer_duration = ?, answer_revealed = 0 WHERE id = ?')
+                        ->execute([time(), $sampleTimer, $id]);
+                    return $this->json(['success' => true, 'active_rule_index' => -1, 'stage' => 'sample_puzzle', 'sample_puzzle' => true]);
+                }
+                $nextStatus = $show['status'] ?: 'active';
                 $pdo->prepare('UPDATE game_shows SET status = ?, active_rule_index = -1 WHERE id = ?')->execute([$nextStatus, $id]);
                 return $this->json(['success' => true, 'active_rule_index' => -1, 'stage' => $nextStatus]);
 
@@ -1661,7 +1771,7 @@ class GameShowController extends AbstractController
                     $pdo->prepare('UPDATE show_teams SET score = 0, round_score = 0, is_eliminated = 0, eliminated_in_round = NULL WHERE show_id = ?')->execute([$id]);
                     $pdo->prepare('UPDATE show_rounds SET status = "pending" WHERE show_id = ?')->execute([$id]);
                     $firstRound = (int) $pdo->query("SELECT id FROM show_rounds WHERE show_id = {$id} ORDER BY round_number ASC LIMIT 1")->fetchColumn();
-                    $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0, active_rule_index = -1 WHERE id = ?')
+                    $pdo->prepare('UPDATE game_shows SET status = "setup", current_round_id = ?, current_question_id = NULL, active_matchup_label = "", active_team_a_id = NULL, active_team_b_id = NULL, question_started_at = NULL, answer_revealed = 0, active_rule_index = -1, active_team_index = -1 WHERE id = ?')
                         ->execute([$firstRound ?: null, $id]);
                     $pdo->commit();
                 } catch (\Throwable $e) {
@@ -1670,8 +1780,23 @@ class GameShowController extends AbstractController
                     }
                     throw $e;
                 }
+                return $this->json(['success' => true, 'reset_type' => 'show']);
+
+            case 'reset_questions':
+                $pdo->beginTransaction();
+                try {
+                    $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$id]);
+                    $pdo->prepare('UPDATE game_shows SET current_question_id = NULL, question_started_at = NULL, answer_revealed = 0 WHERE id = ?')
+                        ->execute([$id]);
+                    $pdo->commit();
+                } catch (\Throwable $e) {
+                    if ($pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    throw $e;
+                }
                 $this->populateRoundQuestionsForShow($id);
-                return $this->json(['success' => true]);
+                return $this->json(['success' => true, 'reset_type' => 'questions']);
 
             default:
                 return $this->json(['error' => 'Unknown action'], Response::HTTP_BAD_REQUEST);

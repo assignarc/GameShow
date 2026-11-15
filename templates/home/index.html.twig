@@ -88,48 +88,62 @@
     }
 
     .shows-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-        gap: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
     }
 
     .show-card {
         background: var(--bg-card);
-        border: 1px solid var(--border-color);
+        border: 1.5px solid var(--border-color);
         border-radius: 18px;
-        padding: 1.75rem;
+        padding: 1.4rem 1.75rem;
         display: flex;
-        flex-direction: column;
+        align-items: center;
         justify-content: space-between;
-        transition: all 0.25s ease;
+        gap: 1.75rem;
+        transition: all 0.22s ease;
         position: relative;
     }
 
     .show-card:hover {
         border-color: var(--primary);
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .show-card-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .show-card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
     }
 
     .show-title {
-        font-size: 1.35rem;
+        font-size: 1.4rem;
         font-weight: 800;
-        margin-bottom: 0.35rem;
         color: #fff;
+        margin: 0;
     }
 
     .show-subtitle {
         color: var(--accent);
-        font-size: 0.9rem;
+        font-size: 0.92rem;
         font-weight: 600;
-        margin-bottom: 1rem;
+        margin: 0;
     }
 
     .show-meta-strip {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
+        gap: 0.6rem;
     }
 
     .meta-tag {
@@ -137,65 +151,109 @@
         border: 1px solid var(--border-color);
         padding: 0.35rem 0.75rem;
         border-radius: 8px;
-        font-size: 0.85rem;
+        font-size: 0.84rem;
         color: var(--text-sub);
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 0.4rem;
     }
 
-    .show-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.75rem;
-    }
-
-    .show-actions .btn-full {
-        grid-column: span 2;
-    }
-
-    .btn-delete-show {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        color: #ef4444;
-        width: 36px;
-        height: 36px;
-        border-radius: 9px;
+    .show-card-controls {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 1rem;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.65rem;
         flex-shrink: 0;
     }
 
-    .btn-delete-show:hover {
-        background: rgba(239, 68, 68, 0.25);
-        border-color: #ef4444;
-        transform: scale(1.08);
+    .show-primary-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
-    .btn-refresh-show {
-        background: rgba(245, 158, 11, 0.1);
-        border: 1px solid rgba(245, 158, 11, 0.35);
+    .show-utility-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .btn-util-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.38rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-sub);
+    }
+
+    .btn-util-pill:hover {
+        transform: translateY(-1px);
+    }
+
+    .btn-util-pill.edit {
+        color: #60a5fa;
+        border-color: rgba(96, 165, 250, 0.35);
+        background: rgba(96, 165, 250, 0.1);
+    }
+    .btn-util-pill.edit:hover {
+        background: rgba(96, 165, 250, 0.22);
+        border-color: #60a5fa;
+    }
+
+    .btn-util-pill.reset-show {
         color: #f59e0b;
-        width: 36px;
-        height: 36px;
-        border-radius: 9px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 1rem;
-        flex-shrink: 0;
+        border-color: rgba(245, 158, 11, 0.35);
+        background: rgba(245, 158, 11, 0.1);
+    }
+    .btn-util-pill.reset-show:hover {
+        background: rgba(245, 158, 11, 0.22);
+        border-color: #f59e0b;
     }
 
-    .btn-refresh-show:hover {
-        background: rgba(245, 158, 11, 0.25);
-        border-color: #f59e0b;
-        transform: scale(1.08);
+    .btn-util-pill.reset-q {
+        color: #c084fc;
+        border-color: rgba(168, 85, 247, 0.35);
+        background: rgba(168, 85, 247, 0.1);
+    }
+    .btn-util-pill.reset-q:hover {
+        background: rgba(168, 85, 247, 0.22);
+        border-color: #c084fc;
+    }
+
+    .btn-util-pill.delete {
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.3);
+        background: rgba(239, 68, 68, 0.1);
+    }
+    .btn-util-pill.delete:hover {
+        background: rgba(239, 68, 68, 0.22);
+        border-color: #ef4444;
+    }
+
+    @media (max-width: 960px) {
+        .show-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 1.25rem;
+        }
+        .show-card-controls {
+            align-items: stretch;
+        }
+        .show-primary-actions,
+        .show-utility-actions {
+            justify-content: flex-start;
+        }
     }
 
     /* Modal Styling */
@@ -270,63 +328,75 @@
 <div class="shows-grid">
     {% for show in shows %}
         <div class="show-card">
-            <div>
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.35rem;">
-                    <div>
-                        <div class="show-title">{{ show.name }}</div>
-                        <div class="show-subtitle">{{ show.subtitle }}</div>
+            <div class="show-card-main">
+                <div>
+                    <div class="show-card-header">
+                        <h3 class="show-title">{{ show.name }}</h3>
+                        {% if show.starred_only|default(0) %}
+                            <span class="meta-tag" style="border-color: rgba(251, 191, 36, 0.45); color: #fbbf24; background: rgba(251, 191, 36, 0.12); padding: 0.2rem 0.65rem; font-size: 0.78rem;">⭐ <strong>Starred Only</strong></span>
+                        {% else %}
+                            <span class="meta-tag" style="padding: 0.2rem 0.65rem; font-size: 0.78rem;">👍 <strong>All Included</strong></span>
+                        {% endif %}
                     </div>
-                    <div style="display: flex; gap: 0.4rem; align-items: center;">
-                        <button type="button" class="btn-refresh-show" onclick="openEditShowModal({{ show|json_encode }})" title="Edit Game Show Name & Settings" aria-label="Edit Game Show" style="color: #60a5fa; border-color: rgba(96, 165, 250, 0.35); background: rgba(96, 165, 250, 0.1);">
-                            ✏️
-                        </button>
-                        <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Refresh &quot;{{ show.name|e('js') }}&quot;? This resets team scores to 0, clears asked questions history, and returns to Round 1.');" style="margin: 0;">
-                            <button type="submit" class="btn-refresh-show" title="Refresh Show (Zero scores & reset questions)" aria-label="Refresh Game Show">
-                                🔄
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ path('app_show_delete', {'id': show.id}) }}" onsubmit="return confirm('Permanently delete &quot;{{ show.name|e('js') }}&quot; and all its rounds/teams?');" style="margin: 0;">
-                            <button type="submit" class="btn-delete-show" title="Delete Game Show" aria-label="Delete Game Show">
-                                🗑️
-                            </button>
-                        </form>
-                    </div>
+                    {% if show.subtitle %}
+                        <p class="show-subtitle" style="margin-top: 0.25rem;">{{ show.subtitle }}</p>
+                    {% endif %}
                 </div>
-                
+
                 <div class="show-meta-strip">
                     <span class="meta-tag">👥 <strong>{{ show.team_count }}</strong> Teams</span>
                     <span class="meta-tag">🔄 <strong>{{ show.round_count }}</strong> Rounds</span>
                     <span class="meta-tag">⏱️ <strong>{{ show.default_timer_seconds }}s</strong> Timer</span>
                     <span class="meta-tag">🚫 <strong>{{ show.used_q_count }}</strong> Asked (No repeats)</span>
-                    {% if show.starred_only|default(0) %}
-                        <span class="meta-tag" style="border-color: rgba(251, 191, 36, 0.45); color: #fbbf24; background: rgba(251, 191, 36, 0.12);">⭐ <strong>Starred Only</strong></span>
-                    {% else %}
-                        <span class="meta-tag">👍 <strong>All Included</strong></span>
-                    {% endif %}
                 </div>
             </div>
 
-            <div class="show-actions">
-                <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary">
-                    🚀 Launch Arena
-                </a>
-                <button type="button" class="btn btn-secondary" onclick="openHomeHostQrModal({{ show.id }}, '{{ show.name|e('js') }}', '{{ show.mobile_host_url|e('js') }}')" title="Show Host Remote QR Code for iPhone" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
-                    📱 iPhone QR
-                </button>
-                <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
-                    📺 TV View
-                </a>
-                <a href="{{ path('app_show_manage', {'id': show.id}) }}" class="btn btn-secondary">
-                    ⚙️ Teams & Rounds
-                </a>
+            <div class="show-card-controls">
+                <div class="show-primary-actions">
+                    <a href="{{ path('app_show_play', {'id': show.id}) }}" class="btn btn-primary">
+                        🚀 Launch Arena
+                    </a>
+                    <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
+                        📺 TV View
+                    </a>
+                    <a href="{{ path('app_show_manage', {'id': show.id}) }}" class="btn btn-secondary">
+                        ⚙️ Teams &amp; Rounds
+                    </a>
+                    <button type="button" class="btn btn-secondary" onclick="openHomeHostQrModal({{ show.id }}, '{{ show.name|e('js') }}', '{{ show.mobile_host_url|e('js') }}')" title="Show Host Remote QR Code for iPhone" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
+                        📱 iPhone QR
+                    </button>
+                </div>
+
+                <div class="show-utility-actions">
+                    <button type="button" class="btn-util-pill edit" onclick="openEditShowModal({{ show|json_encode }})" title="Edit Game Show Name &amp; Settings" aria-label="Edit Game Show">
+                        ✏️ Edit Settings
+                    </button>
+                    <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Reset Game Show &quot;{{ show.name|e('js') }}&quot;? This resets team scores to 0 and restarts the show state from the Splash Screen / Round 1 (keeping your selected round questions &amp; order intact).');" style="margin: 0;">
+                        <button type="submit" class="btn-util-pill reset-show" title="Reset Game Show (Reset scores &amp; show state — keeps round questions)" aria-label="Reset Game Show">
+                            🔄 Reset Game Show
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ path('app_show_reset_questions', {'id': show.id}) }}" onsubmit="return confirm('Reset Questions for &quot;{{ show.name|e('js') }}&quot;? This chooses a new random set of questions across all rounds without resetting round settings or team scores.');" style="margin: 0;">
+                        <button type="submit" class="btn-util-pill reset-q" title="Reset Questions (Choose new random questions without resetting round settings or scores)" aria-label="Reset Questions">
+                            🎲 Reset Questions
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ path('app_show_delete', {'id': show.id}) }}" onsubmit="return confirm('Permanently delete &quot;{{ show.name|e('js') }}&quot; and all its rounds/teams?');" style="margin: 0;">
+                        <button type="submit" class="btn-util-pill delete" title="Delete Game Show" aria-label="Delete Game Show">
+                            🗑️ Delete
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     {% else %}
-        <div class="show-card" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
-            <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 1.5rem;">No game shows created yet.</p>
-            <button type="button" class="btn btn-primary" onclick="document.getElementById('new-show-modal').showModal()">
-                Create Your First Game Show
-            </button>
+        <div class="show-card" style="justify-content: center; text-align: center; padding: 4rem;">
+            <div>
+                <p style="font-size: 1.25rem; color: var(--text-muted); margin-bottom: 1.5rem;">No game shows created yet.</p>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('new-show-modal').showModal()">
+                    Create Your First Game Show
+                </button>
+            </div>
         </div>
     {% endfor %}
 </div>

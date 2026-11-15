@@ -551,9 +551,14 @@
         <a href="{{ path('app_show_display', {'id': show.id}) }}" target="_blank" class="btn btn-secondary">
             📺 TV Presentation View
         </a>
-        <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Refresh &quot;{{ show.name|e('js') }}&quot;? This resets all team scores to 0, clears asked questions history, and returns to Round 1.');" style="margin: 0;">
-            <button type="submit" class="btn btn-secondary" style="border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; font-weight: 700;" title="Zero team scores, clear question history, and restart from Round 1">
-                🔄 Refresh / Reset Show
+        <form method="POST" action="{{ path('app_show_reset', {'id': show.id}) }}" onsubmit="return confirm('Reset Game Show &quot;{{ show.name|e('js') }}&quot;? This resets all team scores to 0 and returns show state to the Welcome Splash Screen / Round 1 (keeping your selected round questions &amp; order intact).');" style="margin: 0;">
+            <button type="submit" class="btn btn-secondary" style="border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; font-weight: 700;" title="Reset team scores to 0 and restart show state (preserves assigned round questions &amp; order)">
+                🔄 Reset Game Show
+            </button>
+        </form>
+        <form method="POST" action="{{ path('app_show_reset_questions', {'id': show.id}) }}" onsubmit="return confirm('Reset Questions for &quot;{{ show.name|e('js') }}&quot;? This chooses new random questions across all rounds without resetting round settings or team scores.');" style="margin: 0;">
+            <button type="submit" class="btn btn-secondary" style="border-color: rgba(168, 85, 247, 0.45); color: #c084fc; font-weight: 700;" title="Choose new random questions across all rounds without resetting round settings or scores">
+                🎲 Reset Questions
             </button>
         </form>
         <form method="POST" action="{{ path('app_show_delete', {'id': show.id}) }}" onsubmit="return confirm('Are you sure you want to permanently delete this game show? All teams, rounds, and show progress will be removed.');" style="margin: 0;">
@@ -660,6 +665,11 @@
                     <input type="checkbox" {% if has_rapid_fire|default(false) %}checked{% endif %} onchange="this.form.submit()" style="width: 16px; height: 16px; accent-color: #38bdf8; cursor: pointer;">
                     <span>⚡ Add Rapid Fire Round (All Remaining Starred)</span>
                 </label>
+            </form>
+            <form method="POST" action="{{ path('app_show_reset_questions', {'id': show.id}) }}" onsubmit="return confirm('Reset Questions across all rounds? This chooses a new random set of puzzles for every round while preserving all round settings and team scores.');" style="margin: 0;">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(168, 85, 247, 0.45); color: #c084fc; font-weight: 700;" title="Choose new random questions across all rounds without resetting round settings">
+                    🎲 Reset All Round Questions
+                </button>
             </form>
             <form method="POST" action="{{ path('app_show_apply_one_hour_template', {'id': show.id}) }}" onsubmit="return confirm('Update rounds to the official 1-Hour Championship structure (4 rounds, 38 questions, calibrated for current active questions)?');" style="margin: 0;">
                 <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;" title="Apply balanced 4-round 1-hour tournament format">

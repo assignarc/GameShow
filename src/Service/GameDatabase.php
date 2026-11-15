@@ -196,6 +196,12 @@ SQL);
         }
 
         try {
+            $pdo->exec('ALTER TABLE game_shows ADD COLUMN active_team_index INTEGER NOT NULL DEFAULT -1');
+        } catch (\Throwable) {
+            // Column already exists
+        }
+
+        try {
             $pdo->exec('ALTER TABLE game_shows ADD COLUMN starred_only INTEGER NOT NULL DEFAULT 0');
         } catch (\Throwable) {
             // Column already exists

@@ -203,8 +203,177 @@
             justify-content: center;
             position: relative;
             padding: 2rem;
-            background: radial-gradient(circle at center, #241c15 0%, #0a0807 100%);
+            background: radial-gradient(circle at center, #2a1f16 0%, #0a0807 100%);
             overflow: hidden;
+            perspective: 1200px;
+        }
+
+        /* Ambient Rotating Game Show Stage Spotlights */
+        main.tv-stage::before,
+        main.tv-stage::after {
+            content: '';
+            position: absolute;
+            width: 140%;
+            height: 140%;
+            top: -20%;
+            left: -20%;
+            pointer-events: none;
+            z-index: 0;
+            background: conic-gradient(
+                from 0deg at 50% 50%,
+                transparent 0deg,
+                rgba(249, 115, 22, 0.08) 25deg,
+                transparent 55deg,
+                transparent 180deg,
+                rgba(251, 191, 36, 0.08) 205deg,
+                transparent 235deg
+            );
+            animation: rotateStageBeams 22s linear infinite;
+        }
+
+        main.tv-stage::after {
+            animation-direction: reverse;
+            animation-duration: 30s;
+            opacity: 0.75;
+        }
+
+        @keyframes rotateStageBeams {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Cinematic Stage Transition Light Sweep Overlay */
+        .tv-stage-transition-fx {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 60;
+            opacity: 0;
+        }
+
+        .tv-stage-transition-fx.active {
+            animation: stageLightSweep 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes stageLightSweep {
+            0% {
+                opacity: 0.95;
+                background: radial-gradient(circle at center, rgba(251, 191, 36, 0.55) 0%, rgba(249, 115, 22, 0.25) 45%, transparent 75%);
+                transform: scale(0.65);
+            }
+            50% {
+                opacity: 0.75;
+                transform: scale(1.15);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(1.4);
+            }
+        }
+
+        /* Clean Stage Card Entrance — emerges smoothly from the back and stays steady */
+        @keyframes stageCard3DEnter {
+            0% {
+                opacity: 0;
+                transform: scale(0.76) translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .stage-card-3d-enter {
+            animation: stageCard3DEnter 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+        }
+
+        /* 1-BY-1 TEAM SPOTLIGHT CARD */
+        .tv-team-spotlight-card {
+            background: linear-gradient(145deg, rgba(36, 28, 22, 0.97) 0%, rgba(16, 12, 9, 0.99) 100%);
+            border: 2.5px solid rgba(251, 191, 36, 0.6);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.92), 0 0 65px rgba(249, 115, 22, 0.28);
+            border-radius: 32px;
+            padding: 2.5rem 3.2rem;
+            max-width: 920px;
+            width: 92%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            z-index: 5;
+            overflow: hidden;
+        }
+
+        .tv-team-avatar-ring {
+            position: relative;
+            width: 138px;
+            height: 138px;
+            border-radius: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5.2rem;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.22) 0%, rgba(18, 14, 11, 0.95) 75%);
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 45px rgba(245, 158, 11, 0.45), inset 0 0 25px rgba(251, 191, 36, 0.25);
+            margin-bottom: 1.35rem;
+        }
+
+        .tv-team-spot-name {
+            font-size: clamp(2.5rem, 4vw, 3.8rem);
+            font-weight: 900;
+            letter-spacing: 1px;
+            margin: 0 0 0.65rem 0;
+            background: linear-gradient(90deg, #ffffff 0%, #fde68a 50%, #f97316 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.7));
+        }
+
+        .team-card-row.spotlight-active {
+            border: 2px solid #fbbf24 !important;
+            background: linear-gradient(90deg, rgba(251, 191, 36, 0.28) 0%, rgba(249, 115, 22, 0.16) 100%) !important;
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.4);
+        }
+
+        .team-card-row.just-seated-anim {
+            animation: teamSeatSlideIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes teamSeatSlideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(-80px) scale(0.85);
+            }
+            65% {
+                opacity: 1;
+                transform: translateX(6px) scale(1.03);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        .team-seat-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border-radius: 14px;
+            border: 1.5px dashed rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.02);
+            color: rgba(148, 163, 184, 0.45);
+            font-weight: 700;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .team-seat-placeholder.next-up {
+            border-color: rgba(251, 191, 36, 0.45);
+            background: rgba(251, 191, 36, 0.06);
+            color: var(--accent);
         }
 
         .puzzle-viewport {
@@ -280,6 +449,157 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ANIMATED WELCOME SPLASH & STAGE ENTRANCES */
+        .welcome-splash-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 96%;
+            max-height: 83vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.9rem;
+            z-index: 2;
+        }
+
+        .splash-particles {
+            position: absolute;
+            inset: -20px;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .splash-particle {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.75;
+            filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5));
+            animation: floatParticle 6s ease-in-out infinite;
+        }
+
+        @keyframes floatParticle {
+            0%, 100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0.65; }
+            50% { transform: translateY(-22px) rotate(14deg) scale(1.15); opacity: 1; }
+        }
+
+        .splash-hero-frame {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            animation: splashHeroEnter 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards, splashHeroFloat 4.5s ease-in-out 0.85s infinite;
+        }
+
+        .splash-hero-frame::before {
+            content: '';
+            position: absolute;
+            inset: -14px;
+            border-radius: 30px;
+            background: conic-gradient(from 0deg, rgba(249, 115, 22, 0.65), rgba(251, 191, 36, 0.85), rgba(16, 185, 129, 0.45), rgba(245, 158, 11, 0.85), rgba(249, 115, 22, 0.65));
+            filter: blur(22px);
+            opacity: 0.7;
+            z-index: -1;
+            animation: auraPulse 3s ease-in-out infinite alternate;
+        }
+
+        .splash-hero-img {
+            max-height: 73vh;
+            max-width: 100%;
+            width: auto;
+            height: auto;
+            border-radius: 22px;
+            border: 3px solid rgba(251, 191, 36, 0.75);
+            box-shadow: 0 30px 75px rgba(0, 0, 0, 0.92), 0 0 50px rgba(249, 115, 22, 0.35);
+            object-fit: contain;
+            background: #120e0b;
+        }
+
+        @keyframes splashHeroEnter {
+            0% { opacity: 0; transform: scale(0.82) translateY(28px); filter: brightness(1.35); }
+            70% { opacity: 1; transform: scale(1.02) translateY(-4px); filter: brightness(1.05); }
+            100% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1); }
+        }
+
+        @keyframes splashHeroFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.008); }
+        }
+
+        @keyframes auraPulse {
+            0% { opacity: 0.45; transform: scale(0.98); }
+            100% { opacity: 0.85; transform: scale(1.03); }
+        }
+
+        .splash-cta-pill {
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: linear-gradient(90deg, rgba(32, 26, 21, 0.95) 0%, rgba(45, 34, 24, 0.95) 50%, rgba(32, 26, 21, 0.95) 100%);
+            border: 2px solid rgba(251, 191, 36, 0.65);
+            padding: 0.55rem 1.75rem;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: #fbbf24;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), 0 0 25px rgba(245, 158, 11, 0.28);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: pillPulse 2.2s ease-in-out infinite;
+        }
+
+        .splash-cta-pill:hover {
+            transform: scale(1.04);
+            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.85), 0 0 35px rgba(251, 191, 36, 0.5);
+        }
+
+        @keyframes pillPulse {
+            0%, 100% { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(245, 158, 11, 0.22); }
+            50% { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), 0 0 36px rgba(251, 191, 36, 0.55); }
+        }
+
+        .eq-bars {
+            display: inline-flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 16px;
+        }
+
+        .eq-bar {
+            width: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+            animation: eqBounce 0.8s ease-in-out infinite alternate;
+        }
+        .eq-bar:nth-child(1) { height: 7px; animation-delay: 0s; }
+        .eq-bar:nth-child(2) { height: 15px; animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { height: 10px; animation-delay: 0.4s; }
+        .eq-bar:nth-child(4) { height: 14px; animation-delay: 0.15s; }
+
+        @keyframes eqBounce {
+            0% { transform: scaleY(0.35); }
+            100% { transform: scaleY(1); }
+        }
+
+        @keyframes teamCardPopIn {
+            0% { opacity: 0; transform: translateY(24px) scale(0.88); }
+            70% { opacity: 1; transform: translateY(-4px) scale(1.03); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes puzzleStageEnter {
+            0% { opacity: 0; transform: scale(0.88) translateY(18px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .puzzle-img.stage-enter {
+            animation: puzzleStageEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         /* RIGHT SCOREBOARD SIDEBAR */
@@ -469,6 +789,126 @@
             letter-spacing: 0.5px;
         }
 
+        /* POINTS AWARDED CELEBRATION & SCOREBOARD ANIMATIONS */
+        .team-card-row.points-gained {
+            border: 2px solid #10b981 !important;
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.35) 0%, rgba(251, 191, 36, 0.22) 100%) !important;
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.55);
+            animation: scoreRowCelebrate 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
+        }
+
+        .team-card-row.points-lost {
+            border: 2px solid #ef4444 !important;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.3) 0%, rgba(32, 26, 21, 0.95) 100%) !important;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.45);
+            animation: scoreRowShake 0.6s ease-in-out;
+        }
+
+        @keyframes scoreRowCelebrate {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.06) translateX(-8px); }
+            60% { transform: scale(1.02) translateX(-3px); }
+            100% { transform: scale(1) translateX(0); }
+        }
+
+        @keyframes scoreRowShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .team-score-badge {
+            position: relative;
+        }
+
+        .team-score-badge.score-pop {
+            color: #10b981 !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 0 22px rgba(16, 185, 129, 0.65) !important;
+            animation: scoreBadgePop 0.75s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes scoreBadgePop {
+            0% { transform: scale(1); }
+            35% { transform: scale(1.38); }
+            100% { transform: scale(1); }
+        }
+
+        .score-delta-pill {
+            position: absolute;
+            top: -14px;
+            right: -8px;
+            padding: 0.18rem 0.6rem;
+            border-radius: 999px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.92rem;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            pointer-events: none;
+            z-index: 25;
+            white-space: nowrap;
+            animation: scoreDeltaFloat 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .score-delta-pill.plus {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #ffffff;
+            border: 2px solid #a7f3d0;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.65);
+        }
+
+        .score-delta-pill.minus {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            border: 2px solid #fecaca;
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.65);
+        }
+
+        @keyframes scoreDeltaFloat {
+            0% { opacity: 0; transform: translateY(12px) scale(0.5); }
+            18% { opacity: 1; transform: translateY(-4px) scale(1.18); }
+            75% { opacity: 1; transform: translateY(-12px) scale(1); }
+            100% { opacity: 0; transform: translateY(-24px) scale(0.9); }
+        }
+
+        .tv-points-burst-banner {
+            position: absolute;
+            top: 26px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 75;
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.95rem 2.4rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.97) 0%, rgba(5, 150, 105, 0.97) 50%, rgba(245, 158, 11, 0.97) 100%);
+            border: 3px solid #fde68a;
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.85), 0 0 50px rgba(16, 185, 129, 0.65);
+            color: #ffffff;
+            pointer-events: none;
+        }
+
+        .tv-points-burst-banner.penalty {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.97) 0%, rgba(185, 28, 28, 0.97) 100%);
+            border-color: #fca5a5;
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.85), 0 0 50px rgba(239, 68, 68, 0.65);
+        }
+
+        .tv-points-burst-banner.active {
+            display: inline-flex;
+            animation: pointsBurstBannerAnim 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pointsBurstBannerAnim {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-35px) scale(0.65); }
+            16% { opacity: 1; transform: translateX(-50%) translateY(4px) scale(1.06); }
+            26% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            82% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-25px) scale(0.9); }
+        }
+
         /* TV RULES PRESENTATION CARD */
         .tv-rules-card {
             background: linear-gradient(145deg, rgba(32, 26, 21, 0.96) 0%, rgba(18, 14, 11, 0.99) 100%);
@@ -483,12 +923,6 @@
             align-items: center;
             text-align: center;
             position: relative;
-            animation: zoomInRule 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes zoomInRule {
-            0% { transform: scale(0.92); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
         }
 
         .tv-rules-header {
@@ -542,12 +976,6 @@
             justify-content: center;
             margin-bottom: 1.5rem;
             box-shadow: 0 0 35px rgba(245, 158, 11, 0.3);
-            animation: pulseIcon 2.5s infinite ease-in-out;
-        }
-
-        @keyframes pulseIcon {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(245, 158, 11, 0.25); }
-            50% { transform: scale(1.06); box-shadow: 0 0 45px rgba(245, 158, 11, 0.45); }
         }
 
         .tv-rules-title {
@@ -627,14 +1055,22 @@
             <button type="button" class="tv-sound-btn" id="tv-sound-btn" onclick="toggleTvSound()" title="Toggle TV Sound Effects">
                 🔊 Sound
             </button>
-            <span class="timer-label">TIMER</span>
-            <div class="timer-box" id="tv-timer">25</div>
+            <span class="timer-label" id="tv-timer-label" style="display: none;">TIMER</span>
+            <div class="timer-box" id="tv-timer" style="display: none;">25</div>
         </div>
     </header>
 
     <div class="tv-content">
         <!-- LEFT: PUZZLE STAGE -->
         <main class="tv-stage">
+            <div class="tv-stage-transition-fx" id="tv-stage-transition-fx"></div>
+            <div class="tv-points-burst-banner" id="tv-points-burst">
+                <span style="font-size: 2.3rem;" id="tv-points-burst-emoji">🏆</span>
+                <div style="text-align: left;">
+                    <div style="font-size: 0.78rem; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: #fde68a;" id="tv-points-burst-label">POINTS AWARDED!</div>
+                    <div style="font-size: 1.55rem; font-weight: 900; line-height: 1.15;" id="tv-points-burst-text">+10 PTS • Team Name</div>
+                </div>
+            </div>
             <div class="puzzle-viewport">
                 <!-- TV RULES BRIEFING CARD -->
                 <div class="tv-rules-card" id="tv-rules-card" style="display: none;">
@@ -684,37 +1120,49 @@
                 </div>
 
                 <!-- WELCOME SPLASH SCREEN (STAGE 1: ONLY ON TV SCREEN) -->
-                <div class="splash-card" id="tv-welcome-splash-card" style="display: none; max-width: 1120px; width: 95%; padding: 1.5rem 2rem; background: linear-gradient(145deg, rgba(32, 26, 21, 0.96) 0%, rgba(18, 14, 11, 0.99) 100%); border: 2.5px solid rgba(245, 158, 11, 0.55); border-radius: 28px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.92), 0 0 60px rgba(249, 115, 22, 0.22);">
-                    <div style="display: inline-block; background: rgba(249, 115, 22, 0.2); border: 1.5px solid rgba(249, 115, 22, 0.55); color: var(--accent); font-weight: 900; font-size: 0.9rem; padding: 0.3rem 1.25rem; border-radius: 999px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 0.65rem;">
-                        🍁 WELCOME TO THE TOURNAMENT ARENA
+                <div class="splash-card welcome-splash-stage" id="tv-welcome-splash-card" style="display: none;" onclick="if(window.soundFX){window.soundFX.playSplashIntro();}">
+                    <div class="splash-particles">
+                        <span class="splash-particle" style="top: 6%; left: 4%; animation-delay: 0s;">🍁</span>
+                        <span class="splash-particle" style="top: 14%; right: 5%; animation-delay: 0.9s;">✨</span>
+                        <span class="splash-particle" style="bottom: 18%; left: 6%; animation-delay: 1.7s;">🎉</span>
+                        <span class="splash-particle" style="bottom: 12%; right: 6%; animation-delay: 0.5s;">🍂</span>
+                        <span class="splash-particle" style="top: 48%; left: 2%; animation-delay: 1.3s;">⭐</span>
+                        <span class="splash-particle" style="top: 44%; right: 2%; animation-delay: 2.1s;">🏆</span>
                     </div>
-                    <h1 style="font-size: clamp(2.1rem, 3.2vw, 3.1rem); font-weight: 900; letter-spacing: 1px; color: #fff; margin: 0 0 0.25rem 0; text-shadow: 0 4px 20px rgba(0,0,0,0.6);">
-                        {{ show.name }}
-                    </h1>
-                    <p style="font-size: 1.15rem; color: #cbd5e1; font-weight: 700; margin: 0 0 1rem 0;">
-                        {{ show.description ?? show.subtitle ?? 'Say What You See • Couple Edition Rebus Championship!' }}
-                    </p>
-                    <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.85rem;">
-                        <img src="/media/khapre_party_splash.jpg" alt="Khapre Party Splash" style="max-height: 54vh; max-width: 100%; width: auto; border-radius: 20px; border: 3px solid rgba(251, 191, 36, 0.55); box-shadow: 0 20px 55px rgba(0,0,0,0.85); object-fit: contain;">
+                    <div class="splash-hero-frame">
+                        <img src="/media/khapre_party_splash.jpg" alt="Khapre Party Splash" class="splash-hero-img">
                     </div>
-                    <div style="display: inline-flex; align-items: center; gap: 0.65rem; background: rgba(245, 158, 11, 0.16); border: 1.5px solid rgba(245, 158, 11, 0.45); padding: 0.55rem 1.5rem; border-radius: 999px; font-weight: 800; font-size: 1rem; color: var(--accent);">
-                        🎉 Get Ready! Host Will Unveil Competing Teams &amp; Rules Shortly
+                    <div class="splash-cta-pill" title="Click to play Game Show Opening Theme">
+                        <span class="eq-bars">
+                            <span class="eq-bar"></span>
+                            <span class="eq-bar"></span>
+                            <span class="eq-bar"></span>
+                            <span class="eq-bar"></span>
+                        </span>
+                        <span>🎉 Welcome to the Arena! Competing Teams &amp; Rules Up Next</span>
+                        <span style="font-size: 0.85rem; opacity: 0.85;">🔊</span>
                     </div>
                 </div>
 
-                <!-- COMPETING TEAMS LINEUP CARD (STAGE 2: TEAMS UNVEILED ON TV) -->
-                <div class="splash-card" id="tv-teams-intro-card" style="display: none; max-width: 1060px; width: 95%; padding: 2rem 2.5rem; background: linear-gradient(145deg, rgba(32, 26, 21, 0.96) 0%, rgba(18, 14, 11, 0.99) 100%); border: 2px solid rgba(249, 115, 22, 0.5); border-radius: 28px; box-shadow: 0 25px 70px rgba(0,0,0,0.9);">
-                    <div style="display: inline-block; background: rgba(249, 115, 22, 0.2); border: 1.5px solid rgba(249, 115, 22, 0.55); color: var(--primary); font-weight: 900; font-size: 0.9rem; padding: 0.35rem 1.25rem; border-radius: 999px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 0.6rem;">
-                        👥 OFFICIAL CONTESTANT LINEUP
+                <!-- COMPETING TEAMS 1-BY-1 SPOTLIGHT CARD (STAGE 2: ONE TEAM AT A TIME ON TV) -->
+                <div class="tv-team-spotlight-card" id="tv-teams-intro-card" style="display: none;">
+                    <div class="tv-rules-header" style="margin-bottom: 1.5rem;">
+                        <span class="tv-rules-badge">🔥 NOW ENTERING THE ARENA • CONTESTANT SPOTLIGHT</span>
+                        <span class="tv-rules-step" id="tv-team-spot-step">TEAM 1 OF 10</span>
                     </div>
-                    <h1 style="font-size: clamp(2rem, 3vw, 2.8rem); font-weight: 900; color: #fff; margin: 0 0 0.35rem 0;">
-                        MEET TONIGHT'S COMPETING TEAMS
-                    </h1>
-                    <p style="font-size: 1.15rem; color: #cbd5e1; margin: 0 0 1.35rem 0;">
-                         Let's hear it for our competing couples &amp; challengers!
-                    </p>
-                    <div id="tv-teams-showcase-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.85rem; text-align: left; max-height: 52vh; overflow-y: auto; padding: 0.25rem;">
-                        <!-- Populated dynamically with competing teams -->
+                    <div class="tv-rules-body" style="margin: 0.25rem 0 1.25rem 0;">
+                        <div class="tv-team-avatar-ring" id="tv-team-spot-avatar">🍁</div>
+                        <h1 class="tv-team-spot-name" id="tv-team-spot-name">Team Name</h1>
+                        <div id="tv-team-spot-members" style="font-size: clamp(1.35rem, 2vw, 1.85rem); font-weight: 800; color: #f8fafc; background: rgba(255, 255, 255, 0.07); border: 1.5px solid rgba(255, 255, 255, 0.16); padding: 0.55rem 1.75rem; border-radius: 999px; margin-bottom: 0.9rem;">
+                            💑 Couple Names
+                        </div>
+                        <div id="tv-team-spot-flight" style="font-size: 0.95rem; font-weight: 800; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase;">
+                            🍂 ACORN FLIGHT
+                        </div>
+                    </div>
+                    <div class="tv-rules-footer" style="flex-direction: column; gap: 0.85rem; align-items: center;">
+                        <div class="tv-rules-dots" id="tv-team-spot-dots"></div>
+                        <div id="tv-teams-roster-strip" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.45rem; max-width: 100%;"></div>
                     </div>
                 </div>
 
@@ -754,7 +1202,7 @@
         Fall Party Rebus Gameshow - Copyrights (c) Vishal Khapre, Crafted with Natural Intelligence and powered by Artificial Intelligence
     </footer>
 
-    <script src="/js/sounds.js"></script>
+    <script src="/js/sounds.js?v=3"></script>
     <script>
         const SHOW_ID = {{ show.id }};
         let tvSoundEnabled = true;
@@ -772,6 +1220,46 @@
         let prevTeamScoreSum = 0;
         let prevShowStatus = null;
         let prevActiveRuleIdx = -1;
+        let prevActiveTeamIdx = -1;
+        let prevTeamScores = {};
+        let recentScoreChanges = {};
+        let pointsBurstTimeout = null;
+
+        function triggerPointsBurstBanner(team, delta) {
+            const banner = document.getElementById('tv-points-burst');
+            if (!banner || !team) return;
+            const emojiEl = document.getElementById('tv-points-burst-emoji');
+            const ptsEl = document.getElementById('tv-points-burst-pts');
+            const teamEl = document.getElementById('tv-points-burst-team');
+
+            if (emojiEl) emojiEl.innerText = team.avatar_emoji || '🏆';
+            if (ptsEl) ptsEl.innerText = `${delta > 0 ? '+' + delta : delta} PTS`;
+            if (teamEl) teamEl.innerText = team.name || 'Team';
+
+            banner.classList.toggle('penalty', delta < 0);
+            banner.classList.remove('active');
+            void banner.offsetWidth;
+            banner.classList.add('active');
+
+            clearTimeout(pointsBurstTimeout);
+            pointsBurstTimeout = setTimeout(() => {
+                banner.classList.remove('active');
+            }, 2250);
+        }
+
+        function triggerStageTransition(cardEl) {
+            const fx = document.getElementById('tv-stage-transition-fx');
+            if (fx) {
+                fx.classList.remove('active');
+                void fx.offsetWidth;
+                fx.classList.add('active');
+            }
+            if (cardEl) {
+                cardEl.classList.remove('stage-card-3d-enter');
+                void cardEl.offsetWidth;
+                cardEl.classList.add('stage-card-3d-enter');
+            }
+        }
 
         function toggleTvSound() {
             tvSoundEnabled = !tvSoundEnabled;
@@ -872,7 +1360,9 @@
                     const tvContentGrid = document.querySelector('.tv-content');
                     const scoreboardAside = document.getElementById('tv-scoreboard-aside');
                     const rulesList = Array.isArray(data.rules) ? data.rules : [];
+                    const teamsList = Array.isArray(data.teams) ? data.teams : [];
                     const activeRuleIdx = (show.active_rule_index !== undefined && show.active_rule_index !== null) ? parseInt(show.active_rule_index) : -1;
+                    const activeTeamIdx = (show.active_team_index !== undefined && show.active_team_index !== null) ? parseInt(show.active_team_index) : -1;
                     const rProg = data.round_progress || {};
                     const showStatus = show.status || 'setup';
 
@@ -927,21 +1417,36 @@
                             (catPills ? `<div style="font-size: 0.85rem; color: #94a3b8;">Categories: ${catPills}</div>` : '');
                     }
 
-                    // Determine if we are on the initial Welcome Splash Screen (hide teams scoreboard until host clicks Next)
+                    // Determine if we are on the initial Welcome Splash Screen (hide teams scoreboard & timer until game starts)
                     const isWelcomeSplashStage = (!q && activeRuleIdx < 0 && !rProg.is_completed && showStatus === 'setup');
                     const isTeamsIntroStage = (!q && activeRuleIdx < 0 && !rProg.is_completed && showStatus === 'teams_intro');
+                    const roundBubble = document.getElementById('tv-round-bubble');
+                    const timerLabelEl = document.getElementById('tv-timer-label');
+                    const timerBoxEl = document.getElementById('tv-timer');
+
+                    // Show timer ONLY when an active puzzle (q) is on screen
+                    if (q) {
+                        if (timerLabelEl) timerLabelEl.style.display = 'inline';
+                        if (timerBoxEl) timerBoxEl.style.display = 'block';
+                    } else {
+                        if (timerLabelEl) timerLabelEl.style.display = 'none';
+                        if (timerBoxEl) timerBoxEl.style.display = 'none';
+                    }
 
                     if (isWelcomeSplashStage) {
                         if (scoreboardAside) scoreboardAside.style.display = 'none';
                         if (tvContentGrid) tvContentGrid.classList.add('splash-fullscreen');
-                        document.getElementById('tv-round').innerText = 'Welcome Splash';
+                        if (roundBubble) roundBubble.style.display = 'none';
                     } else {
                         if (scoreboardAside) scoreboardAside.style.display = 'flex';
                         if (tvContentGrid) tvContentGrid.classList.remove('splash-fullscreen');
+                        if (roundBubble) roundBubble.style.display = 'inline-flex';
                         if (isTeamsIntroStage) {
                             document.getElementById('tv-round').innerText = 'Competing Teams';
                         } else if (activeRuleIdx >= 0) {
                             document.getElementById('tv-round').innerText = 'Tournament Rules';
+                        } else if (q && q.is_sample) {
+                            document.getElementById('tv-round').innerText = 'Tryout Practice';
                         } else if (round) {
                             document.getElementById('tv-round').innerText = round.name;
                         }
@@ -958,6 +1463,9 @@
                         catBadge.style.display = 'none';
                         if (roundDivider) roundDivider.style.display = 'none';
                         rulesCard.style.display = 'flex';
+                        if (hasInitializedTvState && (activeRuleIdx !== prevActiveRuleIdx || showStatus !== prevShowStatus)) {
+                            triggerStageTransition(rulesCard);
+                        }
 
                         document.getElementById('tv-rule-step').innerText = `RULE ${activeRuleIdx + 1} OF ${rulesList.length}`;
                         document.getElementById('tv-rule-icon').innerText = activeRule.icon || '📜';
@@ -983,7 +1491,7 @@
                             img.src = q.media_path;
 
                             if (q.category_name) {
-                                const qProgress = (rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '';
+                                const qProgress = (q.is_sample) ? ' (Practice • No Points)' : ((rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '');
                                 catBadge.innerText = `${q.category_icon || '🧩'} ${q.category_name}${qProgress}`;
                                 catBadge.style.display = 'inline-flex';
                                 if (roundDivider) roundDivider.style.display = 'inline';
@@ -1008,6 +1516,9 @@
                             if (roundDivider) roundDivider.style.display = 'none';
                             if (roundEndCard) {
                                 roundEndCard.style.display = 'block';
+                                if (hasInitializedTvState && !prevRoundCompleted) {
+                                    triggerStageTransition(roundEndCard);
+                                }
                                 const rNum = round.round_number || 1;
                                 document.getElementById('tv-end-badge').innerText = `🏁 ROUND ${rNum} COMPLETE • ${rProg.used || rProg.total || 0} PUZZLES FINISHED`;
                                 document.getElementById('tv-end-title').innerText = `END OF ROUND ${rNum}`;
@@ -1037,7 +1548,12 @@
                             ansBanner.style.display = 'none';
                             catBadge.style.display = 'none';
                             if (roundDivider) roundDivider.style.display = 'none';
-                            if (welcomeSplashCard) welcomeSplashCard.style.display = 'block';
+                            if (welcomeSplashCard) {
+                                welcomeSplashCard.style.display = 'flex';
+                                if (hasInitializedTvState && showStatus !== prevShowStatus) {
+                                    triggerStageTransition(welcomeSplashCard);
+                                }
+                            }
                         } else if (isTeamsIntroStage) {
                             if (roundEndCard) roundEndCard.style.display = 'none';
                             if (welcomeSplashCard) welcomeSplashCard.style.display = 'none';
@@ -1047,21 +1563,49 @@
                             catBadge.style.display = 'none';
                             if (roundDivider) roundDivider.style.display = 'none';
                             if (teamsIntroCard) {
-                                teamsIntroCard.style.display = 'block';
-                                const showcaseGrid = document.getElementById('tv-teams-showcase-grid');
-                                if (showcaseGrid) {
-                                    showcaseGrid.innerHTML = (data.teams || []).map((t, idx) => `
-                                        <div style="background: rgba(255,255,255,0.05); border: 1.5px solid ${t.avatar_color || '#f97316'}; border-radius: 16px; padding: 0.9rem 1.1rem; display: flex; align-items: center; gap: 0.85rem; box-shadow: 0 8px 20px rgba(0,0,0,0.4);">
-                                            <div style="width: 52px; height: 52px; border-radius: 14px; background: #120e0b; border: 2px solid ${t.avatar_color || '#f97316'}; display: flex; align-items: center; justify-content: center; font-size: 1.85rem; flex-shrink: 0;">
-                                                ${t.avatar_emoji || '🍁'}
-                                            </div>
-                                            <div style="min-width: 0; flex: 1;">
-                                                <div style="font-size: 0.72rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px;">TEAM #${idx + 1}</div>
-                                                <div style="font-size: 1.15rem; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.name}</div>
-                                                ${t.members ? `<div style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600; margin-top: 2px;">${t.members}</div>` : ''}
-                                            </div>
-                                        </div>
-                                    `).join('');
+                                teamsIntroCard.style.display = 'flex';
+                                const safeIdx = (activeTeamIdx >= 0 && activeTeamIdx < teamsList.length) ? activeTeamIdx : 0;
+                                const currTeam = teamsList[safeIdx];
+                                if (hasInitializedTvState && (showStatus !== prevShowStatus || safeIdx !== prevActiveTeamIdx)) {
+                                    triggerStageTransition(teamsIntroCard);
+                                }
+                                if (currTeam) {
+                                    const teamColor = currTeam.avatar_color || '#f97316';
+                                    document.getElementById('tv-team-spot-step').innerText = `TEAM ${safeIdx + 1} OF ${teamsList.length}`;
+                                    const avatarEl = document.getElementById('tv-team-spot-avatar');
+                                    avatarEl.innerText = currTeam.avatar_emoji || '🍁';
+                                    avatarEl.style.borderColor = teamColor;
+                                    document.getElementById('tv-team-spot-name').innerText = currTeam.name;
+                                    const membersEl = document.getElementById('tv-team-spot-members');
+                                    if (currTeam.members) {
+                                        membersEl.style.display = 'inline-block';
+                                        membersEl.innerText = `💑 ${currTeam.members}`;
+                                    } else {
+                                        membersEl.style.display = 'none';
+                                    }
+                                    const flightEl = document.getElementById('tv-team-spot-flight');
+                                    flightEl.innerText = currTeam.flight_group ? `🍂 ${currTeam.flight_group.toUpperCase()} FLIGHT CONTENDERS` : '🍂 TOURNAMENT CONTENDERS';
+                                }
+
+                                const teamDotsWrap = document.getElementById('tv-team-spot-dots');
+                                if (teamDotsWrap) {
+                                    teamDotsWrap.innerHTML = '';
+                                    teamsList.forEach((_, idx) => {
+                                        const dot = document.createElement('div');
+                                        dot.className = 'rule-dot' + (idx === safeIdx ? ' active' : (idx < safeIdx ? ' completed' : ''));
+                                        teamDotsWrap.appendChild(dot);
+                                    });
+                                }
+
+                                const rosterStrip = document.getElementById('tv-teams-roster-strip');
+                                if (rosterStrip) {
+                                    rosterStrip.innerHTML = `<span style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; align-self: center; margin-right: 0.35rem;">🪑 Seated:</span>` +
+                                        teamsList.slice(0, safeIdx + 1).map((t, idx) => `
+                                            <span class="tv-roster-pill ${idx === safeIdx ? 'current' : ''}">
+                                                <span>${t.avatar_emoji || '🍁'}</span>
+                                                <span>#${idx + 1} ${t.name}</span>
+                                            </span>
+                                        `).join('');
                                 }
                             }
                         } else {
@@ -1073,6 +1617,9 @@
                             ansBanner.style.display = 'none';
                             catBadge.style.display = 'none';
                             if (roundDivider) roundDivider.style.display = 'none';
+                            if (hasInitializedTvState && (showStatus !== prevShowStatus || curRId !== prevRoundId)) {
+                                triggerStageTransition(splash);
+                            }
 
                             if (round) {
                                 document.getElementById('tv-splash-badge').innerText = `ROUND ${round.round_number || 1} BRIEFING & RULES`;
@@ -1100,34 +1647,79 @@
                         stopTvClientTimer(parseInt(show.timer_duration) || 25);
                     }
 
-                    // Sound Effect Triggers on TV State Transitions
+                    // Sound Effect & Per-Team Score Change Triggers on TV State Transitions
                     const curQId = q ? q.id : null;
                     const curQStart = show.question_started_at ? parseInt(show.question_started_at) : null;
                     const curRev = parseInt(show.answer_revealed) || 0;
                     const curRId = show.current_round_id ? parseInt(show.current_round_id) : null;
                     const curRDone = !!rProg.is_completed;
-                    const curScoreSum = (data.teams || []).reduce((acc, t) => acc + (parseInt(t.score) || 0), 0);
+                    const curScoreSum = teamsList.reduce((acc, t) => acc + (parseInt(t.score) || 0), 0);
+
+                    // Detect individual team score changes
+                    const nowMs = Date.now();
+                    let changedTeams = [];
+                    teamsList.forEach(t => {
+                        const tid = t.id;
+                        const curScore = parseInt(t.score) || 0;
+                        if (hasInitializedTvState && prevTeamScores[tid] !== undefined && prevTeamScores[tid] !== curScore && !(showStatus === 'setup' && curScoreSum === 0)) {
+                            const delta = curScore - prevTeamScores[tid];
+                            recentScoreChanges[tid] = { delta, expiresAt: nowMs + 2250 };
+                            changedTeams.push({ team: t, delta });
+                        }
+                        prevTeamScores[tid] = curScore;
+                    });
 
                     if (hasInitializedTvState && window.soundFX) {
-                        let playedDingThisTick = false;
+                        let playedScoreOrRevealSound = false;
+
+                        if (changedTeams.length > 0) {
+                            const lastChange = changedTeams[changedTeams.length - 1];
+                            triggerPointsBurstBanner(lastChange.team, lastChange.delta);
+                            if (lastChange.delta > 0) {
+                                window.soundFX.playPointsAwarded();
+                            } else {
+                                window.soundFX.playPointsPenalty();
+                            }
+                            playedScoreOrRevealSound = true;
+                        }
 
                         if (curRev === 1 && prevAnswerRevealed === 0) {
-                            window.soundFX.playDingCorrect();
-                            playedDingThisTick = true;
+                            if (!playedScoreOrRevealSound) {
+                                window.soundFX.playDingCorrect();
+                            }
+                            playedScoreOrRevealSound = true;
                         }
-                        if (curScoreSum > prevTeamScoreSum && !playedDingThisTick) {
-                            window.soundFX.playDingCorrect();
-                            playedDingThisTick = true;
-                        }
-                        if ((curRDone && !prevRoundCompleted) || (prevRoundId !== null && curRId !== prevRoundId && !curQId) || (showStatus !== prevShowStatus && (showStatus === 'teams_intro' || showStatus === 'round_intro'))) {
+
+                        if (showStatus !== prevShowStatus && showStatus === 'setup') {
+                            window.soundFX.playSplashIntro();
+                        } else if (showStatus === 'teams_intro' && (showStatus !== prevShowStatus || activeTeamIdx !== prevActiveTeamIdx)) {
+                            window.soundFX.playTeamUnveil();
+                        } else if (activeRuleIdx >= 0 && (activeRuleIdx !== prevActiveRuleIdx || showStatus !== prevShowStatus)) {
+                            window.soundFX.playRuleWhoosh();
+                        } else if (showStatus === 'sample_puzzle' && (showStatus !== prevShowStatus || curQStart !== prevQuestionStartedAt)) {
+                            window.soundFX.playRoundStartHorn();
+                            img.classList.remove('stage-enter');
+                            void img.offsetWidth;
+                            img.classList.add('stage-enter');
+                        } else if ((curRDone && !prevRoundCompleted) || (prevRoundId !== null && curRId !== prevRoundId && !curQId) || (showStatus !== prevShowStatus && showStatus === 'round_intro')) {
                             window.soundFX.playFanfare();
-                        } else if (activeRuleIdx >= 0 && activeRuleIdx !== prevActiveRuleIdx) {
-                            window.soundFX.playTick();
+                        } else if (curQId && !prevQuestionId) {
+                            // Entering the first puzzle of a round!
+                            window.soundFX.playRoundStartHorn();
+                            img.classList.remove('stage-enter');
+                            void img.offsetWidth;
+                            img.classList.add('stage-enter');
                         } else if (curQId && (curQId !== prevQuestionId || curQStart !== prevQuestionStartedAt)) {
                             window.soundFX.playTick();
+                            img.classList.remove('stage-enter');
+                            void img.offsetWidth;
+                            img.classList.add('stage-enter');
                         }
+                    } else if (!hasInitializedTvState && window.soundFX && isWelcomeSplashStage) {
+                        window.soundFX.playSplashIntro();
                     }
 
+                    const didTeamStepChange = (showStatus !== prevShowStatus || activeTeamIdx !== prevActiveTeamIdx);
                     hasInitializedTvState = true;
                     prevQuestionId = curQId;
                     prevQuestionStartedAt = curQStart;
@@ -1137,14 +1729,21 @@
                     prevTeamScoreSum = curScoreSum;
                     prevShowStatus = showStatus;
                     prevActiveRuleIdx = activeRuleIdx;
+                    prevActiveTeamIdx = activeTeamIdx;
 
                     // Right Scoreboard Teams
                     const teamsWrap = document.getElementById('tv-teams');
                     teamsWrap.innerHTML = '';
-                    document.getElementById('tv-team-count').innerText = `${data.teams.length} Teams`;
+                    const safeTeamIdx = (activeTeamIdx >= 0 && activeTeamIdx < teamsList.length) ? activeTeamIdx : 0;
+                    // While in teams_intro stage: teams introduced so far (indices 0 .. safeTeamIdx inclusive) are seated in the sidebar!
+                    // Once we move past teams_intro (to rules_intro / round_intro / active), all teams are seated.
+                    const seatedTeamsInput = isTeamsIntroStage ? teamsList.slice(0, safeTeamIdx + 1) : teamsList;
+                    document.getElementById('tv-team-count').innerText = isTeamsIntroStage
+                        ? `${seatedTeamsInput.length} / ${teamsList.length} Seated`
+                        : `${teamsList.length} Teams`;
 
                     // Sort: Active first, highest score on top, stable order for ties
-                    const sortedTeams = [...(data.teams || [])].sort((a, b) => {
+                    const sortedTeams = [...seatedTeamsInput].sort((a, b) => {
                         const aElim = (a.is_eliminated == 1) ? 1 : 0;
                         const bElim = (b.is_eliminated == 1) ? 1 : 0;
                         if (aElim !== bElim) return aElim - bElim;
@@ -1156,6 +1755,10 @@
                         return (parseInt(a.sort_order) || a.id) - (parseInt(b.sort_order) || b.id);
                     });
 
+                    // Highlight the currently introduced team that just took its seat in the sidebar
+                    const justSeatedTeamId = (isTeamsIntroStage && teamsList[safeTeamIdx])
+                        ? teamsList[safeTeamIdx].id
+                        : null;
                     let rank = 1;
                     sortedTeams.forEach(t => {
                         const isEliminated = (t.is_eliminated == 1);
@@ -1182,8 +1785,24 @@
                             rank++;
                         }
 
+                        const recentChange = (recentScoreChanges[t.id] && recentScoreChanges[t.id].expiresAt > nowMs)
+                            ? recentScoreChanges[t.id]
+                            : null;
+                        const pointsClass = recentChange
+                            ? (recentChange.delta > 0 ? ' points-gained' : ' points-lost')
+                            : '';
+                        const scorePopClass = recentChange ? ' score-pop' : '';
+                        const deltaPillHtml = recentChange
+                            ? `<span class="score-delta-pill ${recentChange.delta > 0 ? 'plus' : 'minus'}">${recentChange.delta > 0 ? '+' + recentChange.delta : recentChange.delta}</span>`
+                            : '';
+
                         const row = document.createElement('div');
-                        row.className = 'team-card-row ' + (isEliminated ? 'eliminated' : rankClass);
+                        const isJustSeated = (justSeatedTeamId !== null && t.id == justSeatedTeamId);
+                        row.className = 'team-card-row '
+                            + (isEliminated ? 'eliminated' : rankClass)
+                            + (isJustSeated ? ' spotlight-active' : '')
+                            + (isJustSeated && didTeamStepChange ? ' just-seated-anim' : '')
+                            + pointsClass;
                         const elimBadge = isEliminated ? `<span class="eliminated-tag">OUT</span>` : '';
 
                         row.innerHTML = `
@@ -1195,10 +1814,20 @@
                                     ${t.members ? `<div class="team-sub">${t.members}</div>` : ''}
                                 </div>
                             </div>
-                            <div class="team-score-badge">${score}</div>
+                            <div class="team-score-badge${scorePopClass}">${score}${deltaPillHtml}</div>
                         `;
                         teamsWrap.appendChild(row);
                     });
+
+                    // Render empty reserved seat placeholders for teams not yet introduced during teams_intro
+                    if (isTeamsIntroStage) {
+                        for (let sIdx = safeTeamIdx + 1; sIdx < teamsList.length; sIdx++) {
+                            const seatDiv = document.createElement('div');
+                            seatDiv.className = 'team-seat-placeholder';
+                            seatDiv.innerHTML = `<span>🪑 Seat #${sIdx + 1} • Awaiting Intro</span><span>—</span>`;
+                            teamsWrap.appendChild(seatDiv);
+                        }
+                    }
                 });
         }
 

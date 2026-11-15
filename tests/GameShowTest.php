@@ -75,6 +75,8 @@ class GameShowTest extends WebTestCase
     {
         $client = static::createClient();
         $showId = $this->getFirstShowId();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $expectedTeams = (int) $db->getPdo()->query("SELECT COUNT(*) FROM show_teams WHERE show_id = {$showId}")->fetchColumn();
         $client->request('GET', '/api/shows/' . $showId . '/state');
 
         $this->assertResponseIsSuccessful();
@@ -84,7 +86,7 @@ class GameShowTest extends WebTestCase
         $this->assertArrayHasKey('show', $data);
         $this->assertArrayHasKey('teams', $data);
         $this->assertArrayHasKey('rounds', $data);
-        $this->assertCount(10, $data['teams']);
+        $this->assertCount($expectedTeams, $data['teams']);
     }
 
     public function testStartQuestionAndRevealCycle(): void
@@ -1461,6 +1463,7 @@ class GameShowTest extends WebTestCase
             $playEnd = json_decode((string) $client->getResponse()->getContent(), true);
             $this->assertTrue($playEnd['round_completed'] ?? false);
         } finally {
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
@@ -1574,6 +1577,7 @@ class GameShowTest extends WebTestCase
             ]));
             $this->assertSame(400, $client->getResponse()->getStatusCode());
         } finally {
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
@@ -1599,6 +1603,10 @@ class GameShowTest extends WebTestCase
         $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 0, ?)')
             ->execute(['Khapre Party Splash Flow Test', 'Test Flow', 'setup']);
         $showId = (int) $pdo->lastInsertId();
+
+        $insTeam = $pdo->prepare('INSERT INTO show_teams (show_id, name, members, score, is_eliminated, sort_order) VALUES (?, ?, ?, 0, 0, ?)');
+        $insTeam->execute([$showId, 'Maple Mavericks', 'Vishal & Neha', 1]);
+        $insTeam->execute([$showId, 'Pumpkin Pioneers', 'Rohan & Priya', 2]);
 
         $allocJson = json_encode([['category_id' => $catId, 'count' => 1]]);
         $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, advancement_type, advance_top_x, category_allocations, status) VALUES (?, 1, ?, ?, 25, 10, 0, ?, 0, ?, ?)')
@@ -1630,15 +1638,25 @@ class GameShowTest extends WebTestCase
             $rulesCount = count($state1['rules']);
             $this->assertGreaterThan(0, $rulesCount);
 
-            // Host clicks Next -> Stage 2: 'teams_intro' (Show Competing Teams on TV)
+            // Host clicks Next -> Stage 2: 'teams_intro' Team #1 (active_team_index = 0)
             $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
                 'action' => 'host_next',
             ]));
             $this->assertResponseIsSuccessful();
-            $resTeams = json_decode((string) $client->getResponse()->getContent(), true);
-            $this->assertSame('teams_intro', $resTeams['stage']);
+            $resTeam1 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('teams_intro', $resTeam1['stage']);
+            $this->assertSame(0, $resTeam1['active_team_index']);
 
-            // Host clicks Next -> Stage 3: 'rules_intro' (Unveil Rules 1-by-1 starting at Rule 0)
+            // Host clicks Next -> Stage 2: 'teams_intro' Team #2 (active_team_index = 1, Team #1 is now seated in sidebar)
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resTeam2 = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('teams_intro', $resTeam2['stage']);
+            $this->assertSame(1, $resTeam2['active_team_index']);
+
+            // Host clicks Next after last team -> Stage 3: 'rules_intro' (Unveil Rules 1-by-1 starting at Rule 0)
             for ($i = 0; $i < $rulesCount; $i++) {
                 $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
                     'action' => 'host_next',
@@ -1649,7 +1667,36 @@ class GameShowTest extends WebTestCase
                 $this->assertSame($i, $resRule['active_rule_index']);
             }
 
-            // Host clicks Next after last rule -> Stage 4: 'round_intro' (Round 1 Briefing on TV, waiting for explicit start)
+            // Host clicks Next after last rule -> Stage 3.5: 'sample_puzzle' (Standalone Tryout Puzzle "FALL PARTY" on TV)
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'host_next',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $resSample = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('sample_puzzle', $resSample['stage']);
+            $this->assertTrue($resSample['sample_puzzle']);
+
+            // Verify /state returns the standalone sample puzzle (id = -1, answer = FALL PARTY, media_path = /media/sample_fall_party.jpg)
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $stateSample = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame('sample_puzzle', $stateSample['show']['status']);
+            $this->assertNotNull($stateSample['current_question']);
+            $this->assertSame(-1, (int) $stateSample['current_question']['id']);
+            $this->assertTrue($stateSample['current_question']['is_sample']);
+            $this->assertSame('FALL PARTY', $stateSample['current_question']['answer']);
+            $this->assertSame('/media/sample_fall_party.jpg', $stateSample['current_question']['media_path']);
+            $this->assertNotNull($stateSample['show']['question_started_at']);
+
+            // Host clicks Reveal Answer on Sample Puzzle -> answer_revealed = 1
+            $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
+                'action' => 'reveal_answer',
+            ]));
+            $this->assertResponseIsSuccessful();
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $stateSampleRevealed = json_decode((string) $client->getResponse()->getContent(), true);
+            $this->assertSame(1, (int) $stateSampleRevealed['show']['answer_revealed']);
+
+            // Host clicks Next after Sample Puzzle -> Stage 4: 'round_intro' (Round 1 Briefing on TV, waiting for explicit start)
             $client->request('POST', "/api/shows/{$showId}/action", [], [], ['CONTENT_TYPE' => 'application/json'], json_encode([
                 'action' => 'host_next',
             ]));
@@ -1692,11 +1739,102 @@ class GameShowTest extends WebTestCase
             $resR2Start = json_decode((string) $client->getResponse()->getContent(), true);
             $this->assertSame($q2Id, (int) $resR2Start['question_id']);
         } finally {
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
             $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$q1Id, $q2Id]);
+        }
+    }
+
+    public function testIndependentGameShowResetAndQuestionReset(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories ORDER BY id ASC LIMIT 1')->fetchColumn();
+        $insQ = $pdo->prepare("INSERT INTO questions (category_id, title, answer, difficulty, is_active, is_favorite, review_status) VALUES (?, ?, ?, 'Medium', 1, ?, ?)");
+        $insQ->execute([$catId, 'Indep Reset Custom Q', 'INDEPENDENT RESET CUSTOM PUZZLE', 0, 'included']);
+        $customQId = (int) $pdo->lastInsertId();
+
+        $insQ->execute([$catId, 'Indep Reset Starred Q', 'INDEPENDENT RESET STARRED PUZZLE', 1, 'included']);
+        $starredQId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO game_shows (name, description, starred_only, status) VALUES (?, ?, 1, ?)')
+            ->execute(['Independent Reset Test Show', 'Testing independent resets', 'active']);
+        $showId = (int) $pdo->lastInsertId();
+
+        $allocJson = json_encode([['category_id' => $catId, 'count' => 1, 'difficulty' => 'Any']]);
+        $pdo->prepare('INSERT INTO show_rounds (show_id, round_number, name, round_type, timer_seconds, points_per_question, steal_points, advancement_type, advance_top_x, category_allocations, status) VALUES (?, 1, ?, ?, 42, 35, 15, ?, 3, ?, ?)')
+            ->execute([$showId, 'Round 1: Custom Settings', 'head_to_head', 'top_x', $allocJson, 'completed']);
+        $r1Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO show_teams (show_id, name, score, round_score, is_eliminated, sort_order) VALUES (?, ?, 150, 50, 1, 1)')
+            ->execute([$showId, 'Team Alpha']);
+        $teamId = (int) $pdo->lastInsertId();
+
+        // Manually assign $customQId to Round 1
+        $pdo->prepare('INSERT INTO show_round_questions (show_id, round_id, question_id, sort_order, is_manual) VALUES (?, ?, ?, 1, 1)')
+            ->execute([$showId, $r1Id, $customQId]);
+
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ?, current_question_id = ? WHERE id = ?')
+            ->execute([$r1Id, $customQId, $showId]);
+
+        try {
+            // 1. Test Game Show Reset (/shows/{id}/reset):
+            // Must reset scores to 0, is_eliminated to 0, round status to 'pending', and show status to 'setup',
+            // while PRESERVING the manually assigned question ($customQId) in show_round_questions!
+            $client->request('POST', "/shows/{$showId}/reset");
+            $this->assertResponseRedirects();
+
+            $teamRow = $pdo->query("SELECT * FROM show_teams WHERE id = {$teamId}")->fetch();
+            $this->assertSame(0, (int) $teamRow['score']);
+            $this->assertSame(0, (int) $teamRow['round_score']);
+            $this->assertSame(0, (int) $teamRow['is_eliminated']);
+
+            $showRow = $pdo->query("SELECT * FROM game_shows WHERE id = {$showId}")->fetch();
+            $this->assertSame('setup', $showRow['status']);
+            $this->assertNull($showRow['current_question_id']);
+
+            $assignedAfterShowReset = array_map('intval', $pdo->query("SELECT question_id FROM show_round_questions WHERE show_id = {$showId} AND round_id = {$r1Id}")->fetchAll(\PDO::FETCH_COLUMN));
+            $this->assertSame([$customQId], $assignedAfterShowReset);
+
+            // 2. Now award points and set show status to 'teams_intro', then test Question Reset (/shows/{id}/reset-questions):
+            // Must choose new questions for Round 1 WITHOUT resetting team scores, show status, or round settings!
+            $pdo->prepare('UPDATE show_teams SET score = 95 WHERE id = ?')->execute([$teamId]);
+            $pdo->prepare('UPDATE game_shows SET status = "teams_intro" WHERE id = ?')->execute([$showId]);
+
+            $client->request('POST', "/shows/{$showId}/reset-questions");
+            $this->assertResponseRedirects();
+
+            // Verify team score (95) and show status ('teams_intro') and round settings (timer=42, pts=35, steal=15, top_x=3) were NOT reset!
+            $teamAfterQReset = $pdo->query("SELECT * FROM show_teams WHERE id = {$teamId}")->fetch();
+            $this->assertSame(95, (int) $teamAfterQReset['score']);
+
+            $showAfterQReset = $pdo->query("SELECT * FROM game_shows WHERE id = {$showId}")->fetch();
+            $this->assertSame('teams_intro', $showAfterQReset['status']);
+
+            $roundAfterQReset = $pdo->query("SELECT * FROM show_rounds WHERE id = {$r1Id}")->fetch();
+            $this->assertSame(42, (int) $roundAfterQReset['timer_seconds']);
+            $this->assertSame(35, (int) $roundAfterQReset['points_per_question']);
+            $this->assertSame(15, (int) $roundAfterQReset['steal_points']);
+            $this->assertSame('top_x', $roundAfterQReset['advancement_type']);
+            $this->assertSame(3, (int) $roundAfterQReset['advance_top_x']);
+
+            // And verify that Round 1's questions WERE replaced (since starred_only = 1, unstarred $customQId was replaced by a starred question!)
+            $assignedAfterQReset = array_map('intval', $pdo->query("SELECT question_id FROM show_round_questions WHERE show_id = {$showId} AND round_id = {$r1Id}")->fetchAll(\PDO::FETCH_COLUMN));
+            $this->assertCount(1, $assignedAfterQReset);
+            $this->assertNotContains($customQId, $assignedAfterQReset);
+        } finally {
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_used_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_teams WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$customQId, $starredQId]);
         }
     }
 }

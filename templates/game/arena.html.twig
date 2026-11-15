@@ -469,6 +469,54 @@
         transform: scale(1.05);
     }
 
+    .team-row.points-gained {
+        border-color: #10b981 !important;
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.35) 0%, rgba(251, 191, 36, 0.22) 100%) !important;
+        box-shadow: 0 0 22px rgba(16, 185, 129, 0.55);
+        animation: arenaPointsGlow 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .team-row.points-lost {
+        border-color: #ef4444 !important;
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.32) 0%, rgba(20, 16, 13, 0.95) 100%) !important;
+        animation: arenaPointsShake 0.55s ease;
+    }
+    @keyframes arenaPointsGlow {
+        0% { transform: scale(1); }
+        30% { transform: scale(1.035) translateX(-3px); }
+        100% { transform: scale(1) translateX(0); }
+    }
+    @keyframes arenaPointsShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        50% { transform: translateX(5px); }
+        75% { transform: translateX(-3px); }
+    }
+    .arena-score-delta-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.1rem 0.45rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 900;
+        margin-left: 0.35rem;
+        animation: arenaDeltaPop 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .arena-score-delta-badge.plus {
+        background: linear-gradient(135deg, #10b981, #fbbf24);
+        color: #052e16;
+        box-shadow: 0 3px 10px rgba(16, 185, 129, 0.5);
+    }
+    .arena-score-delta-badge.minus {
+        background: linear-gradient(135deg, #ef4444, #991b1b);
+        color: #fff;
+    }
+    @keyframes arenaDeltaPop {
+        0% { opacity: 0; transform: scale(0.5) translateY(6px); }
+        20% { opacity: 1; transform: scale(1.15) translateY(-2px); }
+        80% { opacity: 1; transform: scale(1) translateY(-4px); }
+        100% { opacity: 0; transform: scale(0.9) translateY(-10px); }
+    }
+
     /* Mobile Responsive Layout & Touch Dock */
     .mobile-arena-tabs {
         display: none;
@@ -824,6 +872,13 @@
                                 <div class="arena-dropdown-sub">Present rules 1-by-1 on TV</div>
                             </div>
                         </button>
+                        <button type="button" class="arena-dropdown-item" onclick="triggerAction('start_sample_puzzle'); closeArenaMenu();">
+                            <span class="arena-dropdown-icon">🎯</span>
+                            <div>
+                                <div class="arena-dropdown-title">Sample Tryout Puzzle</div>
+                                <div class="arena-dropdown-sub">Practice "FALL PARTY" puzzle on TV</div>
+                            </div>
+                        </button>
                         <button type="button" class="arena-dropdown-item" onclick="openArenaQrModal(); closeArenaMenu();">
                             <span class="arena-dropdown-icon">📱</span>
                             <div>
@@ -835,8 +890,15 @@
                         <button type="button" class="arena-dropdown-item danger" onclick="resetShowConfirm(); closeArenaMenu();">
                             <span class="arena-dropdown-icon">🔄</span>
                             <div>
-                                <div class="arena-dropdown-title">Reset Show</div>
-                                <div class="arena-dropdown-sub">Restart from Round 1</div>
+                                <div class="arena-dropdown-title">Reset Game Show</div>
+                                <div class="arena-dropdown-sub">Reset scores &amp; state (keeps questions)</div>
+                            </div>
+                        </button>
+                        <button type="button" class="arena-dropdown-item" onclick="resetQuestionsConfirm(); closeArenaMenu();">
+                            <span class="arena-dropdown-icon">🎲</span>
+                            <div>
+                                <div class="arena-dropdown-title" style="color: #c084fc;">Reset Questions</div>
+                                <div class="arena-dropdown-sub">Choose new questions (keeps settings &amp; scores)</div>
                             </div>
                         </button>
                     </div>
@@ -848,7 +910,7 @@
                 <button type="button" class="btn btn-secondary btn-sm sound-toggle-btn" id="btn-sound" onclick="toggleSound()" title="Toggle Sound">
                     🔊<span class="desktop-only-inline"> Sound</span>
                 </button>
-                <span class="timer-label desktop-only-label">TIME:</span>
+                <span class="timer-label desktop-only-label" id="arena-timer-label">TIME:</span>
                 <div class="timer-display" id="timer-box">25</div>
             </div>
         </div>
@@ -865,7 +927,7 @@
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-prev-rule" onclick="triggerAction('prev_rule')">⬅ Prev Rule</button>
                 <button type="button" class="btn btn-primary btn-sm" id="btn-next-rule" onclick="triggerAction('next_rule')">Next Rule ➡</button>
-                <button type="button" class="btn btn-success btn-sm" onclick="triggerAction('finish_rules')" style="font-weight: 700;">⏭️ Round 1 Briefing</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="triggerAction('finish_rules')" style="font-weight: 700;">🎯 Sample Puzzle</button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="triggerAction('close_rules')" title="Close rules briefing">✕ Close</button>
             </div>
         </div>
@@ -879,7 +941,7 @@
                 <div style="font-size: 3.8rem; width: 85px; height: 85px; margin: 0 auto 1.25rem auto; border-radius: 22px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center;" id="arena-rule-icon">💡</div>
                 <h2 style="font-size: 1.85rem; font-weight: 900; color: #fff; margin-bottom: 1rem;" id="arena-rule-title">Say What You See</h2>
                 <p style="font-size: 1.15rem; line-height: 1.6; color: #cbd5e1; margin-bottom: 1.5rem;" id="arena-rule-desc">Call out the famous phrase, movie, object, or idiom hidden in the picture puzzle.</p>
-                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;" id="arena-rule-hint">Advance 1-by-1 with "Next Rule ➡" to unveil each rule on TV, then proceed to Round 1 Briefing.</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;" id="arena-rule-hint">Advance 1-by-1 with "Next Rule ➡" to unveil each rule on TV, then proceed to the Sample Tryout Puzzle.</div>
             </div>
 
             <div class="puzzle-img-wrap" id="img-wrap">
@@ -896,9 +958,17 @@
                     </div>
                     <div id="arena-splash-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;"></div>
                     <div id="arena-splash-meta" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.85rem;"></div>
-                    <button type="button" class="btn btn-primary" id="arena-splash-action-btn" onclick="hostNextStep()" style="font-weight: 800; padding: 0.6rem 1.5rem;">
-                        👥 Next: Show Teams on TV
-                    </button>
+                    <div id="arena-splash-btn-group" style="display: flex; justify-content: center; gap: 0.55rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="arena-splash-prev-btn" onclick="triggerAction('prev_team')" style="display: none; font-weight: 700;">
+                            ⬅ Prev Team
+                        </button>
+                        <button type="button" class="btn btn-primary" id="arena-splash-action-btn" onclick="hostNextStep()" style="font-weight: 800; padding: 0.6rem 1.5rem;">
+                            👥 Next: Introduce Team 1 on TV
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="arena-splash-skip-btn" onclick="triggerAction('finish_teams')" style="display: none; font-weight: 700;">
+                            ⏭️ Skip to Rules
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -988,7 +1058,7 @@
         Next Rule ➡
     </button>
     <button type="button" class="dock-btn dock-btn-reveal" onclick="triggerAction('finish_rules')">
-        ⏭️ R1 Info
+        🎯 Tryout
     </button>
     <button type="button" class="dock-btn dock-btn-icon" onclick="triggerAction('close_rules')" title="Close rules">
         ✕
@@ -1042,18 +1112,21 @@
 {% endblock %}
 
 {% block javascripts %}
-<script src="/js/sounds.js"></script>
+<script src="/js/sounds.js?v=3"></script>
 <script src="/js/qrcode.min.js"></script>
 <script>
     const SHOW_ID = {{ show.id }};
     let currentState = null;
     let timerInterval = null;
     let remainingSeconds = 25;
+    let activeArenaTimerStamp = null;
+    let arenaBuzzerPlayedForStamp = null;
     let isPaused = false;
     let soundEnabled = true;
     let arenaQrInit = false;
     let selectedAwardPts = 10;
     let activeMobileView = 'stage';
+    let recentArenaScoreChanges = {};
 
     function setArenaMobileTab(tab) {
         activeMobileView = tab;
@@ -1243,7 +1316,9 @@
         if (q) {
             hostClueCard.style.display = 'block';
             hostClueAns.innerText = q.answer;
-            hostCluePrompt.innerText = `${q.category_name || 'Category'} • ${q.difficulty} • Points: +${roundPts} (Steal: +${stealPts})`;
+            hostCluePrompt.innerText = q.is_sample
+                ? `${q.category_name || 'Sample Tryout Puzzle'} • Practice Only (No Points)`
+                : `${q.category_name || 'Category'} • ${q.difficulty} • Points: +${roundPts} (Steal: +${stealPts})`;
             if (show.answer_revealed == 1) {
                 hostTvStatus.innerText = '📺 REVEALED ON TV ✅';
                 hostTvStatus.className = 'host-tv-status revealed';
@@ -1292,9 +1367,9 @@
             const dockNextRuleBtn = document.getElementById('dock-btn-next-rule');
             if (btnNextRule) {
                 if (activeRuleIdx === rulesList.length - 1) {
-                    btnNextRule.innerText = '⏭️ Next: Round 1 Briefing';
+                    btnNextRule.innerText = '🎯 Next: Sample Tryout Puzzle';
                     btnNextRule.disabled = false;
-                    if (dockNextRuleBtn) dockNextRuleBtn.innerText = '⏭️ R1 Info';
+                    if (dockNextRuleBtn) dockNextRuleBtn.innerText = '🎯 Sample Q';
                 } else {
                     btnNextRule.innerText = 'Next Rule ➡';
                     btnNextRule.disabled = false;
@@ -1322,12 +1397,17 @@
                 img.src = q.media_path;
                 img.style.display = 'block';
 
-                if (btnNextQ) btnNextQ.innerText = '▶️ Next';
-                if (dockBtnNext) dockBtnNext.innerText = '▶️ Next';
+                if (q.is_sample) {
+                    if (btnNextQ) btnNextQ.innerText = '⏭️ Round 1 Info';
+                    if (dockBtnNext) dockBtnNext.innerText = '⏭️ R1 Info';
+                } else {
+                    if (btnNextQ) btnNextQ.innerText = '▶️ Next';
+                    if (dockBtnNext) dockBtnNext.innerText = '▶️ Next';
+                }
 
                 const badge = document.getElementById('cat-badge');
                 const rProg = currentState.round_progress || {};
-                const qProgress = (rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '';
+                const qProgress = q.is_sample ? '' : ((rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '');
                 badge.innerText = q.category_name + ' • ' + q.difficulty + qProgress;
                 badge.style.background = q.category_color || 'var(--primary)';
 
@@ -1394,6 +1474,11 @@
                         (cats ? `<div style="font-size:0.78rem; color:#94a3b8;">${cats}</div>` : '');
                 }
 
+                const splashPrevBtn = document.getElementById('arena-splash-prev-btn');
+                const splashSkipBtn = document.getElementById('arena-splash-skip-btn');
+                if (splashPrevBtn) splashPrevBtn.style.display = 'none';
+                if (splashSkipBtn) splashSkipBtn.style.display = 'none';
+
                 if (round && rProg.is_completed) {
                     document.getElementById('cat-badge').innerText = `End of Round ${round.round_number || 1}`;
                     document.getElementById('cat-badge').style.background = 'var(--accent)';
@@ -1433,39 +1518,74 @@
                         splashBadge.style.color = 'var(--accent)';
                     }
                     if (splashTitle) splashTitle.innerText = 'Welcome Splash Screen is Live on TV';
-                    if (splashSub) splashSub.innerText = 'TV screen is displaying the Khapre Party splash screen (teams hidden). Click Next to reveal competing teams on TV!';
+                    if (splashSub) splashSub.innerText = 'TV screen is displaying the Khapre Party splash screen (teams hidden). Click Next to introduce the competing teams 1-by-1!';
                     if (splashPreviewWrap) splashPreviewWrap.style.display = 'block';
                     if (splashStats) splashStats.innerHTML = '';
                     if (splashMeta) splashMeta.innerHTML = '';
                     if (splashBtn) {
                         splashBtn.style.display = 'inline-flex';
-                        splashBtn.innerText = '👥 Next: Show Teams on TV';
+                        splashBtn.innerText = '👥 Next: Introduce Team 1 on TV';
                     }
-                    if (btnNextQ) btnNextQ.innerText = '👥 Show Teams';
+                    if (btnNextQ) btnNextQ.innerText = '👥 Intro Teams';
                     if (dockBtnNext) dockBtnNext.innerText = '👥 Teams';
                 } else if (showStatus === 'teams_intro') {
-                    // Stage 2: TV Screen is displaying Competing Teams Lineup
-                    document.getElementById('cat-badge').innerText = 'TV: Competing Teams';
+                    // Stage 2: TV Screen is displaying Competing Teams 1-by-1 Spotlight
+                    const allTeams = currentState.teams || [];
+                    const rawTeamIdx = (show.active_team_index !== undefined && show.active_team_index !== null) ? parseInt(show.active_team_index, 10) : 0;
+                    const safeTeamIdx = (rawTeamIdx >= 0 && rawTeamIdx < allTeams.length) ? rawTeamIdx : 0;
+                    const currTeam = allTeams[safeTeamIdx];
+                    const isLastTeam = (safeTeamIdx >= allTeams.length - 1);
+
+                    document.getElementById('cat-badge').innerText = `TV: Team ${safeTeamIdx + 1}/${allTeams.length}`;
                     document.getElementById('cat-badge').style.background = 'var(--primary)';
                     if (splashPreviewWrap) splashPreviewWrap.style.display = 'none';
-                    if (splashIcon) splashIcon.innerText = '👥';
+                    if (splashIcon) splashIcon.innerText = currTeam ? (currTeam.avatar_emoji || '🍁') : '👥';
                     if (splashBadge) {
-                        splashBadge.innerText = '📺 TV SCREEN IS SHOWING: COMPETING TEAMS LINEUP';
+                        splashBadge.innerText = `📺 TV SPOTLIGHT: TEAM ${safeTeamIdx + 1} OF ${allTeams.length} • ${safeTeamIdx + 1}/${allTeams.length} SEATED IN SIDEBAR`;
                         splashBadge.style.borderColor = 'var(--primary)';
                         splashBadge.style.color = 'var(--primary)';
                     }
-                    if (splashTitle) splashTitle.innerText = `Competing Teams Unveiled on TV (${(currentState.teams || []).length} Teams)`;
-                    if (splashSub) splashSub.innerText = 'Introduce the competing couples! Click Next to unveil the tournament rules 1-by-1 on TV.';
+                    if (splashTitle) {
+                        splashTitle.innerText = currTeam ? `${currTeam.name}` : `Introducing Team ${safeTeamIdx + 1}`;
+                    }
+                    if (splashSub) {
+                        const membersLine = (currTeam && currTeam.members) ? `💑 ${currTeam.members} — ` : '';
+                        splashSub.innerText = `${membersLine}Now on stage & seated on the TV scoreboard! Click Next to introduce the next team.`;
+                    }
                     if (splashStats) splashStats.innerHTML = '';
                     if (splashMeta) {
-                        splashMeta.innerHTML = (currentState.teams || []).map(t => `<span style="display:inline-block; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:999px; padding:0.2rem 0.65rem; margin:0.15rem; color:#f8fafc; font-weight:700; font-size:0.78rem;">${t.avatar_emoji || '🍁'} ${t.name}</span>`).join('');
+                        splashMeta.innerHTML = allTeams.map((t, idx) => {
+                            const isSeated = idx <= safeTeamIdx;
+                            const isCurrent = idx === safeTeamIdx;
+                            const bg = isCurrent
+                                ? 'rgba(249, 115, 22, 0.28)'
+                                : (isSeated ? 'rgba(16, 185, 129, 0.16)' : 'rgba(255, 255, 255, 0.04)');
+                            const border = isCurrent
+                                ? '1.5px solid var(--accent)'
+                                : (isSeated ? '1px solid rgba(16, 185, 129, 0.45)' : '1px dashed rgba(255, 255, 255, 0.15)');
+                            const statusIcon = isCurrent ? '🎤🪑' : (isSeated ? '🪑' : '⏳');
+                            return `<span style="display:inline-block; background:${bg}; border:${border}; border-radius:999px; padding:0.22rem 0.65rem; margin:0.15rem; color:${isCurrent || isSeated ? '#f8fafc' : '#64748b'}; font-weight:700; font-size:0.76rem;">${statusIcon} #${idx + 1} ${t.name}</span>`;
+                        }).join('');
+                    }
+                    if (splashPrevBtn) {
+                        splashPrevBtn.style.display = 'inline-flex';
+                        splashPrevBtn.disabled = (safeTeamIdx === 0);
+                    }
+                    if (splashSkipBtn) {
+                        splashSkipBtn.style.display = 'inline-flex';
                     }
                     if (splashBtn) {
                         splashBtn.style.display = 'inline-flex';
-                        splashBtn.innerText = '📜 Next: Unveil Rules on TV';
+                        splashBtn.innerText = isLastTeam
+                            ? `📜 Next: Unveil Rules on TV ➡`
+                            : `👥 Next Team (${safeTeamIdx + 2}/${allTeams.length}) ➡`;
                     }
-                    if (btnNextQ) btnNextQ.innerText = '📜 Unveil Rules';
-                    if (dockBtnNext) dockBtnNext.innerText = '📜 Rules';
+                    if (btnNextQ) {
+                        btnNextQ.innerText = isLastTeam ? '📜 Unveil Rules' : `👥 Team ${safeTeamIdx + 2}/${allTeams.length} ➡`;
+                    }
+                    if (dockBtnNext) {
+                        dockBtnNext.innerText = isLastTeam ? '📜 Rules' : `👥 T${safeTeamIdx + 2}/${allTeams.length}`;
+                    }
                 } else if (round) {
                     // Stage 4: Round Briefing & Rules on TV (Waiting for explicit Start Round)
                     const rNum = round.round_number || 1;
@@ -1498,15 +1618,26 @@
         const teamCount = currentState.teams.length;
         document.getElementById('mobile-team-count').innerText = teamCount;
 
+        const nowMs = Date.now();
         currentState.teams.forEach(t => {
+            const recentChange = (recentArenaScoreChanges[t.id] && recentArenaScoreChanges[t.id].expiresAt > nowMs)
+                ? recentArenaScoreChanges[t.id]
+                : null;
+            const pointsClass = recentChange
+                ? (recentChange.delta > 0 ? ' points-gained' : ' points-lost')
+                : '';
+            const deltaBadgeHtml = recentChange
+                ? `<span class="arena-score-delta-badge ${recentChange.delta > 0 ? 'plus' : 'minus'}">${recentChange.delta > 0 ? '+' + recentChange.delta : recentChange.delta}</span>`
+                : '';
+
             const div = document.createElement('div');
-            div.className = 'team-row ' + (t.is_eliminated == 1 ? 'eliminated' : '');
+            div.className = 'team-row ' + (t.is_eliminated == 1 ? 'eliminated' : '') + pointsClass;
             div.innerHTML = `
                 <div style="display:flex; align-items:center; gap:0.6rem; min-width:0; flex:1; cursor:pointer;" onclick="openQuickAward(${t.id})" title="Click to award points">
                     <span style="font-size:1.5rem;">${t.avatar_emoji || '🍁'}</span>
                     <div style="min-width:0; overflow:hidden;">
                         <strong style="font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${t.name}</strong>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">${t.score} pts${t.members ? ' • ' + t.members : ''}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${t.score} pts${deltaBadgeHtml}${t.members ? ' • ' + t.members : ''}</div>
                     </div>
                 </div>
                 <div class="team-score-ctrl">
@@ -1542,38 +1673,65 @@
         if (prevBtn) prevBtn.disabled = !hasUsed;
         if (dockPrevBtn) dockPrevBtn.disabled = !hasUsed;
 
-        // Timer Sync
-        if (show.question_started_at && show.answer_revealed == 0) {
-            const elapsed = Math.floor(Date.now() / 1000) - show.question_started_at;
-            remainingSeconds = Math.max(0, (show.timer_duration || 25) - elapsed);
-            startClientTimer();
+        // Timer Sync (Hide timer on splash / non-question screens)
+        const arenaTimerLabel = document.getElementById('arena-timer-label');
+        const arenaTimerBox = document.getElementById('timer-box');
+        if (q) {
+            if (arenaTimerLabel) arenaTimerLabel.style.display = '';
+            if (arenaTimerBox) arenaTimerBox.style.display = '';
+        } else {
+            if (arenaTimerLabel) arenaTimerLabel.style.display = 'none';
+            if (arenaTimerBox) arenaTimerBox.style.display = 'none';
+        }
+
+        if (show.question_started_at && show.answer_revealed == 0 && q) {
+            startClientTimer(parseInt(show.question_started_at, 10), parseInt(show.timer_duration, 10) || 25);
         } else {
             clearInterval(timerInterval);
+            timerInterval = null;
+            activeArenaTimerStamp = null;
             document.getElementById('timer-box').innerText = show.timer_duration || 25;
             document.getElementById('timer-box').classList.remove('danger');
         }
     }
 
-    function startClientTimer() {
-        clearInterval(timerInterval);
+    function startClientTimer(startedAt, duration) {
+        const elapsed = Math.floor(Date.now() / 1000) - startedAt;
+        remainingSeconds = Math.max(0, (duration || 25) - elapsed);
         updateTimerDisplay();
+
+        if (activeArenaTimerStamp === startedAt && timerInterval) {
+            return;
+        }
+
+        activeArenaTimerStamp = startedAt;
+        clearInterval(timerInterval);
+
         timerInterval = setInterval(() => {
-            if (!isPaused && remainingSeconds > 0) {
-                remainingSeconds--;
+            if (isPaused) return;
+            const nowElapsed = Math.floor(Date.now() / 1000) - startedAt;
+            const nextRem = Math.max(0, (duration || 25) - nowElapsed);
+
+            if (nextRem !== remainingSeconds) {
+                remainingSeconds = nextRem;
                 updateTimerDisplay();
 
-                if (remainingSeconds > 0 && remainingSeconds <= 5) {
+                if (remainingSeconds > 0 && remainingSeconds <= 5 && window.soundFX) {
                     window.soundFX.playWarningTick();
                 }
 
                 if (remainingSeconds === 0) {
                     clearInterval(timerInterval);
+                    timerInterval = null;
                     document.getElementById('timer-box').classList.add('danger');
                     document.getElementById('time-up-banner').style.display = 'block';
-                    window.soundFX.playTimeUpBuzzer();
+                    if (arenaBuzzerPlayedForStamp !== startedAt && window.soundFX) {
+                        arenaBuzzerPlayedForStamp = startedAt;
+                        window.soundFX.playTimeUpBuzzer();
+                    }
                 }
             }
-        }, 1000);
+        }, 250);
     }
 
     function updateTimerDisplay() {
@@ -1596,7 +1754,10 @@
     }
 
     function triggerAction(actionName) {
-        if (actionName === 'reveal_answer') {
+        if (window.soundFX) {
+            window.soundFX.init();
+        }
+        if (actionName === 'reveal_answer' && window.soundFX) {
             window.soundFX.playDingCorrect();
         }
 
@@ -1608,24 +1769,32 @@
         .then(res => res.json())
         .then(data => {
             if (data && data.stage === 'teams_intro') {
-                window.soundFX.playFanfare();
-                showToast('👥 Competing Teams Unveiled on TV!');
+                if (window.soundFX) window.soundFX.playTeamUnveil();
+                const tIdx = (data.active_team_index !== undefined) ? parseInt(data.active_team_index, 10) : 0;
+                const tObj = (currentState?.teams || [])[tIdx];
+                showToast(tObj ? `🎤 Spotlight: #${tIdx + 1} ${tObj.name} on TV!` : `🎤 Introducing Team #${tIdx + 1} on TV!`);
             } else if (data && data.stage === 'rules_intro') {
-                window.soundFX.playTick();
+                if (window.soundFX) window.soundFX.playRuleWhoosh();
                 if (data.active_rule_index === 0) {
                     showToast('📜 Unveiling Tournament Rules on TV!');
                 }
+            } else if (data && data.stage === 'sample_puzzle') {
+                if (window.soundFX) window.soundFX.playRoundStartHorn();
+                showToast('🎯 Sample Tryout Puzzle ("FALL PARTY") Live on TV!');
             } else if (data && data.stage === 'round_intro') {
-                window.soundFX.playFanfare();
+                if (window.soundFX) window.soundFX.playFanfare();
                 showToast('🍁 Round Briefing & Rules Live on TV!');
             } else if (data && data.round_completed) {
-                window.soundFX.playFanfare();
+                if (window.soundFX) window.soundFX.playFanfare();
                 showToast(`🏁 End of Round ${data.round_number || ''}!`);
             } else if (data && data.round_intro) {
-                window.soundFX.playFanfare();
+                if (window.soundFX) window.soundFX.playFanfare();
                 showToast(`🚀 Up Next: ${data.round_name || 'Next Round'}`);
-            } else if (data && data.question) {
-                window.soundFX.playTick();
+            } else if (data && data.question_id && !currentState?.current_question) {
+                if (window.soundFX) window.soundFX.playRoundStartHorn();
+                showToast('🚀 Round Started — Let\'s Play!');
+            } else if (data && (data.question || data.question_id)) {
+                if (window.soundFX) window.soundFX.playTick();
             }
             fetchState();
         });
@@ -1648,13 +1817,23 @@
     }
 
     function awardPoints(teamId, pts) {
-        if (pts > 0) {
-            window.soundFX.playDingCorrect();
+        if (window.soundFX) {
+            window.soundFX.init();
+            if (pts > 0) {
+                window.soundFX.playPointsAwarded();
+            } else if (pts < 0) {
+                window.soundFX.playPointsPenalty();
+            }
         }
+
+        recentArenaScoreChanges[teamId] = {
+            delta: pts,
+            expiresAt: Date.now() + 2000
+        };
 
         const team = currentState?.teams?.find(t => t.id === teamId);
         const teamName = team ? team.name : 'Team';
-        showToast(`${pts > 0 ? '✅ +' : '⚠️ '}${pts} pts awarded to ${teamName}!`);
+        showToast(`${pts > 0 ? '🏆 +' : '⚠️ '}${pts} pts awarded to ${teamName}!`);
 
         fetch(`/api/shows/${SHOW_ID}/action`, {
             method: 'POST',
@@ -1698,12 +1877,27 @@
     }
 
     function resetShowConfirm() {
-        if (!confirm('Are you sure you want to refresh this game show? This will reset all team scores to 0, clear question history, and restart from Round 1.')) return;
+        if (!confirm('Reset Game Show? This resets all team scores to 0 and returns the show state to the Welcome Splash Screen / Round 1 (keeping your selected round questions & order intact).')) return;
         fetch(`/api/shows/${SHOW_ID}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'reset_show' })
-        }).then(() => fetchState());
+        }).then(() => {
+            showToast('🔄 Game Show scores & state reset!');
+            fetchState();
+        });
+    }
+
+    function resetQuestionsConfirm() {
+        if (!confirm('Reset Questions? This chooses a new random set of puzzles across all rounds without resetting round settings, team scores, or game show state.')) return;
+        fetch(`/api/shows/${SHOW_ID}/action`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reset_questions' })
+        }).then(() => {
+            showToast('🎲 Round questions randomized!');
+            fetchState();
+        });
     }
 
     function finishRulesAndPlay() {
@@ -1739,7 +1933,11 @@
         } else if (e.key === 'ArrowRight' || e.key === 'n') {
             hostNextStep();
         } else if (e.key === 'ArrowLeft') {
-            triggerAction('prev_question');
+            if (currentState?.show?.status === 'teams_intro' && !currentState?.current_question) {
+                triggerAction('prev_team');
+            } else {
+                triggerAction('prev_question');
+            }
         } else if (e.key === 'p') {
             toggleTimer();
         }

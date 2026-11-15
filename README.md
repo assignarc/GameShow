@@ -44,7 +44,9 @@ A file-database-driven, multimodal Rebus Game Show web application built with **
   - Add, edit, delete, and reorder rounds with **Move Up / Move Down** buttons.
   - Set custom category quotas and difficulty filters per round.
   - Configure point rewards, steal points, and advancement rules ("All Advance" or "Top X Advance").
-- **One-Click Refresh / Reset:** Instant reset of all team scores to 0, clearing question history, re-randomizing round questions, and returning the show to the initial Welcome Splash Screen (`setup`).
+- **Two Independent Reset Options:**
+  - **🔄 Reset Game Show (`/shows/{id}/reset`):** Resets all team scores to 0, clears asked-question state, and returns the game show state to the initial Welcome Splash Screen / Round 1 **while preserving all assigned round questions and custom ordering**.
+  - **🎲 Reset Questions (`/shows/{id}/reset-questions`):** Chooses a fresh random set of non-duplicate questions across all rounds according to each round's quotas **without resetting round settings, team scores, or game show state**.
 
 ---
 
@@ -239,5 +241,6 @@ GameShow/
    - From the Dashboard or Manage view, click **✏️ Edit Details** to change the title (e.g. *"Fall Party Rebus Championship 2026"*), subtitle, or default timer.
 2. **Apply 1-Hour Schedule:**
    - On the Manage view, click **⏱️ Apply 1-Hour Championship Format** to instantly configure the balanced 4-round schedule (38 questions total).
-3. **Reset for a New Party:**
-   - Click **🔄 Refresh / Reset Show** to wipe team scores to 0, clear used question history, and return to Round 1 without losing your configured teams and rounds.
+3. **Reset Game Show vs. Reset Questions (Independent Controls):**
+   - Click **🔄 Reset Game Show** to wipe team scores to 0 and restart the show from the Welcome Splash Screen / Round 1 while keeping your selected round questions and order intact.
+   - Click **🎲 Reset Questions** to choose a new random set of puzzles across all rounds without resetting your round settings, team scores, or show state.
