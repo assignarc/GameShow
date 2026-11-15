@@ -1831,7 +1831,7 @@
             expiresAt: Date.now() + 2000
         };
 
-        const team = currentState?.teams?.find(t => t.id === teamId);
+        const team = currentState?.teams?.find(t => t.id == teamId);
         const teamName = team ? team.name : 'Team';
         showToast(`${pts > 0 ? '🏆 +' : '⚠️ '}${pts} pts awarded to ${teamName}!`);
 

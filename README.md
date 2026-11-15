@@ -145,11 +145,12 @@ On the Dashboard, each Game Show is displayed as a full-width horizontal card wi
 1. From the Dashboard, click **`⚙️ Teams & Rounds`** on your show card (or navigate to `/shows/{id}/manage`).
 2. Ensure you are on the **`👥 Teams`** tab (supports up to **12 teams/couples**).
 
-#### A. Adding a New Team / Couple
+#### A. Adding a New Team / Couple & Sorting Teams A–Z
 1. Click **`+ Add Couple / Team`**.
 2. Enter the **Team Name** (e.g., *Ajane Family*) and **Couple / Member Names** (e.g., *Prajakta and Avinash*).
 3. Select an icon and theme color from the categorized **Team Icon Picker** (see below).
 4. Click **`Add Team`**.
+5. **Sorting Teams Alphabetically**: Click **`🔤 Sort Teams A–Z`** in the top-right header of the **`👥 Teams`** tab to sort all teams alphabetically by name (`sort_order`). This order is also used when introducing teams 1-by-1 on the TV screen and whenever teams are tied in points.
 
 #### B. Changing Icons for All Teams in One Click (Theme Switcher)
 At the top of the **`👥 Teams`** tab, use the **`🎨 Quick Apply Icon Theme to All Teams`** bar to re-theme every team in the show with a single click:

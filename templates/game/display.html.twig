@@ -1065,10 +1065,15 @@
         <main class="tv-stage">
             <div class="tv-stage-transition-fx" id="tv-stage-transition-fx"></div>
             <div class="tv-points-burst-banner" id="tv-points-burst">
-                <span style="font-size: 2.3rem;" id="tv-points-burst-emoji">🏆</span>
+                <span style="font-size: 2.5rem;" id="tv-points-burst-emoji">🏆</span>
                 <div style="text-align: left;">
-                    <div style="font-size: 0.78rem; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: #fde68a;" id="tv-points-burst-label">POINTS AWARDED!</div>
-                    <div style="font-size: 1.55rem; font-weight: 900; line-height: 1.15;" id="tv-points-burst-text">+10 PTS • Team Name</div>
+                    <div style="font-size: 0.78rem; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase; color: #fde68a;" id="tv-points-burst-label">🏆 POINTS AWARDED!</div>
+                    <div style="font-size: 1.6rem; font-weight: 900; line-height: 1.15; color: #ffffff;" id="tv-points-burst-text">
+                        <span id="tv-points-burst-pts" style="color: #fde047;">+10 PTS</span>
+                        <span style="opacity: 0.65; margin: 0 0.25rem;">•</span>
+                        <span id="tv-points-burst-team">Team</span>
+                    </div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: #d1fae5; margin-top: 0.1rem; display: none;" id="tv-points-burst-members"></div>
                 </div>
             </div>
             <div class="puzzle-viewport">
@@ -1229,12 +1234,23 @@
             const banner = document.getElementById('tv-points-burst');
             if (!banner || !team) return;
             const emojiEl = document.getElementById('tv-points-burst-emoji');
+            const labelEl = document.getElementById('tv-points-burst-label');
             const ptsEl = document.getElementById('tv-points-burst-pts');
             const teamEl = document.getElementById('tv-points-burst-team');
+            const membersEl = document.getElementById('tv-points-burst-members');
 
             if (emojiEl) emojiEl.innerText = team.avatar_emoji || '🏆';
+            if (labelEl) labelEl.innerText = delta > 0 ? '🏆 POINTS AWARDED!' : '⚠️ POINTS DEDUCTED';
             if (ptsEl) ptsEl.innerText = `${delta > 0 ? '+' + delta : delta} PTS`;
             if (teamEl) teamEl.innerText = team.name || 'Team';
+            if (membersEl) {
+                if (team.members && team.members.trim() !== '') {
+                    membersEl.innerText = `💑 ${team.members}`;
+                    membersEl.style.display = 'block';
+                } else {
+                    membersEl.style.display = 'none';
+                }
+            }
 
             banner.classList.toggle('penalty', delta < 0);
             banner.classList.remove('active');

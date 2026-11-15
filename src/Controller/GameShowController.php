@@ -477,6 +477,25 @@ class GameShowController extends AbstractController
         return $this->redirectToRoute('app_show_manage', ['id' => $id]);
     }
 
+    #[Route('/shows/{id}/teams/sort-alphabetically', name: 'app_show_teams_sort_alpha', methods: ['POST'])]
+    public function sortTeamsAlphabetically(int $id): RedirectResponse
+    {
+        $pdo = $this->gameDatabase->getPdo();
+        $this->getShowOrFail($id);
+
+        $stmt = $pdo->prepare('SELECT id, name FROM show_teams WHERE show_id = ? ORDER BY name COLLATE NOCASE ASC, id ASC');
+        $stmt->execute([$id]);
+        $teams = $stmt->fetchAll();
+
+        $updStmt = $pdo->prepare('UPDATE show_teams SET sort_order = ? WHERE id = ? AND show_id = ?');
+        foreach ($teams as $idx => $team) {
+            $updStmt->execute([$idx + 1, (int) $team['id'], $id]);
+        }
+
+        $this->addFlash('success', '🔤 Teams sorted alphabetically (A–Z)!');
+        return $this->redirectToRoute('app_show_manage', ['id' => $id]);
+    }
+
     #[Route('/shows/{id}/rounds/save', name: 'app_show_round_save', methods: ['POST'])]
     public function saveRound(int $id, Request $request): RedirectResponse
     {

@@ -619,13 +619,22 @@
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
         <div>
             <h2 style="margin: 0;">Teams &amp; Couples (Max 12)</h2>
-            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">Customize individual team icons or apply a themed icon set to all teams in one click</div>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">Customize individual team icons, sort alphabetically, or apply a themed icon set in one click</div>
         </div>
-        {% if teams|length < 12 %}
-            <button class="btn btn-primary btn-sm" onclick="openAddTeamModal()">
-                + Add Couple / Team
-            </button>
-        {% endif %}
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            {% if teams|length > 1 %}
+                <form method="POST" action="{{ path('app_show_teams_sort_alpha', {'id': show.id}) }}" style="margin: 0;">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; font-weight: 800;" title="Sort all teams alphabetically by team name (A–Z)">
+                        🔤 Sort Teams A–Z
+                    </button>
+                </form>
+            {% endif %}
+            {% if teams|length < 12 %}
+                <button class="btn btn-primary btn-sm" onclick="openAddTeamModal()">
+                    + Add Couple / Team
+                </button>
+            {% endif %}
+        </div>
     </div>
 
     {% if teams|length > 0 %}
