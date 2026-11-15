@@ -360,6 +360,123 @@ class GameShowController extends AbstractController
         return $this->redirectToRoute('app_show_manage', ['id' => $id]);
     }
 
+    #[Route('/shows/{id}/teams/apply-theme', name: 'app_show_teams_apply_theme', methods: ['POST'])]
+    public function applyTeamIconTheme(int $id, Request $request): RedirectResponse
+    {
+        $pdo = $this->gameDatabase->getPdo();
+        $this->getShowOrFail($id);
+        $theme = (string) $request->request->get('theme', 'liquors');
+
+        $themes = [
+            'liquors' => [
+                'label' => '🥃 Liquors & Spirits',
+                'flights' => ['Single Malt Flight', 'Cocktail Flight'],
+                'icons' => [
+                    ['emoji' => '🥃', 'color' => '#d97706'],
+                    ['emoji' => '🍷', 'color' => '#e11d48'],
+                    ['emoji' => '🍸', 'color' => '#38bdf8'],
+                    ['emoji' => '🍾', 'color' => '#eab308'],
+                    ['emoji' => '🍹', 'color' => '#f97316'],
+                    ['emoji' => '🍺', 'color' => '#10b981'],
+                    ['emoji' => '🥂', 'color' => '#ec4899'],
+                    ['emoji' => '🍶', 'color' => '#8b5cf6'],
+                    ['emoji' => '🧉', 'color' => '#b45309'],
+                    ['emoji' => '🍋', 'color' => '#14b8a6'],
+                    ['emoji' => '🧊', 'color' => '#06b6d4'],
+                    ['emoji' => '🍒', 'color' => '#ef4444'],
+                ],
+            ],
+            'ramayana' => [
+                'label' => '🏹 Ramayana Legends',
+                'flights' => ['Ayodhya Flight', 'Panchavati Flight'],
+                'icons' => [
+                    ['emoji' => '🏹', 'color' => '#f97316'],
+                    ['emoji' => '🪔', 'color' => '#f59e0b'],
+                    ['emoji' => '🪷', 'color' => '#ec4899'],
+                    ['emoji' => '👑', 'color' => '#eab308'],
+                    ['emoji' => '⛰️', 'color' => '#10b981'],
+                    ['emoji' => '🦅', 'color' => '#38bdf8'],
+                    ['emoji' => '🐚', 'color' => '#a855f7'],
+                    ['emoji' => '☀️', 'color' => '#ea580c'],
+                    ['emoji' => '🐒', 'color' => '#d97706'],
+                    ['emoji' => '🦌', 'color' => '#fbbf24'],
+                    ['emoji' => '🌊', 'color' => '#06b6d4'],
+                    ['emoji' => '🌺', 'color' => '#ef4444'],
+                ],
+            ],
+            'desi' => [
+                'label' => '🪔 Desi Party & Culture',
+                'flights' => ['Royal Flight', 'Mastani Flight'],
+                'icons' => [
+                    ['emoji' => '🪔', 'color' => '#f59e0b'],
+                    ['emoji' => '🦚', 'color' => '#06b6d4'],
+                    ['emoji' => '🪷', 'color' => '#ec4899'],
+                    ['emoji' => '🥭', 'color' => '#eab308'],
+                    ['emoji' => '🏏', 'color' => '#3b82f6'],
+                    ['emoji' => '🐅', 'color' => '#f97316'],
+                    ['emoji' => '🥁', 'color' => '#e11d48'],
+                    ['emoji' => '🛺', 'color' => '#10b981'],
+                    ['emoji' => '🌶️', 'color' => '#ef4444'],
+                    ['emoji' => '🐘', 'color' => '#8b5cf6'],
+                    ['emoji' => '🎬', 'color' => '#a855f7'],
+                    ['emoji' => '💎', 'color' => '#38bdf8'],
+                ],
+            ],
+            'planets' => [
+                'label' => '🪐 Planets & Navagraha',
+                'flights' => ['Solar Flight', 'Galactic Flight'],
+                'icons' => [
+                    ['emoji' => '☀️', 'color' => '#f97316'],
+                    ['emoji' => '🪐', 'color' => '#eab308'],
+                    ['emoji' => '🌍', 'color' => '#10b981'],
+                    ['emoji' => '🌕', 'color' => '#cbd5e1'],
+                    ['emoji' => '🔥', 'color' => '#ef4444'],
+                    ['emoji' => '🌟', 'color' => '#ec4899'],
+                    ['emoji' => '⚡', 'color' => '#8b5cf6'],
+                    ['emoji' => '☄️', 'color' => '#06b6d4'],
+                    ['emoji' => '🌌', 'color' => '#6366f1'],
+                    ['emoji' => '🚀', 'color' => '#38bdf8'],
+                    ['emoji' => '🌙', 'color' => '#f59e0b'],
+                    ['emoji' => '✨', 'color' => '#fbbf24'],
+                ],
+            ],
+            'fall' => [
+                'label' => '🍁 Fall Harvest',
+                'flights' => ['Acorn Flight', 'Pumpkin Flight'],
+                'icons' => [
+                    ['emoji' => '🍁', 'color' => '#f97316'],
+                    ['emoji' => '🎃', 'color' => '#eab308'],
+                    ['emoji' => '🍎', 'color' => '#10b981'],
+                    ['emoji' => '🧣', 'color' => '#3b82f6'],
+                    ['emoji' => '🌰', 'color' => '#8b5cf6'],
+                    ['emoji' => '🥧', 'color' => '#ec4899'],
+                    ['emoji' => '🪵', 'color' => '#ef4444'],
+                    ['emoji' => '🚜', 'color' => '#14b8a6'],
+                    ['emoji' => '🔥', 'color' => '#f59e0b'],
+                    ['emoji' => '🌕', 'color' => '#6366f1'],
+                    ['emoji' => '🍂', 'color' => '#d97706'],
+                    ['emoji' => '☕', 'color' => '#b45309'],
+                ],
+            ],
+        ];
+
+        $selected = $themes[$theme] ?? $themes['liquors'];
+        $teamsStmt = $pdo->prepare('SELECT id FROM show_teams WHERE show_id = ? ORDER BY sort_order ASC, id ASC');
+        $teamsStmt->execute([$id]);
+        $teamIds = $teamsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $updStmt = $pdo->prepare('UPDATE show_teams SET avatar_emoji = ?, avatar_color = ?, flight_group = ? WHERE id = ? AND show_id = ?');
+        $half = max(1, (int) ceil(count($teamIds) / 2));
+        foreach ($teamIds as $idx => $teamId) {
+            $iconSpec = $selected['icons'][$idx % count($selected['icons'])];
+            $flightGroup = ($idx < $half) ? $selected['flights'][0] : $selected['flights'][1];
+            $updStmt->execute([$iconSpec['emoji'], $iconSpec['color'], $flightGroup, (int) $teamId, $id]);
+        }
+
+        $this->addFlash('success', "Applied {$selected['label']} icon theme to all " . count($teamIds) . ' teams!');
+        return $this->redirectToRoute('app_show_manage', ['id' => $id]);
+    }
+
     #[Route('/shows/{id}/rounds/save', name: 'app_show_round_save', methods: ['POST'])]
     public function saveRound(int $id, Request $request): RedirectResponse
     {

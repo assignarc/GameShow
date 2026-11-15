@@ -616,14 +616,47 @@
 
 <!-- TAB 1: TEAMS -->
 <div id="tab-teams" class="tab-pane active">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h2>Teams & Couples (Max 12)</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+            <h2 style="margin: 0;">Teams &amp; Couples (Max 12)</h2>
+            <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.2rem;">Customize individual team icons or apply a themed icon set to all teams in one click</div>
+        </div>
         {% if teams|length < 12 %}
             <button class="btn btn-primary btn-sm" onclick="openAddTeamModal()">
                 + Add Couple / Team
             </button>
         {% endif %}
     </div>
+
+    {% if teams|length > 0 %}
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.7rem 1rem; margin-bottom: 1.5rem;">
+        <div style="font-size: 0.85rem; font-weight: 800; color: var(--text-sub); display: flex; align-items: center; gap: 0.5rem;">
+            <span>🎨 Quick Apply Icon Theme to All Teams:</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            <form method="POST" action="{{ path('app_show_teams_apply_theme', {'id': show.id}) }}" style="margin: 0;">
+                <input type="hidden" name="theme" value="liquors">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(217, 119, 6, 0.5); color: #fbbf24; font-weight: 800;">🥃 Liquors &amp; Spirits</button>
+            </form>
+            <form method="POST" action="{{ path('app_show_teams_apply_theme', {'id': show.id}) }}" style="margin: 0;">
+                <input type="hidden" name="theme" value="ramayana">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(249, 115, 22, 0.5); color: #fb923c; font-weight: 800;">🏹 Ramayana</button>
+            </form>
+            <form method="POST" action="{{ path('app_show_teams_apply_theme', {'id': show.id}) }}" style="margin: 0;">
+                <input type="hidden" name="theme" value="desi">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(236, 72, 153, 0.5); color: #f472b6; font-weight: 800;">🪔 Desi Party</button>
+            </form>
+            <form method="POST" action="{{ path('app_show_teams_apply_theme', {'id': show.id}) }}" style="margin: 0;">
+                <input type="hidden" name="theme" value="planets">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(56, 189, 248, 0.5); color: #38bdf8; font-weight: 800;">🪐 Planets &amp; Cosmic</button>
+            </form>
+            <form method="POST" action="{{ path('app_show_teams_apply_theme', {'id': show.id}) }}" style="margin: 0;">
+                <input type="hidden" name="theme" value="fall">
+                <button type="submit" class="btn btn-secondary btn-sm" style="border-color: rgba(16, 185, 129, 0.45); color: #34d399; font-weight: 800;">🍁 Fall Harvest</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="teams-grid">
         {% for t in teams %}
@@ -973,11 +1006,12 @@
             <label class="form-label" for="add-team-members">Couple / Member Names</label>
             <input type="text" id="add-team-members" name="members" class="form-input" placeholder="e.g. John & Sarah">
         </div>
-        <input type="hidden" name="flight_group" value="General">
+        <input type="hidden" id="add-team-flight" name="flight_group" value="Single Malt Flight">
         <div class="form-group">
-            <label class="form-label">Team Icon & Theme Color (Select from Fixed Set)</label>
-            <input type="hidden" id="add-team-emoji" name="avatar_emoji" value="🍁">
-            <input type="hidden" id="add-team-color" name="avatar_color" value="#f97316">
+            <label class="form-label">Team Icon &amp; Theme Color</label>
+            <input type="hidden" id="add-team-emoji" name="avatar_emoji" value="🥃">
+            <input type="hidden" id="add-team-color" name="avatar_color" value="#d97706">
+            <div id="add-icon-theme-tabs" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem;"></div>
             <div class="icon-picker-grid" id="add-icon-picker"></div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
@@ -996,17 +1030,17 @@
     <form id="edit-team-form" method="POST" action="">
         <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem; background: rgba(0,0,0,0.25); padding: 0.85rem 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
             <div id="edit-team-preview-avatar" style="width: 54px; height: 54px; border-radius: 50%; font-size: 2rem; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.4); border: 3px solid #f97316; flex-shrink: 0; transition: all 0.2s ease;">
-                🍁
+                🥃
             </div>
             <div>
                 <div id="edit-team-preview-name" style="font-weight: 800; font-size: 1.1rem; color: #fff;">Team Name</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Choose an icon below from the official party set</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Choose an icon below across Liquors, Ramayana, Desi, Planets &amp; Fall</div>
             </div>
         </div>
 
         <div class="form-group">
             <label class="form-label" for="edit-team-name">Team Name</label>
-            <input type="text" id="edit-team-name" name="name" class="form-input" placeholder="e.g. Cider House Rules" required autofocus oninput="document.getElementById('edit-team-preview-name').innerText = this.value || 'Team Name'">
+            <input type="text" id="edit-team-name" name="name" class="form-input" placeholder="e.g. Ajane Family" required autofocus oninput="document.getElementById('edit-team-preview-name').innerText = this.value || 'Team Name'">
         </div>
 
         <div class="form-group">
@@ -1017,9 +1051,10 @@
         <input type="hidden" id="edit-team-flight" name="flight_group" value="General">
 
         <div class="form-group">
-            <label class="form-label">Team Icon & Theme Color (Select from Fixed Set)</label>
-            <input type="hidden" id="edit-team-emoji" name="avatar_emoji" value="🍁">
-            <input type="hidden" id="edit-team-color" name="avatar_color" value="#f97316">
+            <label class="form-label">Team Icon &amp; Theme Color</label>
+            <input type="hidden" id="edit-team-emoji" name="avatar_emoji" value="🥃">
+            <input type="hidden" id="edit-team-color" name="avatar_color" value="#d97706">
+            <div id="edit-icon-theme-tabs" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem;"></div>
             <div class="icon-picker-grid" id="edit-icon-picker"></div>
         </div>
 
@@ -1260,35 +1295,122 @@
         }
     }
 
-    const FIXED_ICONS = [
-        { emoji: '🍁', label: 'Maple Leaf', color: '#f97316' },
-        { emoji: '🎃', label: 'Pumpkin', color: '#eab308' },
-        { emoji: '🍎', label: 'Apple / Cider', color: '#10b981' },
-        { emoji: '🧣', label: 'Cozy Scarf', color: '#3b82f6' },
-        { emoji: '🌰', label: 'Acorn', color: '#8b5cf6' },
-        { emoji: '🥧', label: 'Fall Pie', color: '#ec4899' },
-        { emoji: '🪵', label: 'Firewood', color: '#ef4444' },
-        { emoji: '🚜', label: 'Tractor', color: '#14b8a6' },
-        { emoji: '🔥', label: 'Bonfire', color: '#f59e0b' },
-        { emoji: '🌕', label: 'Harvest Moon', color: '#6366f1' },
-        { emoji: '🍂', label: 'Autumn Leaves', color: '#d97706' },
-        { emoji: '☕', label: 'Spice Latte', color: '#b45309' },
-        { emoji: '🌽', label: 'Harvest Corn', color: '#ca8a04' },
-        { emoji: '🦃', label: 'Wild Turkey', color: '#9a3412' },
-        { emoji: '🦊', label: 'Autumn Fox', color: '#ea580c' },
-        { emoji: '🦉', label: 'Night Owl', color: '#475569' },
-        { emoji: '🏆', label: 'Trophy', color: '#eab308' },
-        { emoji: '🎯', label: 'Bullseye', color: '#ef4444' },
-        { emoji: '🧩', label: 'Puzzle Piece', color: '#06b6d4' },
-        { emoji: '⚡', label: 'Lightning Buzzer', color: '#eab308' },
+    const ICON_THEME_GROUPS = [
+        { key: 'liquors', label: '🥃 Liquors & Spirits' },
+        { key: 'ramayana', label: '🏹 Ramayana' },
+        { key: 'desi', label: '🪔 Desi Party' },
+        { key: 'planets', label: '🪐 Planets' },
+        { key: 'fall', label: '🍁 Fall & Games' },
+        { key: 'all', label: '✨ All Icons' }
     ];
 
-    function renderIconPicker(containerId, inputEmojiId, inputColorId, previewAvatarId, currentEmoji) {
+    const FIXED_ICONS = [
+        // Liquors & Spirits
+        { emoji: '🥃', label: 'Single Malt / Whiskey', color: '#d97706', group: 'liquors' },
+        { emoji: '🍷', label: 'Cabernet / Red Wine', color: '#e11d48', group: 'liquors' },
+        { emoji: '🍸', label: 'Dirty Martini / Gin', color: '#38bdf8', group: 'liquors' },
+        { emoji: '🍾', label: 'Champagne / Bubbly', color: '#eab308', group: 'liquors' },
+        { emoji: '🍹', label: 'Tequila Margarita', color: '#f97316', group: 'liquors' },
+        { emoji: '🍺', label: 'Craft Beer / IPA', color: '#10b981', group: 'liquors' },
+        { emoji: '🥂', label: 'Prosecco Toast', color: '#ec4899', group: 'liquors' },
+        { emoji: '🍶', label: 'Vodka / Shots', color: '#8b5cf6', group: 'liquors' },
+        { emoji: '🧉', label: 'Old Monk / Spiced Rum', color: '#b45309', group: 'liquors' },
+        { emoji: '🍋', label: 'Tequila & Lime', color: '#14b8a6', group: 'liquors' },
+        { emoji: '🧊', label: 'On the Rocks', color: '#06b6d4', group: 'liquors' },
+        { emoji: '🍒', label: 'Manhattan / Old Fashioned', color: '#ef4444', group: 'liquors' },
+
+        // Ramayana Legends
+        { emoji: '🏹', label: 'Kodanda (Bow & Arrow)', color: '#f97316', group: 'ramayana' },
+        { emoji: '🪔', label: 'Ayodhya Deepotsav Diya', color: '#f59e0b', group: 'ramayana' },
+        { emoji: '🪷', label: 'Janaki Kamal (Sacred Lotus)', color: '#ec4899', group: 'ramayana' },
+        { emoji: '👑', label: 'Ram Rajya Mukut (Crown)', color: '#eab308', group: 'ramayana' },
+        { emoji: '⛰️', label: 'Sanjeevani Parvat (Dronagiri)', color: '#10b981', group: 'ramayana' },
+        { emoji: '🦅', label: 'Veer Jatayu (Garuda)', color: '#38bdf8', group: 'ramayana' },
+        { emoji: '🐚', label: 'Vijay Shankha (Conch)', color: '#a855f7', group: 'ramayana' },
+        { emoji: '☀️', label: 'Suryavansh (Solar Dynasty)', color: '#ea580c', group: 'ramayana' },
+        { emoji: '🐒', label: 'Vanara Sena (Hanuman)', color: '#d97706', group: 'ramayana' },
+        { emoji: '🦌', label: 'Suvarna Mriga (Golden Deer)', color: '#fbbf24', group: 'ramayana' },
+        { emoji: '🌊', label: 'Ram Setu (Ocean Bridge)', color: '#06b6d4', group: 'ramayana' },
+        { emoji: '🌺', label: 'Ashoka Vatika / Pushpaka', color: '#ef4444', group: 'ramayana' },
+
+        // Desi Party & Culture
+        { emoji: '🦚', label: 'Royal Peacock (Mor)', color: '#06b6d4', group: 'desi' },
+        { emoji: '🥭', label: 'Alphonso Mango (Hapus)', color: '#eab308', group: 'desi' },
+        { emoji: '🏏', label: 'Cricket Champions', color: '#3b82f6', group: 'desi' },
+        { emoji: '🐅', label: 'Royal Bengal Tiger (Sher)', color: '#f97316', group: 'desi' },
+        { emoji: '🥁', label: 'Desi Dhol', color: '#e11d48', group: 'desi' },
+        { emoji: '🛺', label: 'Mumbai Auto Rickshaw', color: '#10b981', group: 'desi' },
+        { emoji: '🌶️', label: 'Teekha Mirchi', color: '#ef4444', group: 'desi' },
+        { emoji: '🐘', label: 'Royal Gajraj (Elephant)', color: '#8b5cf6', group: 'desi' },
+        { emoji: '🎬', label: 'Bollywood Action', color: '#a855f7', group: 'desi' },
+        { emoji: '💎', label: 'Kohinoor Diamond', color: '#38bdf8', group: 'desi' },
+        { emoji: '🍛', label: 'Shahi Feast', color: '#f59e0b', group: 'desi' },
+        { emoji: '🥥', label: 'Shreefal (Coconut)', color: '#14b8a6', group: 'desi' },
+
+        // Planets & Navagraha
+        { emoji: '🪐', label: 'Saturn (Shani)', color: '#eab308', group: 'planets' },
+        { emoji: '🌍', label: 'Earth (Prithvi)', color: '#10b981', group: 'planets' },
+        { emoji: '🌕', label: 'Full Moon (Chandra)', color: '#cbd5e1', group: 'planets' },
+        { emoji: '🌟', label: 'Venus (Shukra)', color: '#ec4899', group: 'planets' },
+        { emoji: '☄️', label: 'Comet / Neptune', color: '#06b6d4', group: 'planets' },
+        { emoji: '🌌', label: 'Akashganga Galaxy', color: '#6366f1', group: 'planets' },
+        { emoji: '🚀', label: 'Chandrayaan Explorer', color: '#38bdf8', group: 'planets' },
+        { emoji: '🌙', label: 'Crescent Moon', color: '#f59e0b', group: 'planets' },
+        { emoji: '✨', label: 'Supernova', color: '#fbbf24', group: 'planets' },
+
+        // Fall & Game Night
+        { emoji: '🍁', label: 'Maple Leaf', color: '#f97316', group: 'fall' },
+        { emoji: '🎃', label: 'Pumpkin', color: '#eab308', group: 'fall' },
+        { emoji: '🍎', label: 'Apple / Cider', color: '#10b981', group: 'fall' },
+        { emoji: '🧣', label: 'Cozy Scarf', color: '#3b82f6', group: 'fall' },
+        { emoji: '🌰', label: 'Acorn', color: '#8b5cf6', group: 'fall' },
+        { emoji: '🥧', label: 'Fall Pie', color: '#ec4899', group: 'fall' },
+        { emoji: '🪵', label: 'Firewood', color: '#ef4444', group: 'fall' },
+        { emoji: '🚜', label: 'Tractor', color: '#14b8a6', group: 'fall' },
+        { emoji: '🔥', label: 'Bonfire / Mangal', color: '#f59e0b', group: 'fall' },
+        { emoji: '🍂', label: 'Autumn Leaves', color: '#d97706', group: 'fall' },
+        { emoji: '☕', label: 'Masala Chai / Latte', color: '#b45309', group: 'fall' },
+        { emoji: '🏆', label: 'Trophy', color: '#eab308', group: 'fall' },
+        { emoji: '🎯', label: 'Bullseye', color: '#ef4444', group: 'fall' },
+        { emoji: '🧩', label: 'Puzzle Piece', color: '#06b6d4', group: 'fall' },
+        { emoji: '⚡', label: 'Lightning / Guru', color: '#eab308', group: 'fall' },
+    ];
+
+    function detectIconGroup(emoji) {
+        const found = FIXED_ICONS.find(i => i.emoji === emoji);
+        return found ? found.group : 'liquors';
+    }
+
+    function renderIconPicker(containerId, inputEmojiId, inputColorId, previewAvatarId, currentEmoji, activeGroup = null) {
         const container = document.getElementById(containerId);
         if (!container) return;
         container.innerHTML = '';
 
-        FIXED_ICONS.forEach(item => {
+        const tabsContainerId = containerId === 'add-icon-picker' ? 'add-icon-theme-tabs' : 'edit-icon-theme-tabs';
+        const tabsContainer = document.getElementById(tabsContainerId);
+        const selectedGroup = activeGroup || detectIconGroup(currentEmoji) || 'liquors';
+
+        if (tabsContainer) {
+            tabsContainer.innerHTML = '';
+            ICON_THEME_GROUPS.forEach(g => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                const isActive = g.key === selectedGroup;
+                btn.style.cssText = `padding: 0.28rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; cursor: pointer; border: 1px solid ${isActive ? 'var(--primary)' : 'var(--border-color)'}; background: ${isActive ? 'rgba(249, 115, 22, 0.22)' : 'rgba(255,255,255,0.04)'}; color: ${isActive ? '#fff' : 'var(--text-muted)'}; transition: all 0.15s ease;`;
+                btn.innerText = g.label;
+                btn.onclick = () => {
+                    const curVal = document.getElementById(inputEmojiId)?.value || currentEmoji;
+                    renderIconPicker(containerId, inputEmojiId, inputColorId, previewAvatarId, curVal, g.key);
+                };
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        const filteredIcons = selectedGroup === 'all'
+            ? FIXED_ICONS
+            : FIXED_ICONS.filter(item => item.group === selectedGroup);
+
+        filteredIcons.forEach(item => {
             const tile = document.createElement('div');
             tile.className = 'icon-tile' + (item.emoji === currentEmoji ? ' selected' : '');
             tile.innerText = item.emoji;
@@ -1313,16 +1435,17 @@
     function openAddTeamModal() {
         document.getElementById('add-team-name').value = '';
         document.getElementById('add-team-members').value = '';
-        document.getElementById('add-team-flight').value = 'Acorn Flight';
-        document.getElementById('add-team-emoji').value = '🍁';
-        document.getElementById('add-team-color').value = '#f97316';
+        const flightInput = document.getElementById('add-team-flight');
+        if (flightInput) flightInput.value = 'Single Malt Flight';
+        document.getElementById('add-team-emoji').value = '🥃';
+        document.getElementById('add-team-color').value = '#d97706';
 
         const previewAvatar = document.getElementById('add-team-preview-avatar');
-        previewAvatar.innerText = '🍁';
-        previewAvatar.style.borderColor = '#f97316';
+        previewAvatar.innerText = '🥃';
+        previewAvatar.style.borderColor = '#d97706';
         document.getElementById('add-team-preview-name').innerText = 'New Team';
 
-        renderIconPicker('add-icon-picker', 'add-team-emoji', 'add-team-color', 'add-team-preview-avatar', '🍁');
+        renderIconPicker('add-icon-picker', 'add-team-emoji', 'add-team-color', 'add-team-preview-avatar', '🥃', 'liquors');
         document.getElementById('add-team-modal').showModal();
     }
 
@@ -1332,18 +1455,18 @@
 
         document.getElementById('edit-team-name').value = team.name || '';
         document.getElementById('edit-team-members').value = team.members || '';
-        document.getElementById('edit-team-flight').value = team.flight_group || 'Acorn Flight';
-        document.getElementById('edit-team-emoji').value = team.avatar_emoji || '🍁';
-        document.getElementById('edit-team-color').value = team.avatar_color || '#f97316';
+        document.getElementById('edit-team-flight').value = team.flight_group || 'Single Malt Flight';
+        document.getElementById('edit-team-emoji').value = team.avatar_emoji || '🥃';
+        document.getElementById('edit-team-color').value = team.avatar_color || '#d97706';
 
         const preview = document.getElementById('edit-team-preview-avatar');
-        preview.innerText = team.avatar_emoji || '🍁';
-        preview.style.borderColor = team.avatar_color || '#f97316';
+        preview.innerText = team.avatar_emoji || '🥃';
+        preview.style.borderColor = team.avatar_color || '#d97706';
 
         const previewName = document.getElementById('edit-team-preview-name');
         previewName.innerText = team.name || 'Team Name';
 
-        renderIconPicker('edit-icon-picker', 'edit-team-emoji', 'edit-team-color', 'edit-team-preview-avatar', team.avatar_emoji || '🍁');
+        renderIconPicker('edit-icon-picker', 'edit-team-emoji', 'edit-team-color', 'edit-team-preview-avatar', team.avatar_emoji || '🥃');
 
         document.getElementById('edit-team-modal').showModal();
     }
