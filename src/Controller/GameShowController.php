@@ -1900,6 +1900,16 @@ class GameShowController extends AbstractController
                 $pdo->prepare('UPDATE game_shows SET status = ?, active_rule_index = -1 WHERE id = ?')->execute([$nextStatus, $id]);
                 return $this->json(['success' => true, 'active_rule_index' => -1, 'stage' => $nextStatus]);
 
+            case 'play_sfx':
+                $sfx = (string) ($payload['sfx'] ?? '');
+                $allowedSfx = ['drumroll', 'sad_trombone', 'dun_dun_dun', 'wrong_buzz', 'applause', 'ipl_horn', 'cheers_clink', 'record_scratch', 'boxing_bell', 'magic_sparkle', 'kahan_se_aate', 'mogambo_khush_hua', 'control_uday', 'tussi_great_ho', 'nana_laugh', 'ruko_zara'];
+                if (!in_array($sfx, $allowedSfx, true)) {
+                    return $this->json(['success' => false, 'error' => 'Invalid SFX name'], Response::HTTP_BAD_REQUEST);
+                }
+                $sfxAt = (int) round(microtime(true) * 1000);
+                $pdo->prepare('UPDATE game_shows SET last_sfx_name = ?, last_sfx_at = ? WHERE id = ?')->execute([$sfx, $sfxAt, $id]);
+                return $this->json(['success' => true, 'sfx' => $sfx, 'last_sfx_at' => $sfxAt]);
+
             case 'reset_show':
                 $pdo->beginTransaction();
                 try {

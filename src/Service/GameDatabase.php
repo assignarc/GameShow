@@ -207,6 +207,18 @@ SQL);
             // Column already exists
         }
 
+        try {
+            $pdo->exec("ALTER TABLE game_shows ADD COLUMN last_sfx_name TEXT NOT NULL DEFAULT ''");
+        } catch (\Throwable) {
+            // Column already exists
+        }
+
+        try {
+            $pdo->exec('ALTER TABLE game_shows ADD COLUMN last_sfx_at INTEGER NOT NULL DEFAULT 0');
+        } catch (\Throwable) {
+            // Column already exists
+        }
+
         $this->seedDefaultCommonRules();
     }
 

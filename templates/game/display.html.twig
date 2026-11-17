@@ -1207,7 +1207,7 @@
         Fall Party Rebus Gameshow - Copyrights (c) Vishal Khapre, Crafted with Natural Intelligence and powered by Artificial Intelligence
     </footer>
 
-    <script src="/js/sounds.js?v=3"></script>
+    <script src="/js/sounds.js?v=5"></script>
     <script>
         const SHOW_ID = {{ show.id }};
         let tvSoundEnabled = true;
@@ -1226,6 +1226,7 @@
         let prevShowStatus = null;
         let prevActiveRuleIdx = -1;
         let prevActiveTeamIdx = -1;
+        let prevSfxAt = 0;
         let prevTeamScores = {};
         let recentScoreChanges = {};
         let pointsBurstTimeout = null;
@@ -1735,6 +1736,11 @@
                         window.soundFX.playSplashIntro();
                     }
 
+                    const curSfxAt = parseInt(show.last_sfx_at, 10) || 0;
+                    if (hasInitializedTvState && window.soundFX && curSfxAt > prevSfxAt && show.last_sfx_name) {
+                        window.soundFX.playByName(show.last_sfx_name);
+                    }
+
                     const didTeamStepChange = (showStatus !== prevShowStatus || activeTeamIdx !== prevActiveTeamIdx);
                     hasInitializedTvState = true;
                     prevQuestionId = curQId;
@@ -1746,6 +1752,7 @@
                     prevShowStatus = showStatus;
                     prevActiveRuleIdx = activeRuleIdx;
                     prevActiveTeamIdx = activeTeamIdx;
+                    prevSfxAt = curSfxAt;
 
                     // Right Scoreboard Teams
                     const teamsWrap = document.getElementById('tv-teams');

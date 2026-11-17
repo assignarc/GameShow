@@ -4,20 +4,34 @@
 
 {% block stylesheets %}
 <style>
-    /* Responsive desktop arena viewport locking - zero page scrolling */
-    @media (min-width: 901px) {
+    /* ==========================================================================
+       HOST ARENA — RESPONSIVE COCKPIT (Desktop, Tablet / iPad, Phone / iPhone)
+       ========================================================================== */
+    :root {
+        --arena-target: 32px;
+    }
+    @media (pointer: coarse) {
+        :root {
+            --arena-target: 44px;
+        }
+    }
+
+    /* Desktop & Tablet Landscape/Portrait (>= 768px): Dual-pane zero-scroll cockpit */
+    @media (min-width: 768px) {
         html, body {
             overflow: hidden !important;
             height: 100vh !important;
+            height: 100dvh !important;
         }
         main.container {
-            padding: 0.65rem 1.25rem 0.65rem 1.25rem !important;
-            max-width: 1600px !important;
+            padding: 0.65rem 1rem !important;
+            max-width: 1640px !important;
             display: flex !important;
             flex-direction: column !important;
             flex: 1 !important;
             min-height: 0 !important;
             height: calc(100vh - 60px) !important;
+            height: calc(100dvh - 60px) !important;
             overflow: hidden !important;
         }
         footer.site-footer {
@@ -25,8 +39,8 @@
         }
         .arena-layout {
             display: grid;
-            grid-template-columns: 1fr 330px;
-            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr) clamp(290px, 31vw, 370px);
+            gap: 0.85rem;
             height: 100%;
             min-height: 0;
             flex: 1;
@@ -34,13 +48,20 @@
         }
     }
 
-    @media (max-width: 900px) {
+    /* Phone / Small Handheld (< 768px): Single-column Remote + Segmented Tabs + Thumb Dock */
+    @media (max-width: 767px) {
+        main.container {
+            padding: 0.5rem 0.65rem 0 0.65rem !important;
+        }
+        footer.site-footer {
+            display: none !important;
+        }
         .arena-layout {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
             height: auto;
-            gap: 1rem;
-            padding-bottom: 95px;
+            gap: 0.75rem;
+            padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
         }
     }
 
@@ -80,15 +101,20 @@
         border: 1.5px solid var(--border-color);
         border-radius: 14px;
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
-        padding: 0.5rem;
-        min-width: 240px;
+        padding: 0.45rem;
+        min-width: 220px;
+        max-width: min(270px, calc(100vw - 1.5rem));
+        max-height: calc(100vh - 140px);
+        max-height: calc(100dvh - 140px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
         z-index: 200;
         animation: menuDropdownFade 0.18s ease-out;
     }
     .arena-dropdown-menu.open {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.18rem;
     }
 
     @keyframes menuDropdownFade {
@@ -147,6 +173,7 @@
     }
 
     .main-stage {
+        container: stage / inline-size;
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: 20px;
@@ -270,21 +297,23 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: 0.5rem 1rem;
+        justify-content: safe center;
+        padding: 0.65rem 1rem;
         position: relative;
         background: radial-gradient(circle at center, #1e1814 0%, #0d0b09 100%);
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
+        overscroll-behavior: contain;
+        gap: 0.5rem;
     }
 
     .puzzle-img-wrap {
         width: 100%;
-        max-width: 90%;
-        max-height: 38vh;
+        max-width: 94%;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex: 1;
+        flex: 0 1 auto;
         min-height: 0;
     }
 
@@ -292,7 +321,7 @@
         width: auto;
         height: auto;
         max-width: 100%;
-        max-height: 36vh;
+        max-height: 42dvh;
         border-radius: 12px;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
         object-fit: contain;
@@ -344,26 +373,28 @@
     }
 
     .stage-controls {
-        padding: 0.5rem 1rem;
-        background: rgba(0, 0, 0, 0.5);
+        padding: 0.5rem 0.9rem;
+        background: rgba(0, 0, 0, 0.55);
         border-top: 1px solid var(--border-color);
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 0.5rem;
         flex-shrink: 0;
-        min-height: 52px;
+        flex-wrap: wrap;
+        min-height: 54px;
     }
 
     .desktop-action-group {
         display: flex;
         gap: 0.4rem;
         align-items: center;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         min-width: 0;
     }
 
     .desktop-action-group .btn {
+        min-height: var(--arena-target);
         padding: 0.42rem 0.75rem;
         font-size: 0.85rem;
         font-weight: 700;
@@ -378,53 +409,79 @@
         align-items: center;
         flex-shrink: 0;
         flex-wrap: nowrap;
+        margin-inline-start: auto;
     }
 
-    @media (min-width: 901px) and (max-width: 1250px) {
-        .arena-layout {
-            grid-template-columns: 1fr 280px;
-            gap: 0.75rem;
+    .round-nav-group select.form-select-sm {
+        min-height: var(--arena-target);
+        background: var(--bg-card);
+        color: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 0.35rem 0.55rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        max-width: 210px;
+    }
+
+    @container stage (max-width: 680px) {
+        .stage-controls {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.45rem;
+            padding: 0.55rem 0.75rem;
+        }
+        .desktop-action-group {
+            justify-content: space-between;
         }
         .desktop-action-group .btn {
-            padding: 0.36rem 0.55rem;
-            font-size: 0.8rem;
-            gap: 0.25rem;
-        }
-        .round-nav-group .btn {
-            padding: 0.36rem 0.55rem;
+            flex: 1 1 auto;
+            padding: 0.4rem 0.5rem;
             font-size: 0.8rem;
         }
-        .stage-controls {
-            padding: 0.45rem 0.75rem;
-            gap: 0.4rem;
+        .round-nav-group {
+            margin-inline-start: 0;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .round-nav-group select.form-select-sm {
+            flex: 1;
+            max-width: none;
         }
     }
 
     /* Sidebar Scoreboard */
     .scoreboard-panel {
+        container: scoreboard / inline-size;
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         border-radius: 20px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        height: 100%;
+        min-height: 0;
     }
 
     .panel-header {
-        padding: 1rem 1.25rem;
+        padding: 0.85rem 1.15rem;
         background: rgba(0, 0, 0, 0.4);
         border-bottom: 1px solid var(--border-color);
         font-weight: 800;
-        font-size: 1.1rem;
+        font-size: 1.05rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
     }
 
     .teams-list-scroll {
         flex: 1;
+        min-height: 0;
         overflow-y: auto;
-        padding: 0.75rem;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        padding: 0.65rem;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
@@ -434,10 +491,11 @@
         background: var(--bg-dark);
         border: 1px solid var(--border-color);
         border-radius: 12px;
-        padding: 0.75rem 1rem;
+        padding: 0.65rem 0.85rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 0.5rem;
         transition: all 0.2s ease;
     }
     .team-row.eliminated {
@@ -449,6 +507,7 @@
         display: flex;
         align-items: center;
         gap: 0.35rem;
+        flex-shrink: 0;
     }
 
     .score-btn {
@@ -457,11 +516,30 @@
         border: 1px solid var(--primary);
         border-radius: 8px;
         font-weight: 800;
-        font-size: 0.85rem;
-        min-height: 38px;
-        padding: 0.35rem 0.65rem;
+        font-size: 0.82rem;
+        min-height: max(36px, var(--arena-target));
+        min-width: 40px;
+        padding: 0.3rem 0.55rem;
         cursor: pointer;
         transition: all 0.15s ease;
+    }
+
+    /* On narrower tablet/sidebar widths, stack score buttons cleanly below team name so names never get crushed */
+    @container scoreboard (max-width: 335px) {
+        .team-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+            padding: 0.65rem 0.75rem;
+        }
+        .team-score-ctrl {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.4rem;
+        }
+        .score-btn {
+            width: 100%;
+        }
     }
     .score-btn:hover, .score-btn:active {
         background: var(--primary);
@@ -645,29 +723,160 @@
         transform: scale(1.02);
     }
 
-    @media (max-width: 900px) {
-        .arena-layout {
-            grid-template-columns: 1fr;
-            height: auto;
-            gap: 1rem;
-            padding-bottom: 95px;
+    .qa-teams-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+        gap: 0.65rem;
+        max-height: 55dvh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 0.2rem;
+    }
+
+    .arena-splash-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    @media (max-width: 520px) {
+        .arena-splash-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .sidebar-tab-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.35rem;
+        padding: 0.55rem 0.65rem;
+        background: rgba(0, 0, 0, 0.45);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+    }
+
+    .sidebar-tab-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text-muted);
+        font-weight: 800;
+        font-size: 0.85rem;
+        padding: 0.45rem 0.5rem;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        min-height: 38px;
+    }
+    .sidebar-tab-btn:hover {
+        color: #f8fafc;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .sidebar-tab-btn.active {
+        background: rgba(249, 115, 22, 0.18);
+        border-color: rgba(249, 115, 22, 0.55);
+        color: var(--primary);
+    }
+
+    .sounds-panel-scroll {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 0.55rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    .sfx-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.4rem;
+    }
+
+    .sfx-tile {
+        background: var(--bg-dark);
+        border: 1.5px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.45rem 0.55rem;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        cursor: pointer;
+        text-align: left;
+        color: #f8fafc;
+        min-height: max(42px, var(--arena-target));
+        transition: all 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .sfx-tile:hover, .sfx-tile:active {
+        border-color: #c084fc;
+        background: rgba(168, 85, 247, 0.16);
+        transform: scale(0.99);
+    }
+
+    @media (max-width: 767px) {
+        .sidebar-tab-bar {
+            display: none;
+        }
+        .mobile-arena-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            position: sticky;
+            top: 56px;
+            z-index: 40;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
         }
 
-        .mobile-arena-tabs {
-            display: flex;
+        .mobile-tab-btn {
+            min-height: 44px;
+            font-size: 0.84rem;
+            padding: 0.45rem 0.35rem;
+            white-space: nowrap;
         }
 
         .main-stage {
             border-radius: 16px;
+            overflow: visible;
+        }
+
+        .arena-dropdown-menu {
+            min-width: 195px;
+            padding: 0.35rem;
+            max-height: calc(100dvh - 180px);
+        }
+
+        .arena-dropdown-item {
+            padding: 0.45rem 0.6rem;
+            gap: 0.55rem;
+            min-height: 40px;
+        }
+
+        .arena-dropdown-icon {
+            font-size: 1.05rem;
+        }
+
+        .arena-dropdown-title {
+            font-size: 0.85rem;
+        }
+
+        .arena-dropdown-sub {
+            display: none;
+        }
+
+        .arena-dropdown-divider {
+            margin: 0.2rem 0.35rem;
         }
 
         .stage-top-bar {
             padding: 0.55rem 0.75rem;
-            gap: 0.5rem;
+            gap: 0.45rem;
         }
 
         .round-badge-pill {
-            font-size: 0.7rem;
+            font-size: 0.68rem;
             padding: 0.15rem 0.45rem;
         }
 
@@ -677,7 +886,7 @@
 
         .top-cat-badge {
             font-size: 0.68rem;
-            padding: 0.1rem 0.45rem;
+            padding: 0.12rem 0.45rem;
         }
 
         .desktop-only-btn, .desktop-only-label, .desktop-only-inline {
@@ -685,34 +894,63 @@
         }
 
         .timer-display {
-            font-size: 1.85rem;
-            min-width: 46px;
+            font-size: 1.75rem;
+            min-width: 44px;
         }
 
-        .sound-toggle-btn {
+        .sound-toggle-btn, .arena-menu-btn {
             padding: 0.35rem 0.6rem;
             font-size: 0.85rem;
-            min-height: 36px;
+            min-height: 40px;
+            min-width: 40px;
+        }
+
+        #rules-ctrl-bar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.6rem;
+            padding: 0.65rem 0.75rem !important;
         }
 
         .puzzle-viewport {
-            padding: 1rem 0.75rem;
-            min-height: 44vh;
+            padding: 0.75rem 0.65rem;
+            min-height: 46dvh;
+            justify-content: flex-start;
+            overflow: visible;
+        }
+
+        /* On phones, show the Secret Answer Key FIRST so the Host sees it immediately without scrolling! */
+        #host-clue-card {
+            order: -1;
+            width: 100%;
+            margin-top: 0;
+            margin-bottom: 0.35rem;
+            padding: 0.6rem 0.85rem;
+        }
+
+        .host-clue-answer {
+            font-size: 1.35rem;
         }
 
         .puzzle-img-wrap {
-            max-height: 34vh;
+            max-width: 100%;
+            max-height: none;
         }
 
         .puzzle-img {
-            max-height: 32vh;
+            max-height: 36dvh;
+        }
+
+        #no-question-splash, #arena-rules-card {
+            width: 100% !important;
+            padding: 1.1rem 1rem !important;
         }
 
         .stage-controls {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
-            padding: 0.65rem 0.85rem;
+            padding: 0.6rem 0.75rem;
             background: rgba(0, 0, 0, 0.5);
         }
 
@@ -724,8 +962,13 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 0.4rem;
+            gap: 0.45rem;
             width: 100%;
+        }
+
+        .round-nav-group select,
+        .round-nav-group .btn {
+            min-height: 44px;
         }
 
         .round-nav-group select {
@@ -739,6 +982,50 @@
             font-size: 0.85rem;
         }
 
+        .scoreboard-panel {
+            display: none;
+            border-radius: 16px;
+            height: auto;
+            overflow: visible;
+        }
+
+        .panel-header {
+            padding: 0.55rem 0.85rem;
+            font-size: 0.95rem;
+        }
+
+        .teams-list-scroll,
+        .sounds-panel-scroll {
+            overflow-y: visible;
+            height: auto;
+            padding: 0.45rem;
+            gap: 0.35rem;
+        }
+
+        .team-row {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.45rem;
+            padding: 0.45rem 0.6rem;
+            border-radius: 10px;
+        }
+
+        .team-score-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            flex-shrink: 0;
+        }
+
+        .score-btn {
+            min-height: 40px;
+            min-width: 40px;
+            width: auto;
+            padding: 0.25rem 0.48rem;
+            font-size: 0.8rem;
+        }
+
         .floating-host-dock {
             display: flex;
             position: fixed;
@@ -748,18 +1035,18 @@
             background: rgba(20, 16, 13, 0.96);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border-top: 2px solid rgba(245, 158, 11, 0.4);
-            padding: 0.65rem 0.85rem max(0.65rem, env(safe-area-inset-bottom)) 0.85rem;
-            gap: 0.5rem;
+            border-top: 2px solid rgba(245, 158, 11, 0.45);
+            padding: 0.55rem max(0.65rem, env(safe-area-inset-right, 0px)) max(0.6rem, env(safe-area-inset-bottom, 0px)) max(0.65rem, env(safe-area-inset-left, 0px));
+            gap: 0.45rem;
             align-items: center;
             justify-content: space-between;
             z-index: 100;
-            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.85);
         }
 
         .dock-btn {
-            height: 50px;
-            font-size: 0.98rem;
+            min-height: 48px;
+            font-size: 0.92rem;
             font-weight: 800;
             border-radius: 12px;
             display: inline-flex;
@@ -768,7 +1055,9 @@
             border: none;
             cursor: pointer;
             text-align: center;
-            transition: all 0.15s ease;
+            white-space: nowrap;
+            padding: 0 0.4rem;
+            transition: transform 0.15s ease;
             -webkit-tap-highlight-color: transparent;
         }
         .dock-btn:active {
@@ -776,29 +1065,31 @@
         }
 
         .dock-btn-next {
-            flex: 1.3;
+            flex: 1.35;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             color: #000;
         }
 
         .dock-btn-reveal {
-            flex: 1.3;
+            flex: 1.25;
             background: #10b981;
             color: #000;
         }
 
         .dock-btn-award {
-            flex: 1.3;
+            flex: 1.2;
             background: #f59e0b;
             color: #000;
         }
 
         .dock-btn-icon {
-            width: 48px;
+            width: 46px;
+            min-width: 44px;
+            flex-shrink: 0;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: #fff;
-            font-size: 1.25rem;
+            font-size: 1.15rem;
         }
 
         #quick-award-modal:modal {
@@ -807,8 +1098,8 @@
             margin: auto auto 0 auto;
             border-radius: 24px 24px 0 0;
             border-bottom: none;
-            max-height: 85vh;
-            padding: 1.5rem 1.25rem max(1.5rem, env(safe-area-inset-bottom)) 1.25rem;
+            max-height: 85dvh;
+            padding: 1.25rem max(1rem, env(safe-area-inset-right, 0px)) max(1.25rem, env(safe-area-inset-bottom, 0px)) max(1rem, env(safe-area-inset-left, 0px));
             animation: slideUpSheet 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -824,10 +1115,13 @@
 <!-- MOBILE VIEW SWITCHER (Visible on phones) -->
 <div class="mobile-arena-tabs" id="mobile-tabs">
     <button type="button" class="mobile-tab-btn active" id="tab-stage-btn" onclick="setArenaMobileTab('stage')">
-        🎮 Stage & Answers
+        🎮 Stage
     </button>
     <button type="button" class="mobile-tab-btn" id="tab-scores-btn" onclick="setArenaMobileTab('scores')">
-        🏆 Scoreboard (<span id="mobile-team-count">0</span>)
+        🏆 Scores (<span id="mobile-team-count">0</span>)
+    </button>
+    <button type="button" class="mobile-tab-btn" id="tab-sounds-btn" onclick="setArenaMobileTab('sounds')">
+        🎭 Sounds
     </button>
 </div>
 
@@ -886,6 +1180,13 @@
                                 <div class="arena-dropdown-sub">Host arena on your phone</div>
                             </div>
                         </button>
+                        <button type="button" class="arena-dropdown-item" id="btn-sound" onclick="toggleSound(); closeArenaMenu();">
+                            <span class="arena-dropdown-icon" id="menu-sound-icon">🔊</span>
+                            <div>
+                                <div class="arena-dropdown-title" id="menu-sound-title">Host Audio: ON</div>
+                                <div class="arena-dropdown-sub" id="menu-sound-sub">Mute/unmute sounds on this device</div>
+                            </div>
+                        </button>
                         <div class="arena-dropdown-divider"></div>
                         <button type="button" class="arena-dropdown-item danger" onclick="resetShowConfirm(); closeArenaMenu();">
                             <span class="arena-dropdown-icon">🔄</span>
@@ -907,11 +1208,6 @@
                 <button type="button" class="btn btn-secondary btn-sm desktop-only-btn" onclick="openArenaQrModal()" title="Show Mobile QR Code to scan with phone" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; font-weight: 700;">
                     📱 QR
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm sound-toggle-btn" id="btn-sound" onclick="toggleSound()" title="Toggle Sound">
-                    🔊<span class="desktop-only-inline"> Sound</span>
-                </button>
-                <span class="timer-label desktop-only-label" id="arena-timer-label">TIME:</span>
-                <div class="timer-display" id="timer-box">25</div>
             </div>
         </div>
 
@@ -956,7 +1252,7 @@
                     <div id="arena-splash-preview-wrap" style="display: none; margin-bottom: 0.85rem;">
                         <img src="/media/khapre_party_splash.jpg" alt="Splash Preview" style="max-height: 140px; max-width: 100%; border-radius: 12px; border: 2px solid rgba(251, 191, 36, 0.45); box-shadow: 0 8px 25px rgba(0,0,0,0.6);">
                     </div>
-                    <div id="arena-splash-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;"></div>
+                    <div id="arena-splash-stats" class="arena-splash-stats-grid"></div>
                     <div id="arena-splash-meta" style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.85rem;"></div>
                     <div id="arena-splash-btn-group" style="display: flex; justify-content: center; gap: 0.55rem; flex-wrap: wrap;">
                         <button type="button" class="btn btn-secondary btn-sm" id="arena-splash-prev-btn" onclick="triggerAction('prev_team')" style="display: none; font-weight: 700;">
@@ -987,6 +1283,12 @@
             </div>
         </div>
 
+        <!-- TIMER BAR (Right below puzzle screen, above controls) -->
+        <div id="arena-timer-bar" style="display: none; align-items: center; justify-content: center; gap: 0.6rem; padding: 0.35rem 1rem; background: rgba(0, 0, 0, 0.48); border-top: 1px solid var(--border-color); flex-shrink: 0;">
+            <span class="timer-label" id="arena-timer-label" style="font-weight: 800; letter-spacing: 0.75px;">⏱️ TIME LEFT:</span>
+            <div class="timer-display" id="timer-box" style="font-size: 1.95rem; min-width: 54px;">25</div>
+        </div>
+
         <div class="stage-controls">
             <div class="desktop-action-group">
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-prev-q" onclick="triggerAction('prev_question')" title="Previous Question (Go back in history)">
@@ -1001,7 +1303,7 @@
                 <button type="button" class="btn btn-secondary btn-sm" onclick="openQuickAward()" style="background: rgba(245, 158, 11, 0.2); border-color: var(--accent); color: var(--accent); font-weight: 700;">
                     🏆 Points
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleTimer()">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-pause" onclick="toggleTimer()">
                     ⏸️ Pause
                 </button>
             </div>
@@ -1017,22 +1319,102 @@
         </div>
     </div>
 
-    <!-- SIDEBAR: LIVE SCOREBOARD & POINTS AWARD -->
+    <!-- SIDEBAR: LIVE SCOREBOARD & SOUNDS TAB -->
     <div class="scoreboard-panel" id="arena-scoreboard">
-        <div class="panel-header">
-            <span>🏆 Scoreboard</span>
-            <span style="font-size: 0.8rem; color: var(--text-muted);" id="q-counter">Asked: 0</span>
+        <div class="sidebar-tab-bar" id="sidebar-tab-bar">
+            <button type="button" class="sidebar-tab-btn active" id="sidebar-tab-scores" onclick="setSidebarTab('scores')">
+                🏆 Scores
+            </button>
+            <button type="button" class="sidebar-tab-btn" id="sidebar-tab-sounds" onclick="setSidebarTab('sounds')">
+                🎭 Sounds
+            </button>
         </div>
 
-        <div class="teams-list-scroll" id="teams-list">
-            <!-- Dynamically populated -->
+        <div id="arena-scoreboard-body" style="display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;">
+            <div class="panel-header">
+                <span>🏆 Scoreboard</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="q-counter">Asked: 0</span>
+            </div>
+
+            <div class="teams-list-scroll" id="teams-list">
+                <!-- Dynamically populated -->
+            </div>
+        </div>
+
+        <div id="arena-sounds-body" class="sounds-panel-scroll" style="display: none;">
+            <div class="sfx-grid">
+                <button type="button" class="sfx-tile" onclick="playHostSfx('applause', '👏 Applause!')" style="border-color: rgba(16, 185, 129, 0.45);">
+                    <span style="font-size: 1.45rem;">👏</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Applause</strong><span style="font-size:0.66rem; color:var(--text-muted);">Crowd cheers</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('ipl_horn', '🏏 IPL Trumpet!')" style="border-color: rgba(56, 189, 248, 0.45);">
+                    <span style="font-size: 1.45rem;">🏏</span>
+                    <div><strong style="display:block; font-size:0.84rem;">IPL Trumpet</strong><span style="font-size:0.66rem; color:var(--text-muted);">Stadium bugle</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('boxing_bell', '🛎️ Victory Bell!')" style="border-color: rgba(245, 158, 11, 0.45);">
+                    <span style="font-size: 1.45rem;">🛎️</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Victory Bell</strong><span style="font-size:0.66rem; color:var(--text-muted);">Winner ding</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('cheers_clink', '🍸 Cheers Clink!')" style="border-color: rgba(251, 191, 36, 0.45);">
+                    <span style="font-size: 1.45rem;">🍸</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Cheers Clink</strong><span style="font-size:0.66rem; color:var(--text-muted);">Glass toast</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('drumroll', '🥁 Drumroll!')" style="border-color: rgba(245, 158, 11, 0.45);">
+                    <span style="font-size: 1.45rem;">🥁</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Drumroll</strong><span style="font-size:0.66rem; color:var(--text-muted);">Suspense roll</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('dun_dun_dun', '🎬 Dramatic Horn!')" style="border-color: rgba(168, 85, 247, 0.45);">
+                    <span style="font-size: 1.45rem;">🎬</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Dramatic Horn</strong><span style="font-size:0.66rem; color:var(--text-muted);">Trailer sting</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('magic_sparkle', '✨ Ooh, Close!')" style="border-color: rgba(236, 72, 153, 0.45);">
+                    <span style="font-size: 1.45rem;">✨</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Magic Sparkle</strong><span style="font-size:0.66rem; color:var(--text-muted);">Getting warm!</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('wrong_buzz', '❌ BZZZT!')" style="border-color: rgba(239, 68, 68, 0.45);">
+                    <span style="font-size: 1.45rem;">❌</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Wrong Buzz</strong><span style="font-size:0.66rem; color:var(--text-muted);">Wild guess</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('sad_trombone', '🎺 Wah-Wah-Waaah!')" style="border-color: rgba(239, 68, 68, 0.45);">
+                    <span style="font-size: 1.45rem;">🎺</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Sad Trombone</strong><span style="font-size:0.66rem; color:var(--text-muted);">Wah-wah-waaah</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('record_scratch', '💥 Record Scratch!')" style="border-color: rgba(249, 115, 22, 0.45);">
+                    <span style="font-size: 1.45rem;">💥</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Record Scratch</strong><span style="font-size:0.66rem; color:var(--text-muted);">Sudden stop</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('mogambo_khush_hua', '😈 Mogambo Khush Hua!')" style="border-color: rgba(234, 179, 8, 0.55);">
+                    <span style="font-size: 1.45rem;">😈</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Mogambo Khush Hua</strong><span style="font-size:0.66rem; color:var(--text-muted);">Mr. India</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('tussi_great_ho', '🙇 Jahanpanah Tussi Great Ho!')" style="border-color: rgba(168, 85, 247, 0.55);">
+                    <span style="font-size: 1.45rem;">🙇</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Tussi Great Ho!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Tohfa kubool karo</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('control_uday', '🤣 Control Uday, Control!')" style="border-color: rgba(16, 185, 129, 0.55);">
+                    <span style="font-size: 1.45rem;">🤣</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Control Uday!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Welcome</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('kahan_se_aate', '🤦 Kaun Hai Ye Log?')" style="border-color: rgba(249, 115, 22, 0.55);">
+                    <span style="font-size: 1.45rem;">🤦</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Kaun Hai Ye Log?</strong><span style="font-size:0.66rem; color:var(--text-muted);">Kahan se aate hai</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('nana_laugh', '😂 Nana Patekar Laugh!')" style="border-color: rgba(239, 68, 68, 0.55);">
+                    <span style="font-size: 1.45rem;">😂</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Nana Laugh</strong><span style="font-size:0.66rem; color:var(--text-muted);">Iconic laugh</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('ruko_zara', '✋ Ruko Zara, Sabr Karo!')" style="border-color: rgba(56, 189, 248, 0.55);">
+                    <span style="font-size: 1.45rem;">✋</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Ruko Zara!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Sabr karo!</span></div>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- FLOATING THUMB DOCK FOR IPHONE / MOBILE (Sticky bottom) -->
 <div class="floating-host-dock" id="floating-dock">
-    <button type="button" class="dock-btn dock-btn-icon" id="dock-btn-prev" onclick="triggerAction('prev_question')" title="Previous Question">
+    <button type="button" class="dock-btn dock-btn-icon" id="dock-btn-prev" onclick="triggerAction('prev_question')" title="Previous Question" aria-label="Previous Question">
         ⏮️
     </button>
     <button type="button" class="dock-btn dock-btn-next" id="dock-btn-next" onclick="hostNextStep()">
@@ -1044,14 +1426,14 @@
     <button type="button" class="dock-btn dock-btn-award" id="dock-btn-award" onclick="openQuickAward()">
         🏆 Award
     </button>
-    <button type="button" class="dock-btn dock-btn-icon" id="dock-btn-pause" onclick="toggleTimer()" title="Pause/Resume">
+    <button type="button" class="dock-btn dock-btn-icon" id="dock-btn-pause" onclick="toggleTimer()" title="Pause or Resume Timer" aria-label="Pause or Resume Timer">
         ⏸️
     </button>
 </div>
 
 <!-- FLOATING DOCK IN RULES BRIEFING MODE (iPhone) -->
 <div class="floating-host-dock" id="floating-rules-dock" style="display: none;">
-    <button type="button" class="dock-btn dock-btn-icon" onclick="triggerAction('prev_rule')" title="Previous Rule">
+    <button type="button" class="dock-btn dock-btn-icon" onclick="triggerAction('prev_rule')" title="Previous Rule" aria-label="Previous Rule">
         ⬅
     </button>
     <button type="button" class="dock-btn dock-btn-next" id="dock-btn-next-rule" onclick="triggerAction('next_rule')">
@@ -1060,7 +1442,7 @@
     <button type="button" class="dock-btn dock-btn-reveal" onclick="triggerAction('finish_rules')">
         🎯 Tryout
     </button>
-    <button type="button" class="dock-btn dock-btn-icon" onclick="triggerAction('close_rules')" title="Close rules">
+    <button type="button" class="dock-btn dock-btn-icon" onclick="triggerAction('close_rules')" title="Close rules" aria-label="Close rules">
         ✕
     </button>
 </div>
@@ -1084,7 +1466,7 @@
     </div>
 
     <!-- Teams Grid -->
-    <div id="qa-teams-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; max-height: 55vh; overflow-y: auto; padding: 0.2rem;">
+    <div id="qa-teams-grid" class="qa-teams-grid">
         <!-- Loaded dynamically -->
     </div>
 </dialog>
@@ -1112,7 +1494,7 @@
 {% endblock %}
 
 {% block javascripts %}
-<script src="/js/sounds.js?v=3"></script>
+<script src="/js/sounds.js?v=5"></script>
 <script src="/js/qrcode.min.js"></script>
 <script>
     const SHOW_ID = {{ show.id }};
@@ -1128,6 +1510,25 @@
     let activeMobileView = 'stage';
     let recentArenaScoreChanges = {};
 
+    function setSidebarTab(tab) {
+        const scoresBody = document.getElementById('arena-scoreboard-body');
+        const soundsBody = document.getElementById('arena-sounds-body');
+        const scoresBtn = document.getElementById('sidebar-tab-scores');
+        const soundsBtn = document.getElementById('sidebar-tab-sounds');
+
+        if (tab === 'sounds') {
+            if (scoresBody) scoresBody.style.display = 'none';
+            if (soundsBody) soundsBody.style.display = 'flex';
+            if (scoresBtn) scoresBtn.classList.remove('active');
+            if (soundsBtn) soundsBtn.classList.add('active');
+        } else {
+            if (scoresBody) scoresBody.style.display = 'flex';
+            if (soundsBody) soundsBody.style.display = 'none';
+            if (scoresBtn) scoresBtn.classList.add('active');
+            if (soundsBtn) soundsBtn.classList.remove('active');
+        }
+    }
+
     function setArenaMobileTab(tab) {
         activeMobileView = tab;
         document.querySelectorAll('.mobile-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1137,13 +1538,18 @@
         const stageEl = document.getElementById('arena-main-stage');
         const scoresEl = document.getElementById('arena-scoreboard');
 
-        if (window.innerWidth <= 900) {
+        if (window.innerWidth <= 767) {
             if (tab === 'stage') {
                 stageEl.style.display = 'flex';
                 scoresEl.style.display = 'none';
+            } else if (tab === 'sounds') {
+                stageEl.style.display = 'none';
+                scoresEl.style.display = 'flex';
+                setSidebarTab('sounds');
             } else {
                 stageEl.style.display = 'none';
                 scoresEl.style.display = 'flex';
+                setSidebarTab('scores');
             }
         } else {
             stageEl.style.display = 'flex';
@@ -1178,6 +1584,25 @@
             closeArenaMenu();
         }
     });
+
+    function openSfxSoundboard() {
+        if (window.soundFX) window.soundFX.init();
+        const modal = document.getElementById('sfx-soundboard-modal');
+        if (modal) modal.showModal();
+    }
+
+    function playHostSfx(sfxName, label) {
+        if (window.soundFX) {
+            window.soundFX.init();
+            window.soundFX.playByName(sfxName);
+        }
+        showToast(label || `🎭 ${sfxName}`);
+        fetch(`/api/shows/${SHOW_ID}/action`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'play_sfx', sfx: sfxName })
+        });
+    }
 
     function openArenaQrModal() {
         const modal = document.getElementById('arena-qr-modal');
@@ -1271,13 +1696,18 @@
 
     function toggleSound() {
         soundEnabled = !soundEnabled;
-        window.soundFX.enabled = soundEnabled;
-        const btn = document.getElementById('btn-sound');
-        if (btn) {
-            btn.innerHTML = soundEnabled 
-                ? '🔊<span class="desktop-only-inline"> Sound</span>' 
-                : '🔇<span class="desktop-only-inline"> Muted</span>';
+        if (window.soundFX) {
+            window.soundFX.enabled = soundEnabled;
+            if (soundEnabled) {
+                window.soundFX.init();
+                window.soundFX.playTick();
+            }
         }
+        const icon = document.getElementById('menu-sound-icon');
+        const title = document.getElementById('menu-sound-title');
+        if (icon) icon.innerText = soundEnabled ? '🔊' : '🔇';
+        if (title) title.innerText = soundEnabled ? 'Host Audio: ON' : 'Host Audio: Muted';
+        showToast(soundEnabled ? '🔊 Host Audio ON' : '🔇 Host Audio Muted');
     }
 
     function fetchState() {
@@ -1344,7 +1774,7 @@
             const rule = rulesList[activeRuleIdx];
             rulesBar.style.display = 'flex';
             rulesCard.style.display = 'block';
-            if (window.innerWidth <= 900) {
+            if (window.innerWidth <= 767) {
                 floatingDock.style.display = 'none';
                 floatingRulesDock.style.display = 'flex';
             }
@@ -1382,7 +1812,7 @@
         } else {
             rulesBar.style.display = 'none';
             rulesCard.style.display = 'none';
-            if (window.innerWidth <= 900) {
+            if (window.innerWidth <= 767) {
                 floatingDock.style.display = 'flex';
                 floatingRulesDock.style.display = 'none';
             }
@@ -1674,12 +2104,15 @@
         if (dockPrevBtn) dockPrevBtn.disabled = !hasUsed;
 
         // Timer Sync (Hide timer on splash / non-question screens)
+        const arenaTimerBar = document.getElementById('arena-timer-bar');
         const arenaTimerLabel = document.getElementById('arena-timer-label');
         const arenaTimerBox = document.getElementById('timer-box');
         if (q) {
+            if (arenaTimerBar) arenaTimerBar.style.display = 'flex';
             if (arenaTimerLabel) arenaTimerLabel.style.display = '';
             if (arenaTimerBox) arenaTimerBox.style.display = '';
         } else {
+            if (arenaTimerBar) arenaTimerBar.style.display = 'none';
             if (arenaTimerLabel) arenaTimerLabel.style.display = 'none';
             if (arenaTimerBox) arenaTimerBox.style.display = 'none';
         }
@@ -1747,6 +2180,15 @@
 
     function toggleTimer() {
         isPaused = !isPaused;
+        const desktopPauseBtn = document.getElementById('btn-pause');
+        const dockPauseBtn = document.getElementById('dock-btn-pause');
+        if (desktopPauseBtn) {
+            desktopPauseBtn.innerText = isPaused ? '▶️ Resume' : '⏸️ Pause';
+        }
+        if (dockPauseBtn) {
+            dockPauseBtn.innerText = isPaused ? '▶️' : '⏸️';
+        }
+        showToast(isPaused ? '⏸️ Timer Paused' : '▶️ Timer Resumed');
     }
 
     function hostNextStep() {
