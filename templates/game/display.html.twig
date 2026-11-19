@@ -242,6 +242,50 @@
             to { transform: rotate(360deg); }
         }
 
+        .tv-sfx-pop {
+            position: absolute;
+            z-index: 70;
+            pointer-events: none;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1.65rem;
+            border-radius: 999px;
+            font-family: 'Bungee', cursive, sans-serif;
+            font-size: clamp(1.35rem, 2.2vw, 2.1rem);
+            letter-spacing: 0.8px;
+            color: #fff;
+            background: rgba(16, 13, 11, 0.92);
+            border: 3px solid var(--accent);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 32px rgba(245, 158, 11, 0.45);
+            white-space: nowrap;
+        }
+
+        .tv-sfx-pop.correct {
+            border-color: #10b981;
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(16, 185, 129, 0.9) 100%);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 36px rgba(16, 185, 129, 0.55);
+        }
+
+        .tv-sfx-pop.wrong {
+            border-color: #ef4444;
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(220, 38, 38, 0.9) 100%);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.85), 0 0 36px rgba(239, 68, 68, 0.55);
+        }
+
+        .tv-sfx-pop.active {
+            display: inline-flex;
+            animation: tvSfxPopAnim 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes tvSfxPopAnim {
+            0% { opacity: 0; transform: scale(0.45) rotate(var(--sfx-rot, 0deg)); }
+            14% { opacity: 1; transform: scale(1.08) rotate(var(--sfx-rot, 0deg)); }
+            24% { transform: scale(1) rotate(var(--sfx-rot, 0deg)); }
+            82% { opacity: 1; transform: scale(1) rotate(var(--sfx-rot, 0deg)); }
+            100% { opacity: 0; transform: scale(0.85) translateY(-18px) rotate(var(--sfx-rot, 0deg)); }
+        }
+
         /* Cinematic Stage Transition Light Sweep Overlay */
         .tv-stage-transition-fx {
             position: absolute;
@@ -1045,7 +1089,7 @@
     <header class="tv-header">
         <div class="show-title-group">
             <div class="show-title">🍁 {{ show.name }}</div>
-            <div class="tv-round-bubble" id="tv-round-bubble">
+            <div class="tv-round-bubble" id="tv-round-bubble" style="display: none;">
                 <span class="tv-round-title" id="tv-round">Round 1</span>
                 <span class="tv-round-divider" id="tv-round-divider" style="display: none;">•</span>
                 <span class="tv-round-cat" id="tv-cat" style="display: none;">Classic Dingbats</span>
@@ -1060,10 +1104,11 @@
         </div>
     </header>
 
-    <div class="tv-content">
+    <div class="tv-content splash-fullscreen">
         <!-- LEFT: PUZZLE STAGE -->
         <main class="tv-stage">
             <div class="tv-stage-transition-fx" id="tv-stage-transition-fx"></div>
+            <div class="tv-sfx-pop" id="tv-sfx-pop"></div>
             <div class="tv-points-burst-banner" id="tv-points-burst">
                 <span style="font-size: 2.5rem;" id="tv-points-burst-emoji">🏆</span>
                 <div style="text-align: left;">
@@ -1125,7 +1170,7 @@
                 </div>
 
                 <!-- WELCOME SPLASH SCREEN (STAGE 1: ONLY ON TV SCREEN) -->
-                <div class="splash-card welcome-splash-stage" id="tv-welcome-splash-card" style="display: none;" onclick="if(window.soundFX){window.soundFX.playSplashIntro();}">
+                <div class="splash-card welcome-splash-stage" id="tv-welcome-splash-card" style="display: flex;" onclick="if(window.soundFX){window.soundFX.playSplashIntro();}">
                     <div class="splash-particles">
                         <span class="splash-particle" style="top: 6%; left: 4%; animation-delay: 0s;">🍁</span>
                         <span class="splash-particle" style="top: 14%; right: 5%; animation-delay: 0.9s;">✨</span>
@@ -1144,7 +1189,7 @@
                             <span class="eq-bar"></span>
                             <span class="eq-bar"></span>
                         </span>
-                        <span>🎉 Welcome to the Arena! Competing Teams &amp; Rules Up Next</span>
+                        <span id="tv-splash-cta-text">🍿 Popping virtual popcorn &amp; calibrating buzzers...</span>
                         <span style="font-size: 0.85rem; opacity: 0.85;">🔊</span>
                     </div>
                 </div>
@@ -1160,9 +1205,6 @@
                         <h1 class="tv-team-spot-name" id="tv-team-spot-name">Team Name</h1>
                         <div id="tv-team-spot-members" style="font-size: clamp(1.35rem, 2vw, 1.85rem); font-weight: 800; color: #f8fafc; background: rgba(255, 255, 255, 0.07); border: 1.5px solid rgba(255, 255, 255, 0.16); padding: 0.55rem 1.75rem; border-radius: 999px; margin-bottom: 0.9rem;">
                             💑 Couple Names
-                        </div>
-                        <div id="tv-team-spot-flight" style="font-size: 0.95rem; font-weight: 800; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase;">
-                            🍂 ACORN FLIGHT
                         </div>
                     </div>
                     <div class="tv-rules-footer" style="flex-direction: column; gap: 0.85rem; align-items: center;">
@@ -1189,7 +1231,7 @@
         </main>
 
         <!-- RIGHT: LIVE SCOREBOARD -->
-        <aside class="tv-scoreboard" id="tv-scoreboard-aside">
+        <aside class="tv-scoreboard" id="tv-scoreboard-aside" style="display: none;">
             <div class="scoreboard-header">
                 <span class="scoreboard-title">🏆 Live Scores</span>
                 <span style="font-size: 0.85rem; font-weight: 700; color: #94a3b8;" id="tv-team-count">10 Teams</span>
@@ -1207,7 +1249,7 @@
         Fall Party Rebus Gameshow - Copyrights (c) Vishal Khapre, Crafted with Natural Intelligence and powered by Artificial Intelligence
     </footer>
 
-    <script src="/js/sounds.js?v=5"></script>
+    <script src="/js/sounds.js?v=7"></script>
     <script>
         const SHOW_ID = {{ show.id }};
         let tvSoundEnabled = true;
@@ -1217,6 +1259,10 @@
         let timeUpBuzzerPlayedForStamp = null;
 
         let hasInitializedTvState = false;
+        let isSyncInFlight = false;
+        let prevStateHash = null;
+        let prevMediaPath = null;
+        const preloadedMedia = new Set();
         let prevQuestionId = null;
         let prevQuestionStartedAt = null;
         let prevAnswerRevealed = 0;
@@ -1230,6 +1276,110 @@
         let prevTeamScores = {};
         let recentScoreChanges = {};
         let pointsBurstTimeout = null;
+        let scoreChangeCleanupTimer = null;
+        let resetQuipTimeout = null;
+        let tvSfxPopTimeout = null;
+
+        const TV_SFX_REACTIONS = {
+            applause: { text: '👏 NAILED IT!', tone: 'correct' },
+            tussi_great_ho: { text: '🙇 TUSSI GREAT HO!', tone: 'correct' },
+            mogambo_khush_hua: { text: '😈 MOGAMBO KHUSH HUA!', tone: 'correct' },
+            ipl_horn: { text: '🏏 BOOM!', tone: 'correct' },
+            wrong_buzz: { text: '❌ BZZZT! NOPE!', tone: 'wrong' },
+            sad_trombone: { text: '🎺 WAH-WAH-WAAAH!', tone: 'wrong' },
+            kahan_se_aate: { text: '🤦 KAUN HAI YE LOG?!', tone: 'wrong' },
+            tu_samjha: { text: '🤔 TU SAMJHA? NAHI!', tone: 'wrong' },
+            kehna_kya_chahte_ho: { text: '🤨 KEHNA KYA CHAHTE HO?!', tone: 'wrong' },
+            mast_joke_mara: { text: '🤣 MAST JOKE MARA RE!', tone: 'wrong' },
+            tumse_na_ho_payega: { text: '🫠 BETA TUMSE NA HO PAYEGA!', tone: 'wrong' },
+            control_uday: { text: '🤣 CONTROL UDAY!', tone: 'neutral' },
+            nana_laugh: { text: '😂 HAHAHA!', tone: 'neutral' },
+            ruko_zara: { text: '✋ RUKO ZARA!', tone: 'neutral' },
+            jaldi_bol_panvel: { text: '⏰ JALDI BOL! PANVEL NIKALNA HAI!', tone: 'neutral' },
+            cheating_karta_hai: { text: '🕵️ CHEATING KARTA HAI TU!', tone: 'neutral' },
+            maro_mujhe_maro: { text: '🤦‍♂️ O BHAI MARO MUJHE MARO!', tone: 'neutral' },
+            kuchh_samjhe_daya: { text: '🧐 KUCHH SAMJHE DAYA?!', tone: 'neutral' },
+            drumroll: { text: '🥁 DRUMROLL...', tone: 'neutral' },
+            dun_dun_dun: { text: '🎬 DUN DUN DUN!', tone: 'neutral' },
+        };
+
+        function triggerTvSfxPop(sfxName) {
+            const pop = document.getElementById('tv-sfx-pop');
+            const meta = TV_SFX_REACTIONS[sfxName];
+            if (!pop || !meta) return;
+
+            const topPct = Math.floor(12 + Math.random() * 64);
+            const leftPct = Math.floor(10 + Math.random() * 52);
+            const rotDeg = Math.floor(-6 + Math.random() * 13);
+
+            pop.innerText = meta.text;
+            pop.style.top = `${topPct}%`;
+            pop.style.left = `${leftPct}%`;
+            pop.style.setProperty('--sfx-rot', `${rotDeg}deg`);
+            pop.className = `tv-sfx-pop ${meta.tone}`;
+            void pop.offsetWidth;
+            pop.classList.add('active');
+
+            clearTimeout(tvSfxPopTimeout);
+            tvSfxPopTimeout = setTimeout(() => {
+                pop.classList.remove('active');
+            }, 2250);
+        }
+
+        const SPLASH_READY_TEXT = '🎉 Welcome to the Arena! Competing Teams & Rules Up Next';
+        const FUNNY_PRELOAD_QUIPS = [
+            '🍿 Popping virtual popcorn & calibrating buzzers...',
+            '🧠 Warming up the Host\'s dad-joke engine...',
+            '🍷 Checking if anyone is bribing the Host yet...',
+            '✨ Polishing the trophy & hiding the answer key...',
+            '🔥 Untangling 100% genuine digital confetti...',
+        ];
+        const FUNNY_RESET_QUIPS = [
+            '🧹 Sweeping up digital confetti & erasing all evidence of who lost...',
+            '🔄 Rewinding the scoreboard... nobody saw those wrong answers!',
+            '🍾 Fresh slate! Bribing the Host starts back at zero...',
+        ];
+        let preloadQuipIdx = 0;
+        let preloadQuipInterval = setInterval(() => {
+            if (hasInitializedTvState) {
+                clearInterval(preloadQuipInterval);
+                preloadQuipInterval = null;
+                return;
+            }
+            preloadQuipIdx = (preloadQuipIdx + 1) % FUNNY_PRELOAD_QUIPS.length;
+            const ctaEl = document.getElementById('tv-splash-cta-text');
+            if (ctaEl) ctaEl.innerText = FUNNY_PRELOAD_QUIPS[preloadQuipIdx];
+        }, 900);
+
+        function preloadMediaUrl(url) {
+            if (!url || preloadedMedia.has(url)) return;
+            preloadedMedia.add(url);
+            const loader = new Image();
+            loader.src = url;
+        }
+
+        function clearExpiredScoreHighlights() {
+            const nowMs = Date.now();
+            let hasRemaining = false;
+            Object.keys(recentScoreChanges).forEach((tid) => {
+                if (recentScoreChanges[tid].expiresAt <= nowMs) {
+                    delete recentScoreChanges[tid];
+                } else {
+                    hasRemaining = true;
+                }
+            });
+            if (!hasRemaining) {
+                document.querySelectorAll('#tv-teams .team-card-row').forEach((row) => {
+                    row.classList.remove('points-gained', 'points-lost');
+                });
+                document.querySelectorAll('#tv-teams .team-score-badge').forEach((badge) => {
+                    badge.classList.remove('score-pop');
+                });
+                document.querySelectorAll('#tv-teams .score-delta-pill').forEach((pill) => {
+                    pill.remove();
+                });
+            }
+        }
 
         function triggerPointsBurstBanner(team, delta) {
             const banner = document.getElementById('tv-points-burst');
@@ -1353,9 +1503,19 @@
         }
 
         function syncDisplay() {
+            if (isSyncInFlight) return;
+            isSyncInFlight = true;
             fetch(`/api/shows/${SHOW_ID}/state`)
                 .then(res => res.json())
                 .then(data => {
+                    if (data.next_media_path) {
+                        preloadMediaUrl(data.next_media_path);
+                    }
+                    if (data.state_hash && data.state_hash === prevStateHash) {
+                        return;
+                    }
+                    prevStateHash = data.state_hash || null;
+
                     const show = data.show;
                     const q = data.current_question;
                     const round = data.current_round;
@@ -1505,7 +1665,11 @@
                             splash.style.display = 'none';
                             if (roundEndCard) roundEndCard.style.display = 'none';
                             imgCard.style.display = 'flex';
-                            img.src = q.media_path;
+                            if (q.media_path && prevMediaPath !== q.media_path) {
+                                img.src = q.media_path;
+                                prevMediaPath = q.media_path;
+                                preloadedMedia.add(q.media_path);
+                            }
 
                             if (q.category_name) {
                                 const qProgress = (q.is_sample) ? ' (Practice • No Points)' : ((rProg.total > 0) ? ` (${rProg.used}/${rProg.total})` : '');
@@ -1567,8 +1731,21 @@
                             if (roundDivider) roundDivider.style.display = 'none';
                             if (welcomeSplashCard) {
                                 welcomeSplashCard.style.display = 'flex';
+                                const ctaEl = document.getElementById('tv-splash-cta-text');
                                 if (hasInitializedTvState && showStatus !== prevShowStatus) {
+                                    prevMediaPath = null;
                                     triggerStageTransition(welcomeSplashCard);
+                                    if (ctaEl) {
+                                        ctaEl.innerText = FUNNY_RESET_QUIPS[Math.floor(Math.random() * FUNNY_RESET_QUIPS.length)];
+                                        clearTimeout(resetQuipTimeout);
+                                        resetQuipTimeout = setTimeout(() => {
+                                            if (ctaEl) ctaEl.innerText = SPLASH_READY_TEXT;
+                                        }, 2400);
+                                    }
+                                } else if (!hasInitializedTvState && ctaEl) {
+                                    clearInterval(preloadQuipInterval);
+                                    preloadQuipInterval = null;
+                                    ctaEl.innerText = SPLASH_READY_TEXT;
                                 }
                             }
                         } else if (isTeamsIntroStage) {
@@ -1600,8 +1777,6 @@
                                     } else {
                                         membersEl.style.display = 'none';
                                     }
-                                    const flightEl = document.getElementById('tv-team-spot-flight');
-                                    flightEl.innerText = currTeam.flight_group ? `🍂 ${currTeam.flight_group.toUpperCase()} FLIGHT CONTENDERS` : '🍂 TOURNAMENT CONTENDERS';
                                 }
 
                                 const teamDotsWrap = document.getElementById('tv-team-spot-dots');
@@ -1686,6 +1861,11 @@
                         prevTeamScores[tid] = curScore;
                     });
 
+                    if (changedTeams.length > 0) {
+                        clearTimeout(scoreChangeCleanupTimer);
+                        scoreChangeCleanupTimer = setTimeout(clearExpiredScoreHighlights, 2300);
+                    }
+
                     if (hasInitializedTvState && window.soundFX) {
                         let playedScoreOrRevealSound = false;
 
@@ -1718,7 +1898,9 @@
                             img.classList.remove('stage-enter');
                             void img.offsetWidth;
                             img.classList.add('stage-enter');
-                        } else if ((curRDone && !prevRoundCompleted) || (prevRoundId !== null && curRId !== prevRoundId && !curQId) || (showStatus !== prevShowStatus && showStatus === 'round_intro')) {
+                        } else if ((showStatus === 'round_intro' && (showStatus !== prevShowStatus || (prevRoundId !== null && curRId !== prevRoundId))) || (prevRoundId !== null && curRId !== prevRoundId && !curQId && !curRDone)) {
+                            window.soundFX.playByName('ipl_horn');
+                        } else if (curRDone && !prevRoundCompleted) {
                             window.soundFX.playFanfare();
                         } else if (curQId && !prevQuestionId) {
                             // Entering the first puzzle of a round!
@@ -1732,13 +1914,18 @@
                             void img.offsetWidth;
                             img.classList.add('stage-enter');
                         }
-                    } else if (!hasInitializedTvState && window.soundFX && isWelcomeSplashStage) {
-                        window.soundFX.playSplashIntro();
+                    } else if (!hasInitializedTvState && window.soundFX) {
+                        if (isWelcomeSplashStage) {
+                            window.soundFX.playSplashIntro();
+                        } else if (showStatus === 'round_intro') {
+                            window.soundFX.playByName('ipl_horn');
+                        }
                     }
 
                     const curSfxAt = parseInt(show.last_sfx_at, 10) || 0;
                     if (hasInitializedTvState && window.soundFX && curSfxAt > prevSfxAt && show.last_sfx_name) {
                         window.soundFX.playByName(show.last_sfx_name);
+                        triggerTvSfxPop(show.last_sfx_name);
                     }
 
                     const didTeamStepChange = (showStatus !== prevShowStatus || activeTeamIdx !== prevActiveTeamIdx);
@@ -1851,6 +2038,10 @@
                             teamsWrap.appendChild(seatDiv);
                         }
                     }
+                })
+                .catch(() => {})
+                .finally(() => {
+                    isSyncInFlight = false;
                 });
         }
 

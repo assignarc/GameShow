@@ -1837,4 +1837,59 @@ class GameShowTest extends WebTestCase
             $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$customQId, $starredQId]);
         }
     }
+
+    public function testShowStateEtagAndNextMediaPath(): void
+    {
+        $client = static::createClient();
+        $db = static::getContainer()->get(GameDatabase::class);
+        $pdo = $db->getPdo();
+
+        $catId = (int) $pdo->query('SELECT id FROM categories LIMIT 1')->fetchColumn();
+        $pdo->prepare("INSERT INTO questions (category_id, title, prompt_text, answer, media_path, difficulty, is_active, review_status, is_favorite) VALUES (?, 'Etag Q1', 'P1', 'ETAG_ANS_1', '/media/etag_1.jpg', 'Medium', 1, 'included', 1)")
+            ->execute([$catId]);
+        $q1Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare("INSERT INTO questions (category_id, title, prompt_text, answer, media_path, difficulty, is_active, review_status, is_favorite) VALUES (?, 'Etag Q2', 'P2', 'ETAG_ANS_2', '/media/etag_2.jpg', 'Medium', 1, 'included', 1)")
+            ->execute([$catId]);
+        $q2Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare("INSERT INTO game_shows (name, status) VALUES ('Etag Perf Show', 'active')")
+            ->execute();
+        $showId = (int) $pdo->lastInsertId();
+
+        $pdo->prepare("INSERT INTO show_rounds (show_id, round_number, name, status) VALUES (?, 1, 'Round 1', 'active')")
+            ->execute([$showId]);
+        $r1Id = (int) $pdo->lastInsertId();
+
+        $pdo->prepare('INSERT INTO show_round_questions (show_id, round_id, question_id, sort_order) VALUES (?, ?, ?, 1), (?, ?, ?, 2)')
+            ->execute([$showId, $r1Id, $q1Id, $showId, $r1Id, $q2Id]);
+
+        $pdo->prepare('UPDATE game_shows SET current_round_id = ?, current_question_id = ? WHERE id = ?')
+            ->execute([$r1Id, $q1Id, $showId]);
+
+        try {
+            $client->request('GET', "/api/shows/{$showId}/state");
+            $this->assertResponseIsSuccessful();
+
+            $response = $client->getResponse();
+            $etag = $response->headers->get('ETag');
+            $this->assertNotEmpty($etag);
+
+            $data = json_decode((string) $response->getContent(), true);
+            $this->assertIsArray($data);
+            $this->assertArrayHasKey('state_hash', $data);
+            $this->assertSame('/media/etag_2.jpg', $data['next_media_path']);
+
+            // Re-requesting with If-None-Match should return 304 Not Modified
+            $client->request('GET', "/api/shows/{$showId}/state", [], [], [
+                'HTTP_IF_NONE_MATCH' => $etag,
+            ]);
+            $this->assertResponseStatusCodeSame(304);
+        } finally {
+            $pdo->prepare('DELETE FROM show_round_questions WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM show_rounds WHERE show_id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM game_shows WHERE id = ?')->execute([$showId]);
+            $pdo->prepare('DELETE FROM questions WHERE id IN (?, ?)')->execute([$q1Id, $q2Id]);
+        }
+    }
 }

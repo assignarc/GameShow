@@ -1292,6 +1292,7 @@ class GameShowController extends AbstractController
     public function getShowState(int $id, Request $request): JsonResponse
     {
         $pdo = $this->gameDatabase->getPdo();
+        $rules = $this->gameDatabase->getShowRules($id);
         $show = $this->getShowOrFail($id);
 
         $teams = $pdo->prepare('SELECT * FROM show_teams WHERE show_id = ? ORDER BY is_eliminated ASC, score DESC, sort_order ASC, id ASC');
@@ -1375,13 +1376,38 @@ class GameShowController extends AbstractController
 
         $usedCount = (int) $pdo->query("SELECT COUNT(*) FROM show_used_questions WHERE show_id = {$id}")->fetchColumn();
 
+        $nextMediaPath = null;
+        if ($currentRound && ($currentRound['status'] ?? '') !== 'completed') {
+            $nextMediaStmt = $pdo->prepare("
+                SELECT q.media_path
+                FROM show_round_questions srq
+                JOIN questions q ON q.id = srq.question_id
+                WHERE srq.show_id = ? AND srq.round_id = ?
+                  AND q.is_active = 1 AND q.review_status = 'included'
+                  AND q.id != ?
+                  AND q.id NOT IN (SELECT question_id FROM show_used_questions WHERE show_id = ?)
+                ORDER BY srq.sort_order ASC, srq.id ASC
+                LIMIT 1
+            ");
+            $nextMediaStmt->execute([
+                $id,
+                (int) $currentRound['id'],
+                (int) ($show['current_question_id'] ?? 0),
+                $id,
+            ]);
+            $nextMedia = $nextMediaStmt->fetchColumn();
+            if (is_string($nextMedia) && $nextMedia !== '') {
+                $nextMediaPath = $nextMedia;
+            }
+        }
+
         $mobileHostUrl = $this->getHostLanUrl($request, "/shows/{$id}/play");
 
-        return $this->json([
+        $statePayload = [
             'show' => $show,
             'teams' => $teamList,
             'rounds' => $roundList,
-            'rules' => $this->gameDatabase->getShowRules($id),
+            'rules' => $rules,
             'current_round' => $currentRound,
             'round_progress' => [
                 'used' => $usedInCurrentRound,
@@ -1390,11 +1416,27 @@ class GameShowController extends AbstractController
                 'next_round' => $nextRound,
             ],
             'current_question' => $currentQuestion,
+            'next_media_path' => $nextMediaPath,
             'used_questions_count' => $usedCount,
             'mobile_host_url' => $mobileHostUrl,
             'lan_ip' => $this->getLanIp(),
-            'server_time' => time(),
-        ]);
+        ];
+
+        $stateHash = sha1(json_encode($statePayload) ?: '');
+        $statePayload['state_hash'] = $stateHash;
+
+        $response = new JsonResponse();
+        $response->setEtag($stateHash);
+        $response->headers->set('Cache-Control', 'no-cache');
+
+        if ($response->isNotModified($request)) {
+            return $response;
+        }
+
+        $statePayload['server_time'] = time();
+        $response->setData($statePayload);
+
+        return $response;
     }
 
     #[Route('/api/shows/{id}/action', name: 'app_api_show_action', methods: ['POST'])]
@@ -1902,7 +1944,7 @@ class GameShowController extends AbstractController
 
             case 'play_sfx':
                 $sfx = (string) ($payload['sfx'] ?? '');
-                $allowedSfx = ['drumroll', 'sad_trombone', 'dun_dun_dun', 'wrong_buzz', 'applause', 'ipl_horn', 'cheers_clink', 'record_scratch', 'boxing_bell', 'magic_sparkle', 'kahan_se_aate', 'mogambo_khush_hua', 'control_uday', 'tussi_great_ho', 'nana_laugh', 'ruko_zara'];
+                $allowedSfx = ['drumroll', 'sad_trombone', 'dun_dun_dun', 'wrong_buzz', 'applause', 'ipl_horn', 'kahan_se_aate', 'mogambo_khush_hua', 'control_uday', 'tussi_great_ho', 'nana_laugh', 'ruko_zara', 'tu_samjha', 'kehna_kya_chahte_ho', 'mast_joke_mara', 'jaldi_bol_panvel', 'cheating_karta_hai', 'tumse_na_ho_payega', 'maro_mujhe_maro', 'kuchh_samjhe_daya'];
                 if (!in_array($sfx, $allowedSfx, true)) {
                     return $this->json(['success' => false, 'error' => 'Invalid SFX name'], Response::HTTP_BAD_REQUEST);
                 }

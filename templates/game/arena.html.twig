@@ -309,12 +309,101 @@
 
     .puzzle-img-wrap {
         width: 100%;
-        max-width: 94%;
+        max-width: 96%;
         display: flex;
         align-items: center;
         justify-content: center;
         flex: 0 1 auto;
         min-height: 0;
+        position: relative;
+        gap: 1rem;
+    }
+
+    .quick-sfx-overlay-btn {
+        position: static;
+        flex-shrink: 0;
+        z-index: 15;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        padding: 0.7rem 0.75rem;
+        min-width: 74px;
+        border-radius: 16px;
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        background: transparent;
+        color: #fff;
+        font-weight: 900;
+        font-size: 0.78rem;
+        letter-spacing: 0.4px;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .quick-sfx-overlay-btn .q-icon {
+        font-size: 1.55rem;
+        line-height: 1;
+    }
+
+    .quick-sfx-overlay-btn.correct {
+        border-color: rgba(16, 185, 129, 0.55);
+        background: rgba(16, 185, 129, 0.08);
+    }
+
+    .quick-sfx-overlay-btn.wrong {
+        border-color: rgba(239, 68, 68, 0.55);
+        background: rgba(239, 68, 68, 0.08);
+    }
+
+    .quick-sfx-overlay-btn.correct:hover {
+        background: rgba(16, 185, 129, 0.2);
+        transform: scale(1.06);
+    }
+
+    .quick-sfx-overlay-btn.wrong:hover {
+        background: rgba(239, 68, 68, 0.2);
+        transform: scale(1.06);
+    }
+
+    .quick-sfx-overlay-btn:active {
+        transform: scale(0.94);
+    }
+
+    @media (max-width: 767px) {
+        .puzzle-img-wrap {
+            gap: 0;
+        }
+        .quick-sfx-overlay-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            min-width: 54px;
+            padding: 0.5rem 0.4rem;
+            font-size: 0.66rem;
+            border-radius: 12px;
+        }
+        .quick-sfx-overlay-btn.correct {
+            left: 4px;
+            background: rgba(16, 185, 129, 0.14);
+        }
+        .quick-sfx-overlay-btn.wrong {
+            right: 4px;
+            background: rgba(239, 68, 68, 0.14);
+        }
+        .quick-sfx-overlay-btn:hover {
+            transform: translateY(-50%) scale(1.06);
+        }
+        .quick-sfx-overlay-btn:active {
+            transform: translateY(-50%) scale(0.94);
+        }
+        .quick-sfx-overlay-btn .q-icon {
+            font-size: 1.2rem;
+        }
     }
 
     .puzzle-img {
@@ -1181,9 +1270,9 @@
                             </div>
                         </button>
                         <button type="button" class="arena-dropdown-item" id="btn-sound" onclick="toggleSound(); closeArenaMenu();">
-                            <span class="arena-dropdown-icon" id="menu-sound-icon">🔊</span>
+                            <span class="arena-dropdown-icon" id="menu-sound-icon">🔇</span>
                             <div>
-                                <div class="arena-dropdown-title" id="menu-sound-title">Host Audio: ON</div>
+                                <div class="arena-dropdown-title" id="menu-sound-title">Host Audio: Muted</div>
                                 <div class="arena-dropdown-sub" id="menu-sound-sub">Mute/unmute sounds on this device</div>
                             </div>
                         </button>
@@ -1241,7 +1330,15 @@
             </div>
 
             <div class="puzzle-img-wrap" id="img-wrap">
+                <button type="button" class="quick-sfx-overlay-btn correct" id="quick-sfx-correct" style="display: none;" onclick="playRandomQuickSfx('correct')" title="Play random Correct Answer sound on TV">
+                    <span class="q-icon">✅</span>
+                    <span>Correct</span>
+                </button>
                 <img src="" alt="Rebus Puzzle" class="puzzle-img" id="puzzle-image" style="display: none;">
+                <button type="button" class="quick-sfx-overlay-btn wrong" id="quick-sfx-wrong" style="display: none;" onclick="playRandomQuickSfx('wrong')" title="Play random Wrong Answer sound on TV">
+                    <span class="q-icon">❌</span>
+                    <span>Wrong</span>
+                </button>
                 <div id="no-question-splash" style="text-align: center; color: var(--text-muted); max-width: 660px; width: 95%; background: rgba(32, 26, 21, 0.92); border: 1.5px solid var(--border-color); border-radius: 18px; padding: 1.5rem 1.75rem;">
                     <div style="font-size: 2.75rem; margin-bottom: 0.4rem;" id="arena-splash-icon">🍁</div>
                     <div id="arena-splash-badge" style="display: inline-block; background: rgba(249, 115, 22, 0.18); border: 1px solid var(--primary); color: var(--primary); font-weight: 800; font-size: 0.78rem; padding: 0.2rem 0.85rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.45rem;">
@@ -1275,7 +1372,6 @@
                     <span class="host-tv-status" id="host-tv-status">📺 Hidden on TV</span>
                 </div>
                 <div class="host-clue-answer" id="host-clue-answer">ANSWER GOES HERE</div>
-                <div class="host-clue-prompt" id="host-clue-prompt">Category • Difficulty</div>
             </div>
 
             <div class="answer-banner" id="answer-banner">
@@ -1351,14 +1447,6 @@
                     <span style="font-size: 1.45rem;">🏏</span>
                     <div><strong style="display:block; font-size:0.84rem;">IPL Trumpet</strong><span style="font-size:0.66rem; color:var(--text-muted);">Stadium bugle</span></div>
                 </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('boxing_bell', '🛎️ Victory Bell!')" style="border-color: rgba(245, 158, 11, 0.45);">
-                    <span style="font-size: 1.45rem;">🛎️</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Victory Bell</strong><span style="font-size:0.66rem; color:var(--text-muted);">Winner ding</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('cheers_clink', '🍸 Cheers Clink!')" style="border-color: rgba(251, 191, 36, 0.45);">
-                    <span style="font-size: 1.45rem;">🍸</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Cheers Clink</strong><span style="font-size:0.66rem; color:var(--text-muted);">Glass toast</span></div>
-                </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('drumroll', '🥁 Drumroll!')" style="border-color: rgba(245, 158, 11, 0.45);">
                     <span style="font-size: 1.45rem;">🥁</span>
                     <div><strong style="display:block; font-size:0.84rem;">Drumroll</strong><span style="font-size:0.66rem; color:var(--text-muted);">Suspense roll</span></div>
@@ -1367,10 +1455,6 @@
                     <span style="font-size: 1.45rem;">🎬</span>
                     <div><strong style="display:block; font-size:0.84rem;">Dramatic Horn</strong><span style="font-size:0.66rem; color:var(--text-muted);">Trailer sting</span></div>
                 </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('magic_sparkle', '✨ Ooh, Close!')" style="border-color: rgba(236, 72, 153, 0.45);">
-                    <span style="font-size: 1.45rem;">✨</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Magic Sparkle</strong><span style="font-size:0.66rem; color:var(--text-muted);">Getting warm!</span></div>
-                </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('wrong_buzz', '❌ BZZZT!')" style="border-color: rgba(239, 68, 68, 0.45);">
                     <span style="font-size: 1.45rem;">❌</span>
                     <div><strong style="display:block; font-size:0.84rem;">Wrong Buzz</strong><span style="font-size:0.66rem; color:var(--text-muted);">Wild guess</span></div>
@@ -1378,10 +1462,6 @@
                 <button type="button" class="sfx-tile" onclick="playHostSfx('sad_trombone', '🎺 Wah-Wah-Waaah!')" style="border-color: rgba(239, 68, 68, 0.45);">
                     <span style="font-size: 1.45rem;">🎺</span>
                     <div><strong style="display:block; font-size:0.84rem;">Sad Trombone</strong><span style="font-size:0.66rem; color:var(--text-muted);">Wah-wah-waaah</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('record_scratch', '💥 Record Scratch!')" style="border-color: rgba(249, 115, 22, 0.45);">
-                    <span style="font-size: 1.45rem;">💥</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Record Scratch</strong><span style="font-size:0.66rem; color:var(--text-muted);">Sudden stop</span></div>
                 </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('mogambo_khush_hua', '😈 Mogambo Khush Hua!')" style="border-color: rgba(234, 179, 8, 0.55);">
                     <span style="font-size: 1.45rem;">😈</span>
@@ -1406,6 +1486,38 @@
                 <button type="button" class="sfx-tile" onclick="playHostSfx('ruko_zara', '✋ Ruko Zara, Sabr Karo!')" style="border-color: rgba(56, 189, 248, 0.55);">
                     <span style="font-size: 1.45rem;">✋</span>
                     <div><strong style="display:block; font-size:0.84rem;">Ruko Zara!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Sabr karo!</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('tu_samjha', '🤔 Tu Samjha? Nahi!')" style="border-color: rgba(239, 68, 68, 0.55);">
+                    <span style="font-size: 1.45rem;">🤔</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Tu Samjha?</strong><span style="font-size:0.66rem; color:var(--text-muted);">Nahi tu nahi samjha</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('kehna_kya_chahte_ho', '🤨 Arey Kehna Kya Chahte Ho?')" style="border-color: rgba(239, 68, 68, 0.55);">
+                    <span style="font-size: 1.45rem;">🤨</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Kehna Kya Chahte Ho?</strong><span style="font-size:0.66rem; color:var(--text-muted);">3 Idiots</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('mast_joke_mara', '🤣 Mast Joke Mara Re!')" style="border-color: rgba(239, 68, 68, 0.55);">
+                    <span style="font-size: 1.45rem;">🤣</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Mast Joke Mara!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Has re halkat has</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('jaldi_bol_panvel', '⏰ Jaldi Bol! Kal Subah Panvel Nikalna Hai!')" style="border-color: rgba(56, 189, 248, 0.55);">
+                    <span style="font-size: 1.45rem;">⏰</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Jaldi Bol!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Panvel nikalna hai</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('cheating_karta_hai', '🕵️ Cheating Karta Hai Tu!')" style="border-color: rgba(245, 158, 11, 0.55);">
+                    <span style="font-size: 1.45rem;">🕵️</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Cheating Karta Hai!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Har baar cheating</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('tumse_na_ho_payega', '🫠 Beta, Tumse Na Ho Payega!')" style="border-color: rgba(239, 68, 68, 0.55);">
+                    <span style="font-size: 1.45rem;">🫠</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Tumse Na Ho Payega</strong><span style="font-size:0.66rem; color:var(--text-muted);">Gangs of Wasseypur</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('maro_mujhe_maro', '🤦‍♂️ O Bhai Maro Mujhe Maro!')" style="border-color: rgba(249, 115, 22, 0.55);">
+                    <span style="font-size: 1.45rem;">🤦‍♂️</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Maro Mujhe Maro!</strong><span style="font-size:0.66rem; color:var(--text-muted);">O bhai maro</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('kuchh_samjhe_daya', '🧐 Kuchh Samjhe Daya?')" style="border-color: rgba(168, 85, 247, 0.55);">
+                    <span style="font-size: 1.45rem;">🧐</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Kuchh Samjhe Daya?</strong><span style="font-size:0.66rem; color:var(--text-muted);">CID / ACP Pradyuman</span></div>
                 </button>
             </div>
         </div>
@@ -1494,7 +1606,7 @@
 {% endblock %}
 
 {% block javascripts %}
-<script src="/js/sounds.js?v=5"></script>
+<script src="/js/sounds.js?v=7"></script>
 <script src="/js/qrcode.min.js"></script>
 <script>
     const SHOW_ID = {{ show.id }};
@@ -1504,7 +1616,10 @@
     let activeArenaTimerStamp = null;
     let arenaBuzzerPlayedForStamp = null;
     let isPaused = false;
-    let soundEnabled = true;
+    let soundEnabled = false;
+    if (window.soundFX) {
+        window.soundFX.enabled = false;
+    }
     let arenaQrInit = false;
     let selectedAwardPts = 10;
     let activeMobileView = 'stage';
@@ -1589,6 +1704,34 @@
         if (window.soundFX) window.soundFX.init();
         const modal = document.getElementById('sfx-soundboard-modal');
         if (modal) modal.showModal();
+    }
+
+    const QUICK_SFX_POOLS = {
+        correct: [
+            { sfx: 'applause', label: '👏 Applause!' },
+            { sfx: 'tussi_great_ho', label: '🙇 Jahanpanah Tussi Great Ho!' },
+            { sfx: 'mogambo_khush_hua', label: '😈 Mogambo Khush Hua!' },
+        ],
+        wrong: [
+            { sfx: 'wrong_buzz', label: '❌ BZZZT!' },
+            { sfx: 'sad_trombone', label: '🎺 Wah-Wah-Waaah!' },
+            { sfx: 'kahan_se_aate', label: '🤦 Kaun Hai Ye Log?' },
+            { sfx: 'tu_samjha', label: '🤔 Tu Samjha? Nahi!' },
+            { sfx: 'kehna_kya_chahte_ho', label: '🤨 Arey Kehna Kya Chahte Ho?' },
+            { sfx: 'mast_joke_mara', label: '🤣 Mast Joke Mara Re!' },
+            { sfx: 'tumse_na_ho_payega', label: '🫠 Beta, Tumse Na Ho Payega!' },
+        ],
+    };
+    let lastQuickSfxByType = { correct: null, wrong: null };
+
+    function playRandomQuickSfx(type) {
+        const pool = QUICK_SFX_POOLS[type];
+        if (!pool || pool.length === 0) return;
+        let candidates = pool.filter(item => item.sfx !== lastQuickSfxByType[type]);
+        if (candidates.length === 0) candidates = pool;
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        lastQuickSfxByType[type] = pick.sfx;
+        playHostSfx(pick.sfx, pick.label);
     }
 
     function playHostSfx(sfxName, label) {
@@ -1740,15 +1883,11 @@
         // Host Clue Card (Always visible to host)
         const hostClueCard = document.getElementById('host-clue-card');
         const hostClueAns = document.getElementById('host-clue-answer');
-        const hostCluePrompt = document.getElementById('host-clue-prompt');
         const hostTvStatus = document.getElementById('host-tv-status');
 
         if (q) {
             hostClueCard.style.display = 'block';
             hostClueAns.innerText = q.answer;
-            hostCluePrompt.innerText = q.is_sample
-                ? `${q.category_name || 'Sample Tryout Puzzle'} • Practice Only (No Points)`
-                : `${q.category_name || 'Category'} • ${q.difficulty} • Points: +${roundPts} (Steal: +${stealPts})`;
             if (show.answer_revealed == 1) {
                 hostTvStatus.innerText = '📺 REVEALED ON TV ✅';
                 hostTvStatus.className = 'host-tv-status revealed';
@@ -1826,6 +1965,8 @@
                 const img = document.getElementById('puzzle-image');
                 img.src = q.media_path;
                 img.style.display = 'block';
+                document.getElementById('quick-sfx-correct').style.display = 'inline-flex';
+                document.getElementById('quick-sfx-wrong').style.display = 'inline-flex';
 
                 if (q.is_sample) {
                     if (btnNextQ) btnNextQ.innerText = '⏭️ Round 1 Info';
@@ -1851,6 +1992,8 @@
             } else {
                 document.getElementById('no-question-splash').style.display = 'block';
                 document.getElementById('puzzle-image').style.display = 'none';
+                document.getElementById('quick-sfx-correct').style.display = 'none';
+                document.getElementById('quick-sfx-wrong').style.display = 'none';
                 document.getElementById('answer-banner').style.display = 'none';
                 document.getElementById('time-up-banner').style.display = 'none';
 

@@ -5,6 +5,29 @@ class GameSoundFX {
         this.enabled = true;
         this._audioCache = {};
         this._activeClip = null;
+        this._clipsPreloaded = false;
+        this._studioFallbacks = {
+            drumroll: () => this.playDrumroll(),
+            sad_trombone: () => this.playSadTrombone(),
+            dun_dun_dun: () => this.playDunDunDun(),
+            wrong_buzz: () => this.playWrongBuzz(),
+            applause: () => this.playApplause(),
+            ipl_horn: () => this.playIplHorn(),
+            kahan_se_aate: () => this.playSadTrombone(),
+            mogambo_khush_hua: () => this.playFanfare(),
+            control_uday: () => this.playRecordScratch(),
+            tussi_great_ho: () => this.playCheersClink(),
+            nana_laugh: () => this.playApplause(),
+            ruko_zara: () => this.playBoxingBell(),
+            tu_samjha: () => this.playSadTrombone(),
+            kehna_kya_chahte_ho: () => this.playSadTrombone(),
+            mast_joke_mara: () => this.playSadTrombone(),
+            jaldi_bol_panvel: () => this.playBoxingBell(),
+            cheating_karta_hai: () => this.playWrongBuzz(),
+            tumse_na_ho_payega: () => this.playSadTrombone(),
+            maro_mujhe_maro: () => this.playSadTrombone(),
+            kuchh_samjhe_daya: () => this.playDunDunDun(),
+        };
         this._bindAutoUnlock();
     }
 
@@ -30,6 +53,30 @@ class GameSoundFX {
         if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume().catch(() => {});
         }
+        this.preloadStudioClips();
+    }
+
+    _getOrCreateClip(name) {
+        let clip = this._audioCache[name];
+        if (!clip) {
+            clip = new Audio(`/sfx/${name}.mp3?v=5`);
+            clip.preload = 'auto';
+            this._audioCache[name] = clip;
+        }
+        return clip;
+    }
+
+    preloadStudioClips() {
+        if (this._clipsPreloaded || !this.enabled || typeof Audio === 'undefined') return;
+        this._clipsPreloaded = true;
+        Object.keys(this._studioFallbacks).forEach((name) => {
+            try {
+                const clip = this._getOrCreateClip(name);
+                clip.load();
+            } catch (e) {
+                // Ignore preload errors; fallback synth remains available
+            }
+        });
     }
 
     _runWhenReady(fn) {
@@ -595,27 +642,6 @@ class GameSoundFX {
         });
     }
 
-    playMagicSparkle() {
-        this._runWhenReady(() => {
-            const now = this.ctx.currentTime;
-            const notes = [783.99, 987.77, 1174.66, 1567.98, 1975.53, 2349.32];
-            notes.forEach((f, idx) => {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                const start = now + idx * 0.05;
-                osc.frequency.setValueAtTime(f, start);
-                gain.gain.setValueAtTime(0.001, start);
-                gain.gain.linearRampToValueAtTime(0.22, start + 0.015);
-                gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(start);
-                osc.stop(start + 0.4);
-            });
-        });
-    }
-
     _playStudioClip(name, fallbackFn) {
         if (!this.enabled) return;
         try {
@@ -623,12 +649,7 @@ class GameSoundFX {
                 this._activeClip.pause();
                 this._activeClip.currentTime = 0;
             }
-            let clip = this._audioCache[name];
-            if (!clip) {
-                clip = new Audio(`/sfx/${name}.mp3?v=2`);
-                clip.preload = 'none';
-                this._audioCache[name] = clip;
-            }
+            const clip = this._getOrCreateClip(name);
             clip.currentTime = 0;
             clip.volume = 0.85;
             this._activeClip = clip;
@@ -644,26 +665,9 @@ class GameSoundFX {
     }
 
     playByName(name) {
-        const fallbacks = {
-            drumroll: () => this.playDrumroll(),
-            sad_trombone: () => this.playSadTrombone(),
-            dun_dun_dun: () => this.playDunDunDun(),
-            wrong_buzz: () => this.playWrongBuzz(),
-            applause: () => this.playApplause(),
-            ipl_horn: () => this.playIplHorn(),
-            cheers_clink: () => this.playCheersClink(),
-            record_scratch: () => this.playRecordScratch(),
-            boxing_bell: () => this.playBoxingBell(),
-            magic_sparkle: () => this.playMagicSparkle(),
-            kahan_se_aate: () => this.playSadTrombone(),
-            mogambo_khush_hua: () => this.playFanfare(),
-            control_uday: () => this.playRecordScratch(),
-            tussi_great_ho: () => this.playCheersClink(),
-            nana_laugh: () => this.playApplause(),
-            ruko_zara: () => this.playBoxingBell(),
-        };
-        if (fallbacks[name]) {
-            this._playStudioClip(name, fallbacks[name]);
+        const fallback = this._studioFallbacks[name];
+        if (fallback) {
+            this._playStudioClip(name, fallback);
         }
     }
 }
