@@ -884,6 +884,34 @@
         gap: 0.4rem;
     }
 
+    .sfx-section-label {
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        padding: 0.1rem 0.15rem 0;
+    }
+
+    .sfx-divider {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.35rem 0 0.1rem;
+        color: var(--text-muted);
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .sfx-divider::before,
+    .sfx-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+    }
+
     .sfx-tile {
         background: var(--bg-dark);
         border: 1.5px solid var(--border-color);
@@ -1438,15 +1466,8 @@
         </div>
 
         <div id="arena-sounds-body" class="sounds-panel-scroll" style="display: none;">
+            <div class="sfx-section-label">🎭 Regular Sounds</div>
             <div class="sfx-grid">
-                <button type="button" class="sfx-tile" onclick="playHostSfx('applause', '👏 Applause!')" style="border-color: rgba(16, 185, 129, 0.45);">
-                    <span style="font-size: 1.45rem;">👏</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Applause</strong><span style="font-size:0.66rem; color:var(--text-muted);">Crowd cheers</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('ipl_horn', '🏏 IPL Trumpet!')" style="border-color: rgba(56, 189, 248, 0.45);">
-                    <span style="font-size: 1.45rem;">🏏</span>
-                    <div><strong style="display:block; font-size:0.84rem;">IPL Trumpet</strong><span style="font-size:0.66rem; color:var(--text-muted);">Stadium bugle</span></div>
-                </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('drumroll', '🥁 Drumroll!')" style="border-color: rgba(245, 158, 11, 0.45);">
                     <span style="font-size: 1.45rem;">🥁</span>
                     <div><strong style="display:block; font-size:0.84rem;">Drumroll</strong><span style="font-size:0.66rem; color:var(--text-muted);">Suspense roll</span></div>
@@ -1454,6 +1475,54 @@
                 <button type="button" class="sfx-tile" onclick="playHostSfx('dun_dun_dun', '🎬 Dramatic Horn!')" style="border-color: rgba(168, 85, 247, 0.45);">
                     <span style="font-size: 1.45rem;">🎬</span>
                     <div><strong style="display:block; font-size:0.84rem;">Dramatic Horn</strong><span style="font-size:0.66rem; color:var(--text-muted);">Trailer sting</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('control_uday', '🤣 Control Uday, Control!')" style="border-color: rgba(16, 185, 129, 0.55);">
+                    <span style="font-size: 1.45rem;">🤣</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Control Uday!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Welcome</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('nana_laugh', '😂 Nana Patekar Laugh!')" style="border-color: rgba(239, 68, 68, 0.55);">
+                    <span style="font-size: 1.45rem;">😂</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Nana Laugh</strong><span style="font-size:0.66rem; color:var(--text-muted);">Iconic laugh</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('ruko_zara', '✋ Ruko Zara, Sabr Karo!')" style="border-color: rgba(56, 189, 248, 0.55);">
+                    <span style="font-size: 1.45rem;">✋</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Ruko Zara!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Sabr karo!</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('jaldi_bol_panvel', '⏰ Jaldi Bol! Kal Subah Panvel Nikalna Hai!')" style="border-color: rgba(56, 189, 248, 0.55);">
+                    <span style="font-size: 1.45rem;">⏰</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Jaldi Bol!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Panvel nikalna hai</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('cheating_karta_hai', '🕵️ Cheating Karta Hai Tu!')" style="border-color: rgba(245, 158, 11, 0.55);">
+                    <span style="font-size: 1.45rem;">🕵️</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Cheating Karta Hai!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Har baar cheating</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('maro_mujhe_maro', '🤦‍♂️ O Bhai Maro Mujhe Maro!')" style="border-color: rgba(249, 115, 22, 0.55);">
+                    <span style="font-size: 1.45rem;">🤦‍♂️</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Maro Mujhe Maro!</strong><span style="font-size:0.66rem; color:var(--text-muted);">O bhai maro</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('kuchh_samjhe_daya', '🧐 Kuchh Samjhe Daya?')" style="border-color: rgba(168, 85, 247, 0.55);">
+                    <span style="font-size: 1.45rem;">🧐</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Kuchh Samjhe Daya?</strong><span style="font-size:0.66rem; color:var(--text-muted);">CID / ACP Pradyuman</span></div>
+                </button>
+            </div>
+
+            <div class="sfx-divider"><span>Right &amp; Wrong Answer Sounds</span></div>
+            <div class="sfx-grid">
+                <button type="button" class="sfx-tile" onclick="playHostSfx('applause', '👏 Applause!')" style="border-color: rgba(16, 185, 129, 0.45);">
+                    <span style="font-size: 1.45rem;">👏</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Applause</strong><span style="font-size:0.66rem; color:var(--text-muted);">Crowd cheers</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('tussi_great_ho', '🙇 Jahanpanah Tussi Great Ho!')" style="border-color: rgba(16, 185, 129, 0.55);">
+                    <span style="font-size: 1.45rem;">🙇</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Tussi Great Ho!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Tohfa kubool karo</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('mogambo_khush_hua', '😈 Mogambo Khush Hua!')" style="border-color: rgba(16, 185, 129, 0.55);">
+                    <span style="font-size: 1.45rem;">😈</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Mogambo Khush Hua</strong><span style="font-size:0.66rem; color:var(--text-muted);">Mr. India</span></div>
+                </button>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('shabbas_beta', '👏 Shabbas Beta! Bahut Badia!')" style="border-color: rgba(16, 185, 129, 0.55);">
+                    <span style="font-size: 1.45rem;">👏</span>
+                    <div><strong style="display:block; font-size:0.84rem;">Shabbas Beta</strong><span style="font-size:0.66rem; color:var(--text-muted);">Bahut badia!</span></div>
                 </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('wrong_buzz', '❌ BZZZT!')" style="border-color: rgba(239, 68, 68, 0.45);">
                     <span style="font-size: 1.45rem;">❌</span>
@@ -1463,29 +1532,9 @@
                     <span style="font-size: 1.45rem;">🎺</span>
                     <div><strong style="display:block; font-size:0.84rem;">Sad Trombone</strong><span style="font-size:0.66rem; color:var(--text-muted);">Wah-wah-waaah</span></div>
                 </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('mogambo_khush_hua', '😈 Mogambo Khush Hua!')" style="border-color: rgba(234, 179, 8, 0.55);">
-                    <span style="font-size: 1.45rem;">😈</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Mogambo Khush Hua</strong><span style="font-size:0.66rem; color:var(--text-muted);">Mr. India</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('tussi_great_ho', '🙇 Jahanpanah Tussi Great Ho!')" style="border-color: rgba(168, 85, 247, 0.55);">
-                    <span style="font-size: 1.45rem;">🙇</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Tussi Great Ho!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Tohfa kubool karo</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('control_uday', '🤣 Control Uday, Control!')" style="border-color: rgba(16, 185, 129, 0.55);">
-                    <span style="font-size: 1.45rem;">🤣</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Control Uday!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Welcome</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('kahan_se_aate', '🤦 Kaun Hai Ye Log?')" style="border-color: rgba(249, 115, 22, 0.55);">
+                <button type="button" class="sfx-tile" onclick="playHostSfx('kahan_se_aate', '🤦 Kaun Hai Ye Log?')" style="border-color: rgba(239, 68, 68, 0.55);">
                     <span style="font-size: 1.45rem;">🤦</span>
                     <div><strong style="display:block; font-size:0.84rem;">Kaun Hai Ye Log?</strong><span style="font-size:0.66rem; color:var(--text-muted);">Kahan se aate hai</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('nana_laugh', '😂 Nana Patekar Laugh!')" style="border-color: rgba(239, 68, 68, 0.55);">
-                    <span style="font-size: 1.45rem;">😂</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Nana Laugh</strong><span style="font-size:0.66rem; color:var(--text-muted);">Iconic laugh</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('ruko_zara', '✋ Ruko Zara, Sabr Karo!')" style="border-color: rgba(56, 189, 248, 0.55);">
-                    <span style="font-size: 1.45rem;">✋</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Ruko Zara!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Sabr karo!</span></div>
                 </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('tu_samjha', '🤔 Tu Samjha? Nahi!')" style="border-color: rgba(239, 68, 68, 0.55);">
                     <span style="font-size: 1.45rem;">🤔</span>
@@ -1499,25 +1548,13 @@
                     <span style="font-size: 1.45rem;">🤣</span>
                     <div><strong style="display:block; font-size:0.84rem;">Mast Joke Mara!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Has re halkat has</span></div>
                 </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('jaldi_bol_panvel', '⏰ Jaldi Bol! Kal Subah Panvel Nikalna Hai!')" style="border-color: rgba(56, 189, 248, 0.55);">
-                    <span style="font-size: 1.45rem;">⏰</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Jaldi Bol!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Panvel nikalna hai</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('cheating_karta_hai', '🕵️ Cheating Karta Hai Tu!')" style="border-color: rgba(245, 158, 11, 0.55);">
-                    <span style="font-size: 1.45rem;">🕵️</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Cheating Karta Hai!</strong><span style="font-size:0.66rem; color:var(--text-muted);">Har baar cheating</span></div>
-                </button>
                 <button type="button" class="sfx-tile" onclick="playHostSfx('tumse_na_ho_payega', '🫠 Beta, Tumse Na Ho Payega!')" style="border-color: rgba(239, 68, 68, 0.55);">
                     <span style="font-size: 1.45rem;">🫠</span>
                     <div><strong style="display:block; font-size:0.84rem;">Tumse Na Ho Payega</strong><span style="font-size:0.66rem; color:var(--text-muted);">Gangs of Wasseypur</span></div>
                 </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('maro_mujhe_maro', '🤦‍♂️ O Bhai Maro Mujhe Maro!')" style="border-color: rgba(249, 115, 22, 0.55);">
-                    <span style="font-size: 1.45rem;">🤦‍♂️</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Maro Mujhe Maro!</strong><span style="font-size:0.66rem; color:var(--text-muted);">O bhai maro</span></div>
-                </button>
-                <button type="button" class="sfx-tile" onclick="playHostSfx('kuchh_samjhe_daya', '🧐 Kuchh Samjhe Daya?')" style="border-color: rgba(168, 85, 247, 0.55);">
-                    <span style="font-size: 1.45rem;">🧐</span>
-                    <div><strong style="display:block; font-size:0.84rem;">Kuchh Samjhe Daya?</strong><span style="font-size:0.66rem; color:var(--text-muted);">CID / ACP Pradyuman</span></div>
+                <button type="button" class="sfx-tile" onclick="playHostSfx('ipl_horn', '🏏 IPL Trumpet!')" style="border-color: rgba(56, 189, 248, 0.45);">
+                    <span style="font-size: 1.45rem;">🏏</span>
+                    <div><strong style="display:block; font-size:0.84rem;">IPL Trumpet</strong><span style="font-size:0.66rem; color:var(--text-muted);">Stadium bugle</span></div>
                 </button>
             </div>
         </div>
@@ -1711,6 +1748,7 @@
             { sfx: 'applause', label: '👏 Applause!' },
             { sfx: 'tussi_great_ho', label: '🙇 Jahanpanah Tussi Great Ho!' },
             { sfx: 'mogambo_khush_hua', label: '😈 Mogambo Khush Hua!' },
+            { sfx: 'shabbas_beta', label: '👏 Shabbas Beta! Bahut Badia!' },
         ],
         wrong: [
             { sfx: 'wrong_buzz', label: '❌ BZZZT!' },

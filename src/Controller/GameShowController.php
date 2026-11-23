@@ -1944,7 +1944,7 @@ class GameShowController extends AbstractController
 
             case 'play_sfx':
                 $sfx = (string) ($payload['sfx'] ?? '');
-                $allowedSfx = ['drumroll', 'sad_trombone', 'dun_dun_dun', 'wrong_buzz', 'applause', 'ipl_horn', 'kahan_se_aate', 'mogambo_khush_hua', 'control_uday', 'tussi_great_ho', 'nana_laugh', 'ruko_zara', 'tu_samjha', 'kehna_kya_chahte_ho', 'mast_joke_mara', 'jaldi_bol_panvel', 'cheating_karta_hai', 'tumse_na_ho_payega', 'maro_mujhe_maro', 'kuchh_samjhe_daya'];
+                $allowedSfx = ['drumroll', 'sad_trombone', 'dun_dun_dun', 'wrong_buzz', 'applause', 'ipl_horn', 'kahan_se_aate', 'mogambo_khush_hua', 'control_uday', 'tussi_great_ho', 'nana_laugh', 'ruko_zara', 'tu_samjha', 'kehna_kya_chahte_ho', 'mast_joke_mara', 'jaldi_bol_panvel', 'cheating_karta_hai', 'tumse_na_ho_payega', 'maro_mujhe_maro', 'kuchh_samjhe_daya', 'shabbas_beta'];
                 if (!in_array($sfx, $allowedSfx, true)) {
                     return $this->json(['success' => false, 'error' => 'Invalid SFX name'], Response::HTTP_BAD_REQUEST);
                 }

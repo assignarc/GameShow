@@ -27,6 +27,7 @@ class GameSoundFX {
             tumse_na_ho_payega: () => this.playSadTrombone(),
             maro_mujhe_maro: () => this.playSadTrombone(),
             kuchh_samjhe_daya: () => this.playDunDunDun(),
+            shabbas_beta: () => this.playApplause(),
         };
         this._bindAutoUnlock();
     }
